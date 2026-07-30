@@ -163,13 +163,11 @@ jobs:
           emulator-boot-timeout: 900
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            set -euo pipefail
-
-            adb wait-for-device
-            until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
-              sleep 2
-            done
-            echo "Emulator booted."
+            # `set -eu`, not `set -euo pipefail`: this runs under /usr/bin/sh
+            # (dash), which has no pipefail option and exits 2 on the `set`
+            # line itself — which reads as the whole step failing for no
+            # visible reason, right after the action reports a healthy boot.
+            set -eu
 
             APK=android/app/build/outputs/apk/release/app-release.apk
             test -f "$APK" || {
