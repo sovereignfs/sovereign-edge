@@ -148,9 +148,10 @@ jobs:
       # The emulator is the least reliable part of this workflow: the first
       # attempt failed with "device offline" and an unreachable adb daemon
       # before the app was ever installed. Software GPU, no snapshot, and a
-      # generous boot timeout are what make it survive a cold CI runner; the
-      # explicit boot wait covers the action returning before the device is
-      # actually usable.
+      # generous boot timeout are what make it survive a cold CI runner.
+      #
+      # `script` must stay a single line — the action runs each line of its
+      # input in a separate shell. The real logic is in the script file.
       - name: Launch on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -162,28 +163,4 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 900
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            # `set -eu`, not `set -euo pipefail`: this runs under /usr/bin/sh
-            # (dash), which has no pipefail option and exits 2 on the `set`
-            # line itself — which reads as the whole step failing for no
-            # visible reason, right after the action reports a healthy boot.
-            set -eu
-
-            APK=android/app/build/outputs/apk/release/app-release.apk
-            test -f "$APK" || {
-              echo "::error::No APK at $APK"
-              find android/app/build/outputs -name '*.apk' || true
-              exit 1
-            }
-
-            adb install -r "$APK"
-            adb shell monkey -p fs.sovereign.edge -c android.intent.category.LAUNCHER 1
-
-            sleep 10
-            if adb shell pidof fs.sovereign.edge > /dev/null; then
-              echo "App is running."
-            else
-              echo "::error::App launched but was not running 10s later — likely crashed on startup."
-              adb logcat -d -s ReactNativeJS AndroidRuntime || true
-              exit 1
-            fi
+          script: bash scripts/ci/android-smoke.sh
