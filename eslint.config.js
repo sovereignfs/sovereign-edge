@@ -4,11 +4,16 @@
 const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 const prettierConfig = require('eslint-config-prettier/flat');
+const globals = require('globals');
 
 module.exports = defineConfig([
   expoConfig,
   prettierConfig,
   {
     ignores: ['node_modules/', 'ios/', 'android/', '.expo/', 'dist/'],
+  },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', 'jest.setup.js'],
+    languageOptions: { globals: globals.jest },
   },
 ]);
