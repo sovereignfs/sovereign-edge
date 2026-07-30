@@ -1,0 +1,158 @@
+name: Native build
+
+# The boot gate for epic 0.1: proves the app compiles and actually launches on
+# a simulator and an emulator. Deliberately not on every PR — these jobs are
+# slow and burn runner minutes, and ci.yml already catches the cheap failures.
+#
+# This lives in CI rather than on a developer machine on purpose. See the
+# decision in docs/research/0002-react-native-framework-choice.md: the runners
+# provide CocoaPods, a JDK, and the Android SDK, so the check is reproducible
+# instead of depending on one laptop's setup.
+#
+# Release configuration, not Debug: a Debug build loads its JS from a running
+# Metro server, so it cannot prove anything about launching standalone.
+# Release bundles the JS into the binary.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ios:
+    name: iOS — build and launch
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ios/ is gitignored — continuous native generation means it is derived
+      # from app.json plus config plugins, never checked in.
+      - name: Generate native project
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Install pods
+        working-directory: ios
+        run: pod install
+
+      - name: Build for simulator
+        run: |
+          xcodebuild \
+            -workspace ios/SovereignEdge.xcworkspace \
+            -scheme SovereignEdge \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Launch on a simulator
+        run: |
+          set -euo pipefail
+          APP=ios/build/Build/Products/Release-iphonesimulator/SovereignEdge.app
+          test -d "$APP" || { echo "::error::No .app produced at $APP"; exit 1; }
+
+          DEVICE=$(xcrun simctl create ci-check com.apple.CoreSimulator.SimDeviceType.iPhone-16)
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl install "$DEVICE" "$APP"
+          xcrun simctl launch "$DEVICE" fs.sovereign.edge
+
+          # launch returns a pid even for a process that dies immediately, so
+          # confirm the app is still alive a few seconds later.
+          sleep 10
+          if xcrun simctl spawn "$DEVICE" launchctl list | grep -q fs.sovereign.edge; then
+            echo "App is running."
+          else
+            echo "::error::App launched but was not running 10s later — likely crashed on startup."
+            xcrun simctl spawn "$DEVICE" log show --last 2m --predicate 'process == "SovereignEdge"' || true
+            exit 1
+          fi
+
+  android:
+    name: Android — build and launch
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate native project
+        run: npx expo prebuild --platform android --clean
+
+      # Release here is signed with the debug keystore the RN template
+      # generates. That is fine for a launch check and produces no
+      # distributable artifact; real signing belongs to task 0.3.
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Launch on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            adb shell monkey -p fs.sovereign.edge -c android.intent.category.LAUNCHER 1
+
+            sleep 10
+            if adb shell pidof fs.sovereign.edge > /dev/null; then
+              echo "App is running."
+            else
+              echo "::error::App launched but was not running 10s later — likely crashed on startup."
+              adb logcat -d -s ReactNativeJS AndroidRuntime || true
+              exit 1
+            fi
