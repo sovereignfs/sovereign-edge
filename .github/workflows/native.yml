@@ -32,7 +32,11 @@ defaults:
 jobs:
   ios:
     name: iOS — build and launch
-    runs-on: macos-15
+    # Pinned, not macos-latest, so an image rollover cannot silently change
+    # the toolchain under us. Must be macos-26 or newer: Expo SDK 57 pulls a
+    # Swift package requiring Swift tools 6.2, and macos-15 ships 6.1, which
+    # fails at package resolution with a message that does not name Expo.
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +58,11 @@ jobs:
       # from app.json plus config plugins, never checked in.
       - name: Generate native project
         run: npx expo prebuild --platform ios --clean
+
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
 
       - name: Install pods
         working-directory: ios
@@ -136,16 +145,40 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The emulator is the least reliable part of this workflow: the first
+      # attempt failed with "device offline" and an unreachable adb daemon
+      # before the app was ever installed. Software GPU, no snapshot, and a
+      # generous boot timeout are what make it survive a cold CI runner; the
+      # explicit boot wait covers the action returning before the device is
+      # actually usable.
       - name: Launch on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
+          profile: pixel_6
+          ram-size: 4096M
           disable-animations: true
+          emulator-boot-timeout: 900
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             set -euo pipefail
-            adb install -r android/app/build/outputs/apk/release/app-release.apk
+
+            adb wait-for-device
+            until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+              sleep 2
+            done
+            echo "Emulator booted."
+
+            APK=android/app/build/outputs/apk/release/app-release.apk
+            test -f "$APK" || {
+              echo "::error::No APK at $APK"
+              find android/app/build/outputs -name '*.apk' || true
+              exit 1
+            }
+
+            adb install -r "$APK"
             adb shell monkey -p fs.sovereign.edge -c android.intent.category.LAUNCHER 1
 
             sleep 10
