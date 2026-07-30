@@ -151,13 +151,22 @@ offline verifiability.
   project holds its own signing keys.
 - **Expo Go is not a supported development path** — `llama.rn` requires a
   development build, so iOS/Android dev builds are the only workflow.
+- **Test runner: Jest via `jest-expo`**, a deliberate exception to the
+  ecosystem's Vitest 4 standard rather than drift. React Native ships Flow
+  types in its own source and resolves modules Metro-style; Vitest needs
+  preset and transform workarounds to cope, and those break on RN upgrades.
+  `jest-expo` is maintained in lockstep with the SDK. The cost is one
+  inconsistency with `sovereign-desktop`; the benefit is a test setup that
+  survives SDK bumps without hand-holding.
 
 ## Open questions
 
-- **Test runner.** React Native templates default to Jest, while the wider
-  ecosystem (`sovereign-desktop`) standardizes on Vitest 4. Whether the
-  mobile app aligns on Vitest or accepts Jest as a deliberate exception is
-  unresolved; task 0.2 (CI pipeline) forces the answer.
+- **Whether CI should also gate on a physical device.** The simulator and
+  emulator checks in `native.yml` catch crash-on-startup, but not the
+  device-only failures (memory pressure under a loaded GGUF model, thermal
+  throttling) that matter most for on-device inference. Task 0.3 revisits
+  this when real builds start going to TestFlight and the internal Play
+  track.
 - **Whether the `llama.rn` config-plugin ESM bug is still live** at the
   version pinned in task 0.1.5, and whether it needs a local patch.
 - **Local Android toolchain.** Nothing is installed — no SDK, no
