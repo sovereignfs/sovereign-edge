@@ -1,0 +1,11 @@
+node_modules/
+ios/
+android/
+.expo/
+dist/
+pnpm-lock.yaml
+
+# Prose and planning docs are hand-formatted — the epic tables are manually
+# aligned and Prettier's reflow churns them for no gain. Prettier is the
+# formatting source of truth for code, not for Markdown.
+*.md

@@ -1,0 +1,37 @@
+{
+  "name": "sovereign-edge",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Sovereign Edge — a privacy-first, fully offline on-device AI companion for iOS and Android",
+  "license": "AGPL-3.0-or-later",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "prebuild": "expo prebuild --clean",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "expo": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "eslint": "^9.18.0",
+    "eslint-config-expo": "~57.0.1",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.5.0",
+    "typescript": "~6.0.3"
+  },
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=24"
+  }
+}

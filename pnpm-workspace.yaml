@@ -1,0 +1,5 @@
+# pnpm 11 reads build-script approval from here, not package.json.
+# unrs-resolver builds the native binding behind eslint's import resolver;
+# without this its install script is skipped and linting fails to resolve.
+allowBuilds:
+  unrs-resolver: true
