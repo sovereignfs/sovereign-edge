@@ -86,7 +86,7 @@ tooling for both platforms. No product feature lives here.
 
 ---
 
-#### 📋 0.4 — Model asset pipeline
+#### ✅ 0.4 — Model asset pipeline
 
 **Goal:** Infrastructure for getting GGUF model weights onto a user's device
 without bundling them into the app binary.
@@ -104,8 +104,18 @@ without bundling them into the app binary.
 
 **Review checklist:**
 
-- A model download survives an interrupted connection and resumes or fails
-  cleanly with a clear error, never a silent stuck state.
+- ✅ A model download survives an interrupted connection and resumes or fails
+  cleanly with a clear error, never a silent stuck state. Verified on an
+  Android emulator against a local HTTP origin supporting Range requests,
+  throttling, and a deliberate stall (a socket held open while sending
+  nothing — distinct from a connection error). A stalled transfer failed with
+  `code: 'stalled'` 16s after the last byte and was paused, not cancelled; the
+  retry issued `Range: bytes=41943040-` and transferred only the remaining
+  92 MB rather than restarting.
+- ✅ Verification is size then native MD5, chosen from measurement rather than
+  assumption — see
+  [research 0003](../research/0003-model-verification-hashing.md). Verifying
+  128 MB takes ~500 ms; the device-computed digest matched the host exactly.
 
 ## Related Docs
 
