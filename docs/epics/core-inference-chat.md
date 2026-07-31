@@ -38,7 +38,7 @@ clean internal API the chat UI and connector framework both call.
 
 ---
 
-#### 📋 1.2 — Model manager
+#### ✅ 1.2 — Model manager
 
 **Goal:** Let a user pick, download, and manage which small model is
 installed.
@@ -54,8 +54,15 @@ installed.
 
 **Review checklist:**
 
-- A user can download one model, chat, delete it, and download a different
-  one without restarting the app.
+- ✅ A user can download one model, chat, delete it, and download a different
+  one without restarting the app. Verified end to end on an Android emulator:
+  Qwen2.5 0.5B downloaded and verified (57s), loaded in 1.3s, replied "Hello!
+  How may I assist you?", was deleted; then Llama 3.2 1B downloaded, loaded in
+  2.8s, replied, and was deleted — all in one app session.
+- ✅ The Llama entry carries no MD5, so it was verified purely against the
+  publisher's SHA-256: 807 MB in 1.0s (~790 MB/s) via the native module from
+  task [0.5](infrastructure.md#-05--native-sha-256-hashing). The same
+  check would have taken roughly ten minutes of JavaScript hashing before it.
 
 ---
 

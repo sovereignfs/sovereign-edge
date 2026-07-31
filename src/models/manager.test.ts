@@ -131,32 +131,29 @@ describe('ModelManager', () => {
   });
 
   describe('install', () => {
-    it('does not silently opt into slow verification', async () => {
-      // The Llama entry has no MD5, so verifying it means hashing SHA-256 in
-      // JS. That is the caller's call to make, not the manager's.
+    it('passes the descriptor straight through to the downloader', async () => {
+      // Verification policy lives in verifyFile, not here. Every catalog entry
+      // carries the publisher's SHA-256, which native hashing checks in
+      // seconds, so the manager no longer second-guesses the digest situation.
       await new ModelManager().install('llama-3.2-1b-instruct-q4km');
       expect(mockDownloadModel).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'llama-3.2-1b-instruct-q4km' }),
-        expect.objectContaining({ deepVerify: false }),
+        {},
       );
     });
 
-    it('enables deep verification when asked and no MD5 exists', async () => {
-      await new ModelManager().install('llama-3.2-1b-instruct-q4km', {
-        allowSlowVerification: true,
-      });
+    it('forwards caller options unchanged', async () => {
+      await new ModelManager().install(SMALL, { deepVerify: true });
       expect(mockDownloadModel).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ deepVerify: true }),
       );
     });
 
-    it('stays on the fast path for a model that has an MD5', async () => {
-      await new ModelManager().install(SMALL, { allowSlowVerification: true });
-      expect(mockDownloadModel).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ deepVerify: false }),
-      );
+    it('refuses an unknown model id', async () => {
+      await expect(
+        new ModelManager().install('not-a-model'),
+      ).rejects.toMatchObject({ code: 'storage' });
     });
   });
 });

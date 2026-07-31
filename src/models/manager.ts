@@ -62,21 +62,14 @@ export class ModelManager {
   /**
    * Downloads and verifies a catalog model.
    *
-   * Entries without an MD5 need deep verification, which is slow; rather than
-   * decide that silently, the caller opts in via `allowSlowVerification`.
+   * Verification policy is not decided here. Every catalog entry carries the
+   * publisher's SHA-256, which native hashing checks in seconds (task 0.5),
+   * so the default path is both fast and authoritative. `deepVerify` only
+   * matters in a build without the native module, where `downloadModel`
+   * refuses up front rather than silently hashing for an hour.
    */
-  async install(
-    id: string,
-    options: DownloadModelOptions & { allowSlowVerification?: boolean } = {},
-  ): Promise<void> {
-    const entry = this.requireEntry(id);
-    const { allowSlowVerification = false, ...downloadOptions } = options;
-
-    await downloadModel(entry, {
-      ...downloadOptions,
-      deepVerify:
-        downloadOptions.deepVerify ?? (!entry.md5 && allowSlowVerification),
-    });
+  async install(id: string, options: DownloadModelOptions = {}): Promise<void> {
+    await downloadModel(this.requireEntry(id), options);
   }
 
   /**
