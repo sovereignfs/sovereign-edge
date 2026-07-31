@@ -14,7 +14,7 @@ tooling for both platforms. No product feature lives here.
 
 ## Tasks
 
-#### 📋 0.1 — Repo scaffold
+#### ✅ 0.1 — Repo scaffold
 
 **Goal:** Stand up the React Native project this whole app is built on.
 
@@ -32,12 +32,15 @@ tooling for both platforms. No product feature lives here.
 
 **Review checklist:**
 
-- `pnpm ios` / `pnpm android` (or equivalent) boots a blank app on both
-  platforms' simulators/emulators.
+- ✅ Boots a blank app on both platforms' simulators/emulators. Verified by
+  the `Native build` workflow rather than locally — it builds Release,
+  installs, launches, and asserts the process is still alive ten seconds
+  later on both an iOS simulator and an Android emulator. See the decision
+  in [research 0002](../research/0002-react-native-framework-choice.md).
 
 ---
 
-#### 📋 0.2 — CI pipeline
+#### ✅ 0.2 — CI pipeline
 
 **Goal:** Lint, typecheck, and test on every PR.
 
@@ -52,8 +55,13 @@ tooling for both platforms. No product feature lives here.
 
 **Review checklist:**
 
-- CI fails on a lint/typecheck/test regression; CI does not require
-  downloading any model weights.
+- ✅ CI fails on a lint/typecheck/test regression; CI does not require
+  downloading any model weights. Two workflows: `CI` (lint, format,
+  typecheck, test) on every PR, and `Native build` (build and launch on both
+  platforms) on main and manual dispatch, kept separate so the slow native
+  jobs do not gate every PR. Nothing fetches beyond the package registry, and
+  `jest.setup.js` makes `fetch` throw so an accidental network call fails the
+  run.
 
 ---
 

@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** pre-work · **Last updated:** 2026-07-30
+**Version:** 0.1.2 · **Last updated:** 2026-07-31
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:
@@ -23,8 +23,8 @@ connector store, no third-party anything, no monetization yet.
 
 | Version | Task                                     | Status | Epic task                                                                              |
 | ------- | ------------------------------------------ | ------ | ----------------------------------------------------------------------------------------- |
-| 0.1.1   | Repo scaffold                             | 📋     | [0.1](docs/epics/infrastructure.md#-01--repo-scaffold)                                   |
-| 0.1.2   | CI pipeline                               | 📋     | [0.2](docs/epics/infrastructure.md#-02--ci-pipeline)                                      |
+| 0.1.1   | Repo scaffold                             | ✅     | [0.1](docs/epics/infrastructure.md#-01--repo-scaffold)                                   |
+| 0.1.2   | CI pipeline                               | ✅     | [0.2](docs/epics/infrastructure.md#-02--ci-pipeline)                                      |
 | 0.1.3   | Native build tooling                      | 📋     | [0.3](docs/epics/infrastructure.md#-03--native-build-tooling)                            |
 | 0.1.4   | Model asset pipeline                      | 📋     | [0.4](docs/epics/infrastructure.md#-04--model-asset-pipeline)                            |
 | 0.1.5   | `llama.rn` integration and inference wrapper | 📋 | [1.1](docs/epics/core-inference-chat.md#-11--llamarn-integration-and-inference-engine-wrapper) |

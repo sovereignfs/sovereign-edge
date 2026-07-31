@@ -12,7 +12,7 @@ record behind this shape: [research 0001](../research/0001-concept-and-connector
 
 | ID  | Epic                                                    | Status     | Summary                                                                          |
 | --- | -------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
-| 0   | [Infrastructure](infrastructure.md)                     | 📋 Planned | Repo scaffold, RN project setup, CI, build tooling for iOS/Android                |
+| 0   | [Infrastructure](infrastructure.md)                     | ⏳ In Progress | Repo scaffold, RN project setup, CI, build tooling for iOS/Android            |
 | 1   | [Core Inference & Chat](core-inference-chat.md)         | 📋 Planned | `llama.rn`/GGUF engine, model manager, fully offline chat and writing assistant   |
 | 2   | [Connector Framework](connector-framework.md)           | 📋 Planned | Manifest schema, permission/consent model, tool-routing, tiered trust runtime     |
 | 3   | [Search Connector](search-connector.md)                 | 📋 Planned | Default Tier 1 connector — meta-search (SearXNG-aligned) web search              |
