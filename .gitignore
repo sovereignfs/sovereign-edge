@@ -13,6 +13,11 @@ expo-env.d.ts
 /ios
 /android
 
+# Local native modules: their *source* is committed, their build output is not.
+# The patterns above are anchored to the repo root, so they do not cover these.
+modules/*/android/build/
+modules/*/ios/build/
+
 # Native
 .kotlin/
 *.orig.*
