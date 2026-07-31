@@ -5,7 +5,7 @@
 
 ## Status
 
-📋 Planned
+⏳ In Progress
 
 ## Overview
 
@@ -18,7 +18,7 @@ porting the *token values and visual language* (monochrome identity, the
 
 ## Tasks
 
-#### 📋 7.1 — Native theme tokens
+#### ✅ 7.1 — Native theme tokens
 
 **Goal:** Port Sovereign's token values (spacing, radius, font-size scale,
 monochrome color identity) into an RN-native theme (e.g. a plain TS theme
@@ -37,8 +37,13 @@ itself.
 
 **Review checklist:**
 
-- Switching light/dark mode restyles the whole app from the semantic theme
-  layer, with no per-component hardcoded colors.
+- ✅ Switching light/dark mode restyles the whole app from the semantic theme
+  layer, with no per-component hardcoded colors. Verified on an Android
+  emulator by toggling the system setting (`cmd uimode night yes`) without
+  restarting the app: the surface inverted from white to `#09090b` and body
+  text from grey-950 to grey-50, driven entirely by the semantic tier.
+  `App.tsx` keeps only layout in `StyleSheet`; every colour and type value
+  comes from `useTheme()`.
 
 ---
 
