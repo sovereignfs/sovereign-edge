@@ -6,7 +6,8 @@ One directory per epic, so code structure and planning structure stay aligned
 
 | Module           | Epic                                                            | Owns                                                                        |
 | ---------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `chat/`          | [1 — Core Inference & Chat](../docs/epics/core-inference-chat.md) | `llama.rn` wrapper, model manager, chat UI, writing-assist modes             |
+| `chat/`          | [1 — Core Inference & Chat](../docs/epics/core-inference-chat.md) | `llama.rn` wrapper, chat UI, writing-assist modes                            |
+| `models/`        | [0.4 — Model asset pipeline](../docs/epics/infrastructure.md)     | Download, resume, checksum verification, on-device storage                   |
 | `connectors/`    | [2 — Connector Framework](../docs/epics/connector-framework.md)  | Manifest schema, permission/consent, tool routing, runtime host, provenance  |
 | `design-system/` | [7 — Design System & Branding](../docs/epics/design-system.md)   | Theme tokens, core component set                                            |
 | `settings/`      | [8 — Mobile App Shell](../docs/epics/mobile-app-shell.md)        | Navigation, settings screens, app shell                                     |
@@ -24,5 +25,13 @@ path exists there at all." Every outbound call goes through `connectors/`,
 behind an explicit per-connector permission grant. Task
 [1.5](../docs/epics/core-inference-chat.md) turns this into an enforced,
 audited boundary rather than a convention.
+
+`models/` is why this is a separate module rather than living under `chat/`.
+Downloading weights is unambiguously network activity, so putting it beside
+the inference code would violate the rule above on day one. The split follows
+the actual trust boundary: **acquiring** a model is a deliberate, visible,
+user-initiated network action; **using** one is not, and never touches the
+network. `chat/` may read from `models/`' storage layer, but the download
+path is not part of the inference path.
 
 Imports resolve through the `@/` alias — `@/chat/...`, `@/connectors/...`.

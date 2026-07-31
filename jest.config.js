@@ -9,4 +9,11 @@ module.exports = {
   },
   collectCoverageFrom: ['src/**/*.{ts,tsx}', 'App.tsx'],
   testPathIgnorePatterns: ['/node_modules/', '/ios/', '/android/'],
+  // @noble/hashes is ESM-only ("type": "module", no CJS build), so Jest must
+  // transform it rather than skip it as a node_modules dependency. Matched by
+  // substring because pnpm resolves it through a .pnpm/@noble+hashes@x path
+  // rather than a plain node_modules/@noble/hashes one.
+  transformIgnorePatterns: [
+    'node_modules/(?!.*(@noble[+/]hashes|react-native|@react-native|expo|@expo))',
+  ],
 };

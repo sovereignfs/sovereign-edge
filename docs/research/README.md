@@ -19,3 +19,4 @@ or "rejected" is a valid, useful outcome to record.
 | ------------------------------------------------------------- | ----------------------------------------------- | ------ |
 | [0001](0001-concept-and-connector-architecture.md) | Sovereign Edge: concept, positioning, and connector architecture | Decided |
 | [0002](0002-react-native-framework-choice.md) | React Native framework choice: Expo vs. Community CLI | Decided |
+| [0003](0003-model-verification-hashing.md) | Model download verification: why MD5, not SHA-256 | Decided |
