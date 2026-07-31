@@ -167,8 +167,22 @@ offline verifiability.
   throttling) that matter most for on-device inference. Task 0.3 revisits
   this when real builds start going to TestFlight and the internal Play
   track.
-- **Whether the `llama.rn` config-plugin ESM bug is still live** at the
-  version pinned in task 0.1.5, and whether it needs a local patch.
+- ~~**Whether the `llama.rn` config-plugin ESM bug is still live**~~ —
+  **resolved.** Not present at `llama.rn` 0.12.8: the plugin resolves and
+  `expo prebuild` completes with it active, and the Android build links
+  `:llama.rn:assembleDebug` and packages `librnllama*.so` into the APK. No
+  patch needed.
+- **`llama.rn` ships prebuilt native binaries rather than building from
+  source.** Its `postinstall` downloads `llama-rn-ios-xcframework.tar.gz` and
+  `llama-rn-android-jni-libs.tar.gz`, which are too large for npm. For a
+  product whose claim is verifiable local execution, the inference engine's
+  binaries arriving over the network at install time is a supply-chain link
+  worth a deliberate decision — accept them, pin and checksum them, or build
+  from source. Unresolved.
+- **Debug APK size grew from 130 MB to 226 MB** when `llama.rn` was added, as
+  it ships a native library per CPU feature variant (v8, v8_2, dotprod, i8mm,
+  hexagon, opencl) for both ABIs. A release build wants ABI splits and no
+  x86_64 slice; revisit at task 0.3 or 8.2.
 - **Local Android toolchain.** Nothing is installed — no SDK, no
   `ANDROID_HOME`, no Android Studio, no `adb`, and no Java runtime at all.
   Deferred deliberately: JDK plus the Android command-line tools unpack into
