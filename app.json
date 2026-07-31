@@ -21,6 +21,14 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "plugins": []
+    "plugins": [
+      [
+        "llama.rn",
+        {
+          "enableEntitlements": true,
+          "entitlementsProfile": "production"
+        }
+      ]
+    ]
   }
 }

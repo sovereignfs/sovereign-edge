@@ -1,5 +1,13 @@
 # pnpm 11 reads build-script approval from here, not package.json.
+#
 # unrs-resolver builds the native binding behind eslint's import resolver;
 # without this its install script is skipped and linting fails to resolve.
+#
+# llama.rn's postinstall downloads prebuilt native artifacts (iOS
+# xcframeworks, Android .so libraries) that are too large to ship on npm.
+# Without it the package installs but cannot build. Note this means the
+# inference engine's binaries arrive over the network at install time rather
+# than being built from source — see research 0004.
 allowBuilds:
+  llama.rn: true
   unrs-resolver: true
