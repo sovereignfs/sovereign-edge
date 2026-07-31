@@ -29,6 +29,38 @@ import { ModelError, type ModelDescriptor } from './types';
  * cost above.
  */
 
+/**
+ * Throws unless this descriptor can actually be verified under `deep`.
+ *
+ * Called *before* a download starts as well as after it finishes. On-device
+ * testing showed why: checking only at the end meant a catalog entry with no
+ * MD5 downloaded 800 MB and then reported that it could not be verified —
+ * spending a user's bandwidth, and their mobile data, to learn something
+ * knowable from the descriptor alone.
+ *
+ * A size-only match is trivially satisfied by any file of the right length,
+ * so passing one would make "verified" mean almost nothing. Catalog entries
+ * carry the publisher's SHA-256 but usually no MD5, so this is the path that
+ * pushes callers to `deep` until native SHA-256 exists — see research 0003.
+ */
+export function assertVerifiable(
+  descriptor: ModelDescriptor,
+  deep: boolean,
+): void {
+  if (descriptor.md5) return;
+  if (deep && descriptor.sha256) return;
+
+  throw new ModelError(
+    'verification-unavailable',
+    descriptor.id,
+    descriptor.sha256
+      ? 'This model publishes only a SHA-256 digest, which cannot be checked ' +
+          'quickly on device. Enable deep verification — slow, but thorough — ' +
+          'before downloading it.'
+      : 'This model carries no checksum, so a download cannot be verified.',
+  );
+}
+
 export type VerifyOptions = {
   /**
    * Additionally verify SHA-256, when the descriptor carries one. Very slow —
@@ -83,6 +115,9 @@ export async function verifyFile(
   options: VerifyOptions = {},
 ): Promise<void> {
   const wantsDeep = options.deep === true && Boolean(descriptor.sha256);
+
+  assertVerifiable(descriptor, options.deep === true);
+
   const info = file.info({ md5: true });
 
   if (info.size !== descriptor.sizeBytes) {
@@ -94,23 +129,25 @@ export async function verifyFile(
     );
   }
 
-  const actualMd5 = info.md5?.toLowerCase();
-  if (!actualMd5) {
-    throw new ModelError(
-      'storage',
-      descriptor.id,
-      'Could not read the downloaded file to verify it.',
-    );
-  }
+  if (descriptor.md5) {
+    const actualMd5 = info.md5?.toLowerCase();
+    if (!actualMd5) {
+      throw new ModelError(
+        'storage',
+        descriptor.id,
+        'Could not read the downloaded file to verify it.',
+      );
+    }
 
-  if (actualMd5 !== descriptor.md5.toLowerCase()) {
-    throw new ModelError(
-      'checksum-mismatch',
-      descriptor.id,
-      `Checksum mismatch. Expected MD5 ${descriptor.md5} but computed ` +
-        `${actualMd5}. The file is corrupt or was not served by the expected ` +
-        `source; it has not been kept.`,
-    );
+    if (actualMd5 !== descriptor.md5.toLowerCase()) {
+      throw new ModelError(
+        'checksum-mismatch',
+        descriptor.id,
+        `Checksum mismatch. Expected MD5 ${descriptor.md5} but computed ` +
+          `${actualMd5}. The file is corrupt or was not served by the ` +
+          `expected source; it has not been kept.`,
+      );
+    }
   }
 
   if (!wantsDeep) return;

@@ -116,6 +116,33 @@ describe('verifyFile', () => {
     expect(file.readableStream).not.toHaveBeenCalled();
   });
 
+  it('refuses to pass a file it could only check by size', async () => {
+    // Catalog entries carry the publisher's SHA-256 but usually no MD5.
+    // Accepting size alone would make "verified" mean almost nothing — any
+    // file of the right length would pass.
+    const shaOnly = { ...descriptor, md5: undefined };
+    const file = fakeFile(ABC);
+
+    await expect(verifyFile(file, shaOnly)).rejects.toMatchObject({
+      code: 'verification-unavailable',
+    });
+    expect(file.readableStream).not.toHaveBeenCalled();
+  });
+
+  it('verifies a SHA-256-only descriptor when deep is requested', async () => {
+    const shaOnly = { ...descriptor, md5: undefined };
+    await expect(
+      verifyFile(fakeFile(ABC), shaOnly, { deep: true }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('refuses a descriptor carrying no digest at all', async () => {
+    const noDigest = { ...descriptor, md5: undefined, sha256: undefined };
+    await expect(
+      verifyFile(fakeFile(ABC), noDigest, { deep: true }),
+    ).rejects.toMatchObject({ code: 'verification-unavailable' });
+  });
+
   it('accepts uppercase digests in the descriptor', async () => {
     const upper = { ...descriptor, md5: ABC_MD5.toUpperCase() };
     await expect(verifyFile(fakeFile(ABC), upper)).resolves.toBeUndefined();

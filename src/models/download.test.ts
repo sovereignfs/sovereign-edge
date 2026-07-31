@@ -6,6 +6,7 @@
  * above the surrounding declarations and rejects other out-of-scope reads.
  */
 import { downloadModel } from './download';
+import { assertVerifiable } from './verify';
 import type { ModelDescriptor } from './types';
 
 const descriptor: ModelDescriptor = {
@@ -55,6 +56,35 @@ jest.mock('./store', () => ({
   })),
   removeModel: jest.fn(),
 }));
+
+describe('downloadModel verifiability check', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockTask.downloadAsync.mockImplementation(mockNeverResolves);
+  });
+
+  it('refuses before downloading a byte when it could not verify the result', async () => {
+    // Found on-device: checking only after the transfer meant an MD5-less
+    // entry downloaded 277 MB (of 800 MB) before reporting it was
+    // unverifiable — bandwidth the user may be paying for by the megabyte.
+    const noDigest = { ...descriptor, md5: undefined, sha256: undefined };
+
+    await expect(downloadModel(noDigest)).rejects.toMatchObject({
+      code: 'verification-unavailable',
+    });
+    expect(mockTask.downloadAsync).not.toHaveBeenCalled();
+  });
+
+  it('allows a SHA-256-only model when deep verification is on', async () => {
+    // Asserted against the guard directly rather than by starting a download:
+    // downloadModel arms the stall watchdog's interval, and a promise left
+    // unsettled here keeps that timer alive after the test ends — which shows
+    // up as "Jest did not exit" and would hang CI.
+    const shaOnly = { ...descriptor, md5: undefined, sha256: 'b'.repeat(64) };
+    expect(() => assertVerifiable(shaOnly, true)).not.toThrow();
+    expect(() => assertVerifiable(shaOnly, false)).toThrow();
+  });
+});
 
 describe('downloadModel stall detection', () => {
   beforeEach(() => {

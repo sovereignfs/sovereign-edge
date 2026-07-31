@@ -16,15 +16,17 @@ export type ModelDescriptor = {
   /** Exact expected size. Checked before hashing — a cheap truncation check. */
   sizeBytes: number;
   /**
-   * Lowercase hex MD5 of the complete file. Always verified: it is the only
-   * digest `expo-file-system` computes natively, and so the only one fast
-   * enough to run on every download. See the rationale in `verify.ts`.
+   * Lowercase hex MD5, when someone has computed one. The only digest
+   * `expo-file-system` hashes natively, and so the only one fast enough to
+   * check on every download — but publishers do not publish it, so it is
+   * present only where a maintainer downloaded the file and computed it.
+   * See the rationale in `verify.ts`.
    */
-  md5: string;
+  md5?: string;
   /**
-   * Lowercase hex SHA-256, when the publisher provides one. Only checked
-   * under `deep` verification — hashing it in JS costs about an hour per
-   * 4 GB until a native implementation lands.
+   * Lowercase hex SHA-256 as published by the model's author. Authoritative,
+   * but only checked under `deep` verification — hashing it in JS costs about
+   * an hour per 4 GB until a native implementation lands.
    */
   sha256?: string;
   /** e.g. `Q4_K_M`. Display only. */
@@ -63,8 +65,13 @@ export type ModelErrorCode =
   | 'network'
   /** Downloaded byte count does not match the descriptor. */
   | 'size-mismatch'
-  /** SHA-256 does not match the descriptor. */
+  /** A digest does not match the descriptor. */
   | 'checksum-mismatch'
+  /**
+   * The file cannot be verified quickly and the caller did not opt into the
+   * slow path. Raised rather than silently accepting a size-only check.
+   */
+  | 'verification-unavailable'
   /** Not enough free space to hold the model. */
   | 'insufficient-space'
   /** Caller cancelled deliberately. */

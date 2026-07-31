@@ -13,7 +13,7 @@ import {
   type DownloadProgress,
   type ModelDescriptor,
 } from './types';
-import { verifyFile } from './verify';
+import { assertVerifiable, verifyFile } from './verify';
 
 /**
  * A download reporting no bytes for this long is treated as dead.
@@ -93,6 +93,11 @@ export async function downloadModel(
     return installed;
   }
 
+  // Both checks are deliberately before the first byte moves. Discovering
+  // after a multi-gigabyte download that there was never enough space, or
+  // that the file could not have been verified anyway, wastes bandwidth the
+  // user may be paying for by the megabyte.
+  assertVerifiable(descriptor, deepVerify);
   assertSpaceFor(descriptor);
 
   const destination = partFile(descriptor.id);
