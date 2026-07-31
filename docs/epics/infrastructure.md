@@ -4,7 +4,7 @@
 
 ## Status
 
-📋 Planned
+⏳ In Progress
 
 ## Overview
 
@@ -112,12 +112,51 @@ without bundling them into the app binary.
   `code: 'stalled'` 16s after the last byte and was paused, not cancelled; the
   retry issued `Range: bytes=41943040-` and transferred only the remaining
   92 MB rather than restarting.
-- ✅ Verification is size then native MD5, chosen from measurement rather than
-  assumption — see
-  [research 0003](../research/0003-model-verification-hashing.md). Verifying
-  128 MB takes ~500 ms; the device-computed digest matched the host exactly.
+- ✅ Verification is chosen from measurement rather than assumption — see
+  [research 0003](../research/0003-model-verification-hashing.md). Originally
+  size + native MD5 (128 MB in ~500 ms, digest matching the host exactly);
+  superseded by task 0.5, which made publisher-published SHA-256 both stronger
+  and faster.
+
+---
+
+#### ✅ 0.5 — Native SHA-256 hashing
+
+**Goal:** Verify downloaded models against the digest their publisher actually
+publishes, at a speed that is usable on a phone.
+
+**Why this exists:** `expo-file-system` hashes MD5 natively but SHA-256 only
+in JavaScript, which measured 1.1 MB/s on device — about an hour per 4 GB.
+Task 0.4 therefore defaulted to MD5. Task 1.2 then showed the cost of that:
+model publishers publish SHA-256 and never MD5, so an MD5 in the catalog can
+only come from a maintainer downloading the file and computing it, which
+certifies "matches what we downloaded" rather than "matches what the
+publisher published". Native SHA-256 removes the trade-off instead of
+managing it.
+
+**Deliverables:**
+
+- A local Expo module exposing streaming SHA-256 over a file path, backed by
+  `CryptoKit` on iOS and `MessageDigest` on Android.
+- `verifyFile()` uses it as the default digest, with the JS implementation
+  retained as a fallback and as a cross-check.
+- Catalog entries verified against publisher SHA-256 without opting into a
+  slow path.
+
+**Dependencies:** Task 0.4, Task 1.2.
+
+**Review checklist:**
+
+- ✅ Hashing on device completes in seconds and the digest is correct.
+  Measured 762–932 MB/s on Android and 599 MB/s on iOS against a 25 MB file —
+  roughly 5–7 s for a 4 GB model, and about 10× faster than
+  `expo-file-system`'s native MD5, so the stronger digest is now also the
+  cheapest. A known-answer test returns the published SHA-256 of `"abc"`
+  exactly, and `CryptoKit`, `MessageDigest`, and `@noble/hashes` all agree on
+  the same file. A missing file rejects cleanly rather than crashing.
 
 ## Related Docs
 
 - [CONCEPT.md](../../CONCEPT.md)
 - [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [research 0003](../research/0003-model-verification-hashing.md)

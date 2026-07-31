@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["SovereignHashingModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.sovereignhashing.SovereignHashingModule"]
+  }
+}

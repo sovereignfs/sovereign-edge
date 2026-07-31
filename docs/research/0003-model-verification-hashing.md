@@ -1,6 +1,6 @@
-# Research 0003 — Model download verification: why MD5, not SHA-256
+# Research 0003 — Model download verification: hashing strategy
 
-**Status:** Decided\
+**Status:** Superseded in part — see [Update: native SHA-256](#update-native-sha-256-supersedes-the-md5-default)\
 **Date:** July 2026\
 **Author:** Claude Code (session with the developer)\
 **Scope:** Task 0.1.4 / epic [0.4](../epics/infrastructure.md) — how downloaded
@@ -124,3 +124,75 @@ resolve with `null`, which raced ahead of the stall handler and surfaced as
 both the true cause and the fact that the transfer was resumable. The unit
 test mocked the download as never-resolving, so the race could not occur
 there. It is now covered by an explicit regression test.
+
+---
+
+## Update: native SHA-256 supersedes the MD5 default
+
+**Date:** July 2026 · **Epic task:** [0.5](../epics/infrastructure.md#-05--native-sha-256-hashing)
+
+The MD5 default was correct given what was measurable at the time, and wrong
+about the thing it did not check: **where catalog digests come from.**
+
+Building the model catalog (task 1.2) made it obvious. Model publishers
+publish SHA-256 — Hugging Face exposes it as `lfs.oid` on every GGUF — and
+never MD5. So an MD5 in a catalog entry can only come from a maintainer
+downloading the file and computing it, which certifies *"this matches what we
+downloaded"* rather than *"this matches what the publisher published"*. That
+is strictly weaker than checking the publisher's own digest, however fast it
+runs. Of four catalog entries, exactly one had an MD5, and only because it had
+been downloaded during task 1.1.
+
+So the constraint was never really MD5-versus-SHA-256. It was
+native-versus-JavaScript.
+
+### Measured after implementing a native module
+
+`modules/sovereign-hashing`, roughly 50 lines per platform over `CryptoKit`
+and `MessageDigest`, on the same emulator as the original benchmarks:
+
+| Implementation                          | Throughput       | 4 GB extrapolated |
+| --------------------------------------- | ---------------- | ----------------- |
+| **Native SHA-256, Android** (this module) | **762–932 MB/s** | **~5 s**          |
+| **Native SHA-256, iOS** (this module)     | **599 MB/s**     | **~7 s**          |
+| Native MD5 (`expo-file-system`)         | 74.5 MB/s        | ~1 min            |
+| SHA-256 in JavaScript (`@noble`)        | 0.9–1.1 MB/s     | ~61 min           |
+
+The JavaScript figure reproduced the original 1.1 MB/s measurement, which is
+reassuring about both runs.
+
+Two things worth noting. Native SHA-256 is roughly **10× faster than
+`expo-file-system`'s native MD5**, so the stronger, publisher-authoritative
+digest is now also the *cheapest* one — the trade-off the original decision
+managed simply no longer exists. And the speedup over JavaScript is ~700×,
+which is larger than a language gap alone explains: the JS path also pays for
+a stream that arrives in 1 KB chunks across the JSI bridge.
+
+### Verified, not assumed
+
+- **Known-answer test:** the module returns the published SHA-256 of `"abc"`
+  exactly.
+- **Cross-check:** for the same 25 MB file, `CryptoKit` (iOS),
+  `MessageDigest` (Android), and `@noble/hashes` (JavaScript) all produce the
+  identical digest `1aa7c925…`. Three independent implementations agreeing is
+  the evidence worth having: a fast-but-wrong hasher would be worse than none,
+  so they check each other rather than the fast one being trusted alone.
+- **Error path:** a missing file rejects cleanly instead of crashing.
+
+### Revised decisions
+
+- **SHA-256 is the default digest**, checked on every download, against the
+  value the publisher published.
+- **MD5 is retained but optional.** When a descriptor carries one it is still
+  checked — it costs almost nothing and catches corruption early.
+- **`deep` now means "permit the slow JavaScript path"**, not "check SHA-256".
+  It matters only where the native module is unavailable.
+- **The JavaScript implementation stays**, as the fallback for such builds and
+  as the cross-check above.
+
+### What this does not change
+
+The reasoning about MD5's second-preimage resistance still stands — it was
+never the weak point. What changed is that a stronger, publisher-authoritative
+digest became free, and there is no longer a reason to reason about MD5's
+properties at all.

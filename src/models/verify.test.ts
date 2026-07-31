@@ -1,7 +1,8 @@
 import type { File } from 'expo-file-system';
 
 import { ModelError, type ModelDescriptor } from './types';
-import { hashFile, verifyFile } from './verify';
+import { sha256FileJs } from './hashing';
+import { verifyFile } from './verify';
 
 const ABC = new Uint8Array([0x61, 0x62, 0x63]); // "abc"
 // Published digests for "abc" — fixed vectors, so these tests fail if the
@@ -47,14 +48,14 @@ const descriptor: ModelDescriptor = {
   sha256: ABC_SHA256,
 };
 
-describe('hashFile', () => {
+describe('sha256FileJs', () => {
   it('computes SHA-256 from the file stream', async () => {
-    await expect(hashFile(fakeFile(ABC))).resolves.toBe(ABC_SHA256);
+    await expect(sha256FileJs(fakeFile(ABC))).resolves.toBe(ABC_SHA256);
   });
 
   it('reports incremental progress', async () => {
     const seen: number[] = [];
-    await hashFile(fakeFile(ABC), (n) => seen.push(n));
+    await sha256FileJs(fakeFile(ABC), (n) => seen.push(n));
     expect(seen).toEqual([3]);
   });
 });

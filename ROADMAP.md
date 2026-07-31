@@ -29,6 +29,7 @@ connector store, no third-party anything, no monetization yet.
 | 0.1.4   | Model asset pipeline                      | ✅     | [0.4](docs/epics/infrastructure.md#-04--model-asset-pipeline)                            |
 | 0.1.5   | `llama.rn` integration and inference wrapper | 📋 | [1.1](docs/epics/core-inference-chat.md#-11--llamarn-integration-and-inference-engine-wrapper) |
 | 0.1.6   | Model manager                             | 📋     | [1.2](docs/epics/core-inference-chat.md#-12--model-manager)                              |
+| 0.1.6a  | Native SHA-256 hashing                    | ✅     | [0.5](docs/epics/infrastructure.md#-05--native-sha-256-hashing)                          |
 | 0.1.7   | Native theme tokens                       | 📋     | [7.1](docs/epics/design-system.md#-71--native-theme-tokens)                              |
 | 0.1.8   | Core component set                        | 📋     | [7.2](docs/epics/design-system.md#-72--core-component-set)                               |
 | 0.1.9   | App scaffold, navigation, and settings    | 📋     | [8.1](docs/epics/mobile-app-shell.md#-81--app-scaffold-navigation-and-settings)          |

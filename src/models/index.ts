@@ -22,7 +22,8 @@ export {
   modelsDirectory,
   removeModel,
 } from './store';
-export { hashFile, verifyFile } from './verify';
+export { assertVerifiable, verifyFile } from './verify';
+export { isNativeHashingAvailable, sha256File, sha256FileJs } from './hashing';
 export {
   ModelError,
   type DownloadPhase,
