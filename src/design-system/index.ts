@@ -22,3 +22,4 @@ export {
   space,
   touchTargetMin,
 } from './primitives';
+export * from './components';

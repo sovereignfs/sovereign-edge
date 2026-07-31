@@ -47,7 +47,7 @@ itself.
 
 ---
 
-#### 📋 7.2 — Core component set
+#### ✅ 7.2 — Core component set
 
 **Goal:** The minimum native component set the chat and settings UI need.
 
@@ -61,8 +61,19 @@ itself.
 
 **Review checklist:**
 
-- No screen in the app hardcodes a color, spacing, or radius value outside
-  the theme module.
+- ✅ No screen in the app hardcodes a color, spacing, or radius value outside
+  the theme module. Enforced by lint rather than inspection: `eslint.config.js`
+  rejects hex/`rgb()`/`hsl()` literals anywhere under `src/` except
+  `src/design-system/`, where defining them is the job. Verified the rule
+  fires by planting a violation, not just by seeing it pass.
+
+**Known deviation:** `Toggle` wraps the platform `Switch` and is deliberately
+untinted, so it shows the OS accent rather than Sovereign's monochrome one.
+Two attempts to theme it were worse: Android alpha-blends `trackColor`, which
+made a near-white `accent` track invisible in dark mode, and it does not
+reliably honour `thumbColor` — leaving a white thumb on an invisible track.
+Platform colours are legible in both schemes; matching the identity here needs
+a custom Pressable-based toggle, not more props.
 
 ## Related Docs
 

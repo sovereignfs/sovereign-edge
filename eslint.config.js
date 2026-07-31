@@ -16,4 +16,26 @@ module.exports = defineConfig([
     files: ['**/*.test.ts', '**/*.test.tsx', 'jest.setup.js'],
     languageOptions: { globals: globals.jest },
   },
+  {
+    // Epic task 7.2's review checklist — "no screen hardcodes a color …
+    // outside the theme module" — as a check rather than a habit. Colours are
+    // the enforceable part: a hex or rgba() literal is unambiguous, whereas a
+    // bare `12` could be a colour, a line count, or a timeout.
+    //
+    // `src/design-system/` is exempt because defining these values is its job.
+    files: ['src/**/*.ts', 'src/**/*.tsx', 'App.tsx'],
+    ignores: ['src/design-system/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/^(#[0-9a-fA-F]{3,8}|rgba?\\(|hsla?\\()/]',
+          message:
+            'Use a semantic token from `useTheme()` instead of a colour ' +
+            'literal. If a new colour is genuinely needed, add it to ' +
+            'src/design-system/semantic.ts so both light and dark are defined.',
+        },
+      ],
+    },
+  },
 ]);
