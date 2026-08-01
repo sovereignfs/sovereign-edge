@@ -20,7 +20,7 @@ record behind this shape: [research 0001](../research/0001-concept-and-connector
 | 5   | [Connector Store & SDK](connector-store-sdk.md)         | 📋 Planned | Public SDK, plugin template, examples, registry, in-app connector store          |
 | 6   | [Monetization](monetization.md)                         | 📋 Planned | Paid connectors — platform IAP (mobile), direct sale (desktop)                   |
 | 7   | [Design System & Branding](design-system.md)            | ⏳ In Progress | Native theme adapting Sovereign's visual identity; standalone app, shared look   |
-| 8   | [Mobile App Shell](mobile-app-shell.md)                 | 📋 Planned | The React Native app itself — iOS + Android, not a WebView wrapper               |
+| 8   | [Mobile App Shell](mobile-app-shell.md)                 | ⏳ In Progress | The React Native app itself — iOS + Android, not a WebView wrapper               |
 | 9   | [Desktop App](desktop-app.md)                           | 📋 Planned | Secondary, optional desktop client — shell technology not yet decided            |
 
 _Status key: ✅ Complete · ⏳ In Progress · 📋 Planned_

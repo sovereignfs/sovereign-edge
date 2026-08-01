@@ -5,7 +5,7 @@
 
 ## Status
 
-📋 Planned
+⏳ In Progress
 
 ## Overview
 
@@ -16,7 +16,7 @@ own connector framework — nothing here is a wrapper around a web app.
 
 ## Tasks
 
-#### 📋 8.1 — App scaffold, navigation, and settings
+#### ✅ 8.1 — App scaffold, navigation, and settings
 
 **Goal:** The screens and navigation structure everything else plugs into.
 
@@ -31,8 +31,22 @@ own connector framework — nothing here is a wrapper around a web app.
 
 **Review checklist:**
 
-- All core screens (chat, model manager, connector settings) are reachable
-  and functional on both platforms.
+- ✅ All core screens (chat, model manager, connector settings) are reachable
+  and functional. Verified on an Android emulator by navigating to each:
+  chat opens by default, Models lists the catalog with per-device fit against
+  the emulator's real 3.8 GB, Settings changes the theme preference, and
+  Connectors is reached two hops in from Settings. Navigation chrome —
+  header, back affordance, tab bar — follows the theme in both schemes.
+  Covered by tests that navigate rather than assert the route table, since a
+  screen can be registered and still be unreachable.
+
+**Known gaps, deliberate:** the chat screen composes the real components and
+holds message state but does not call the inference engine — that is task 1.3.
+The Connectors screen is empty because no connector and no permission model
+exist yet (tasks 3.1 and 2.2); its empty state states the product's central
+claim, which is true today. Tabs are text-only pending an icon set. The
+appearance section uses three toggles for a mutually exclusive choice, which
+reads oddly — it wants a radio control the component set does not have yet.
 
 ---
 
