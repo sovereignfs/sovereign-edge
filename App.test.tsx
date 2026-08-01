@@ -39,10 +39,11 @@ describe('App', () => {
     // Task 0.1.1's version asserted a placeholder screen; that placeholder is
     // gone now that App composes the real navigator (task 8.1). Screen-level
     // routing is covered in src/settings/navigation.
+    // Asserted on the trust banner rather than the empty state: the latter's
+    // copy depends on whether a model is installed, which is not what this
+    // test is about.
     const s = await render(<App />);
-    expect(
-      s.getByText('Everything you type here stays on this device.'),
-    ).toBeTruthy();
+    expect(s.getByText(/On-device/)).toBeTruthy();
   });
 
   it('resolves modules through the @/ alias', () => {

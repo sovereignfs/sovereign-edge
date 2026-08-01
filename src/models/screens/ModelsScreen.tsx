@@ -1,35 +1,34 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import { ListItem, useTheme } from '@/design-system';
-
-import { ModelManager, type ManagedModel } from '../manager';
+import { useModelSession } from '@/settings/ModelSessionProvider';
 
 /**
  * Model manager UI.
  *
- * Lists the catalog annotated for this device and lets a model be removed.
- * Downloading is intentionally not wired up here yet: it needs progress and
- * cancellation UI to be honest about a multi-gigabyte transfer, and putting a
- * bare "Install" button in front of that would be worse than leaving it out.
- * The underlying pipeline is complete (task 0.4) and verified.
+ * Reads the app-wide session rather than constructing its own manager, so
+ * deleting a model releases it from the engine the chat screen is using. Two
+ * independent managers could not coordinate that, and removing a file the
+ * engine still has memory-mapped is undefined behaviour rather than an error.
+ *
+ * Downloading is still not wired up: it needs progress and cancellation UI to
+ * be honest about a multi-gigabyte transfer. The pipeline behind it is
+ * complete and verified (task 0.4).
  */
 export function ModelsScreen() {
   const theme = useTheme();
-  const manager = useMemo(() => new ModelManager(), []);
-  const [models, setModels] = useState<ManagedModel[]>(() => manager.list());
-
-  const refresh = useCallback(() => setModels(manager.list()), [manager]);
-
-  const remove = useCallback(
-    async (id: string) => {
-      await manager.remove(id);
-      refresh();
-    },
-    [manager, refresh],
-  );
+  const { models, remove, activate, activeModelId } = useModelSession();
 
   const gb = (bytes: number) => `${(bytes / 1e9).toFixed(2)} GB`;
+
+  const onPress = useCallback(
+    (id: string, installed: boolean) => {
+      if (!installed) return undefined;
+      return id === activeModelId ? () => remove(id) : () => activate(id);
+    },
+    [activeModelId, activate, remove],
+  );
 
   return (
     <ScrollView style={{ backgroundColor: theme.colors.surface }}>
@@ -48,30 +47,35 @@ export function ModelsScreen() {
       </Text>
 
       <View>
-        {models.map((model) => (
-          <ListItem
-            key={model.id}
-            title={`${model.name} · ${model.parameters}`}
-            // The fit note is the useful part — it says whether *this* phone
-            // can run it, which a size alone does not.
-            subtitle={`${gb(model.sizeBytes)} · ${model.fit.note}`}
-            accessory={
-              model.installed ? (
-                <Text
-                  style={{
-                    color: theme.colors.successText,
-                    fontSize: theme.fontSize.label,
-                    fontFamily: theme.fontFamily.mono,
-                  }}
-                >
-                  INSTALLED
-                </Text>
-              ) : undefined
-            }
-            onPress={model.installed ? () => remove(model.id) : undefined}
-            destructive={model.installed}
-          />
-        ))}
+        {models.map((model) => {
+          const active = model.id === activeModelId;
+          return (
+            <ListItem
+              key={model.id}
+              title={`${model.name} · ${model.parameters}`}
+              // The fit note is the useful part — it says whether *this* phone
+              // can run it, which a size alone does not.
+              subtitle={`${gb(model.sizeBytes)} · ${model.fit.note}`}
+              accessory={
+                model.installed ? (
+                  <Text
+                    style={{
+                      color: active
+                        ? theme.colors.successText
+                        : theme.colors.textMuted,
+                      fontSize: theme.fontSize.label,
+                      fontFamily: theme.fontFamily.mono,
+                    }}
+                  >
+                    {active ? 'IN USE' : 'INSTALLED'}
+                  </Text>
+                ) : undefined
+              }
+              onPress={onPress(model.id, model.installed)}
+              destructive={active}
+            />
+          );
+        })}
       </View>
     </ScrollView>
   );

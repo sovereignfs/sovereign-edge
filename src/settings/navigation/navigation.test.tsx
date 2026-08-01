@@ -2,6 +2,7 @@ import { render, userEvent } from '@testing-library/react-native';
 
 import { ThemeProvider } from '@/design-system';
 
+import { ModelSessionProvider } from '../ModelSessionProvider';
 import { RootNavigator } from './RootNavigator';
 
 /**
@@ -15,7 +16,11 @@ jest.mock('expo-device', () => ({ totalMemory: 8 * 1024 ** 3 }));
 function renderApp() {
   return render(
     <ThemeProvider initialPreference="light">
-      <RootNavigator />
+      {/* Chat and Models both read the session; the navigator is only
+          reachable below it in the real app. */}
+      <ModelSessionProvider>
+        <RootNavigator />
+      </ModelSessionProvider>
     </ThemeProvider>,
   );
 }
@@ -23,9 +28,7 @@ function renderApp() {
 describe('RootNavigator', () => {
   it('opens on the chat screen', async () => {
     const s = await renderApp();
-    expect(
-      s.getByText('Everything you type here stays on this device.'),
-    ).toBeTruthy();
+    expect(s.getByText(/On-device/)).toBeTruthy();
   });
 
   it('reaches the model manager', async () => {

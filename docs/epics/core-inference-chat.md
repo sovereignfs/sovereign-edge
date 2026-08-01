@@ -99,7 +99,27 @@ installed.
 
 **Review checklist:**
 
-- Chat is fully usable with the device offline.
+- Chat is fully usable with the device offline. **Not yet verified on device** —
+  the code is written and covered by tests, but the checklist asks about a
+  real phone and the last build on the iPhone 15 Pro is the task 1.1 perf
+  harness, not the app. This stays 📋 until that rebuild happens.
+
+**Built so far:**
+
+- `ChatScreen` renders streaming tokens into the reply as they arrive, keeps
+  history in memory only, and offers Stop while a reply is generating — the
+  engine supports aborting, and without it a user waits out a reply they no
+  longer want.
+- A persistent banner names the trust tier and the loaded model, and carries
+  the load-time explanation that finding above calls for: the 8.7 s wait is
+  stated in words rather than hidden behind a spinner.
+- `ChatSessionContext` (in `src/chat/session/`) is a narrow contract — status,
+  model name, detail, `generate` — implemented by `ModelSessionProvider` in
+  the app shell. This is what keeps `src/chat/` from importing `ModelManager`
+  and, through it, the downloader, which research 0001 forbids.
+- One engine app-wide, in that same provider. A second concurrent context is
+  the fastest route to an out-of-memory kill on a phone, and sharing one is
+  also what lets the manager release a model before deleting it.
 
 ---
 
