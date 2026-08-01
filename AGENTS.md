@@ -127,6 +127,12 @@ history were invisible to a green test suite:
 - `expo prebuild` exits 0 when its internal `pod install` fails, and the
   missing `.xcworkspace` only surfaces one step later as a confusing
   `xcodebuild` error.
+- The Models screen shipped with no way to download a model, making a fresh
+  install a dead end. Every test device already had model files left behind by
+  an earlier task, so the state a new user actually starts in was never once
+  observed. **Verify on a device with no prior app state**, and prefer both
+  platforms — this surfaced on the first Android emulator run, after iOS had
+  been signed off.
 
 So: **exercise the behaviour, and check the artefact rather than the exit
 code.** For anything with a runtime surface, drive it on a simulator or

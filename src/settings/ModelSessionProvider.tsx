@@ -14,7 +14,12 @@ import {
   type ChatSession,
   type ChatSessionStatus,
 } from '@/chat/session/ChatSessionContext';
-import { ModelManager, type ManagedModel } from '@/models';
+import {
+  ModelError,
+  ModelManager,
+  type DownloadPhase,
+  type ManagedModel,
+} from '@/models';
 
 /**
  * Owns the app's single inference engine and model manager.
@@ -31,6 +36,21 @@ import { ModelManager, type ManagedModel } from '@/models';
  * import.
  */
 
+/**
+ * A download in flight, as the Models screen needs to render it.
+ *
+ * `fraction` is null when the server sends no Content-Length — the UI has to
+ * say "downloading" without a percentage rather than invent one.
+ */
+export type ModelDownload = {
+  phase: DownloadPhase;
+  fraction: number | null;
+  bytesWritten: number;
+  totalBytes: number | null;
+  /** Set when the download ended badly, already phrased for a user. */
+  error: string | null;
+};
+
 type ModelSession = {
   models: ManagedModel[];
   refresh(): void;
@@ -38,9 +58,18 @@ type ModelSession = {
   /** Loads a model, replacing whatever is loaded. */
   activate(id: string): Promise<void>;
   activeModelId: string | null;
+  /** Downloads and verifies a model, then loads it if nothing else is loaded. */
+  install(id: string): Promise<void>;
+  /** Aborts an in-flight download, discarding the partial file. */
+  cancelInstall(id: string): void;
+  /** Keyed by model id; absent means no download has been started. */
+  downloads: Record<string, ModelDownload>;
 };
 
-const ModelSessionContext = createContext<ModelSession | null>(null);
+/** Exported so screens can be rendered against a stub session in tests. */
+export const ModelSessionContext = createContext<ModelSession | null>(null);
+
+export type { ModelSession };
 
 const loadingDetail = (name: string) =>
   `Loading ${name}. This takes a few seconds.`;
@@ -83,6 +112,12 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   // screen re-render when it changes; reading the manager during render would
   // leave the memo below holding a stale id.
   const [activeModelId, setActiveModelId] = useState<string | null>(null);
+
+  const [downloads, setDownloads] = useState<Record<string, ModelDownload>>({});
+  // Abort handles for in-flight downloads. A plain Map rather than state: it is
+  // only ever touched from callbacks, and re-rendering on a cancel handle
+  // appearing would be pointless churn during a multi-gigabyte transfer.
+  const [controllers] = useState(() => new Map<string, AbortController>());
 
   const refresh = useCallback(() => setModels(manager.list()), [manager]);
 
@@ -132,9 +167,101 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   // "subscribe to an external system" case the rule explicitly allows. This
   // is the one place the load can be kicked off at mount.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (bootstrap) void load(bootstrap);
   }, [bootstrap, load]);
+
+  const install = useCallback(
+    async (id: string) => {
+      if (controllers.has(id)) return;
+
+      const controller = new AbortController();
+      controllers.set(id, controller);
+      setDownloads((prev) => ({
+        ...prev,
+        [id]: {
+          phase: 'downloading',
+          fraction: null,
+          bytesWritten: 0,
+          totalBytes: null,
+          error: null,
+        },
+      }));
+
+      try {
+        await manager.install(id, {
+          signal: controller.signal,
+          onProgress: (p) =>
+            setDownloads((prev) => {
+              const current = prev[id];
+              if (!current) return prev;
+              // Only re-render when the whole percent moves. Progress events
+              // arrive far faster than that, and a setState per event would
+              // re-render every screen under this provider for hundreds of
+              // updates across a multi-gigabyte transfer.
+              const was =
+                current.fraction === null
+                  ? -1
+                  : Math.floor(current.fraction * 100);
+              const now =
+                p.fraction === null ? -1 : Math.floor(p.fraction * 100);
+              if (was === now && current.bytesWritten !== 0) return prev;
+              return {
+                ...prev,
+                [id]: {
+                  ...current,
+                  fraction: p.fraction,
+                  bytesWritten: p.bytesWritten,
+                  totalBytes: p.totalBytes,
+                },
+              };
+            }),
+          onPhase: (phase) =>
+            setDownloads((prev) => {
+              const current = prev[id];
+              return current ? { ...prev, [id]: { ...current, phase } } : prev;
+            }),
+        });
+
+        refresh();
+        // Getting to a usable chat is the point of pressing download, so load
+        // it straight away — but never steal the engine from a model the user
+        // is already talking to.
+        if (manager.activeModelId === null) await activate(id);
+      } catch (error) {
+        const cancelled =
+          error instanceof ModelError && error.code === 'cancelled';
+        setDownloads((prev) => {
+          if (cancelled) {
+            // A cancel is not a failure to report back; drop the row entirely
+            // so the model reads as simply not installed again.
+            const { [id]: _removed, ...rest } = prev;
+            return rest;
+          }
+          const current = prev[id];
+          if (!current) return prev;
+          return {
+            ...prev,
+            [id]: {
+              ...current,
+              phase: 'failed',
+              error:
+                error instanceof ModelError
+                  ? error.message
+                  : 'The download failed.',
+            },
+          };
+        });
+      } finally {
+        controllers.delete(id);
+      }
+    },
+    [activate, controllers, manager, refresh],
+  );
+
+  const cancelInstall = useCallback(
+    (id: string) => controllers.get(id)?.abort(),
+    [controllers],
+  );
 
   const remove = useCallback(
     async (id: string) => {
@@ -175,8 +302,26 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const modelSession = useMemo<ModelSession>(
-    () => ({ models, refresh, remove, activate, activeModelId }),
-    [models, refresh, remove, activate, activeModelId],
+    () => ({
+      models,
+      refresh,
+      remove,
+      activate,
+      activeModelId,
+      install,
+      cancelInstall,
+      downloads,
+    }),
+    [
+      models,
+      refresh,
+      remove,
+      activate,
+      activeModelId,
+      install,
+      cancelInstall,
+      downloads,
+    ],
   );
 
   return (

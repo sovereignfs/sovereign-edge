@@ -76,10 +76,26 @@ installed.
   Qwen2.5 0.5B downloaded and verified (57s), loaded in 1.3s, replied "Hello!
   How may I assist you?", was deleted; then Llama 3.2 1B downloaded, loaded in
   2.8s, replied, and was deleted — all in one app session.
+
+  **This was verified against the pipeline, not the shipped UI, and for a
+  while the distinction mattered.** The Models screen arrived later (tasks 8.1
+  and 1.3) with no download control at all: `onPress` returned `undefined` for
+  anything not already installed. A fresh install was therefore a dead end —
+  chat said "open Models to add one" and Models offered nothing to press.
+  Nothing caught it, because the checklist above had been signed off on a path
+  no user could take, and both test devices already had model files left
+  behind by the task 1.1 perf harness. It was found by running a fresh install
+  on an emulator. The download UI now exists and the claim above is true of
+  the shipped app: Qwen2.5 0.5B (491,400,032 bytes) downloaded, verified,
+  auto-loaded, and answered a question, entirely from the UI.
 - ✅ The Llama entry carries no MD5, so it was verified purely against the
   publisher's SHA-256: 807 MB in 1.0s (~790 MB/s) via the native module from
   task [0.5](infrastructure.md#-05--native-sha-256-hashing). The same
   check would have taken roughly ten minutes of JavaScript hashing before it.
+- ✅ The RAM guidance is finally exercised near its boundary. Both physical
+  devices have 8 GB, where every catalog entry rates `comfortable`; a 3.8 GB
+  emulator renders all three tiers, including "Likely too large for this
+  device" for Gemma 2 2B.
 
 ---
 
@@ -110,6 +126,12 @@ installed.
   version is stale at 0.1.4, because `ios/` is CNG-generated and
   `expo run:ios` does not re-run prebuild, so the native version string
   cannot distinguish an old install from a new one.
+- ✅ Verified on Android too, on an emulator, after the iOS run had already
+  been signed off. Chat rendered, the model answered, and the composer
+  behaved — but this is also where the fresh-install dead end recorded under
+  task 1.2 turned up, because the emulator was the first device in the project
+  without a model already sitting in its container. Single-platform
+  verification would have missed it.
 
 **Delivered:**
 
