@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** 0.1.10 · **Last updated:** 2026-08-01
+**Version:** 0.1.10 · **Last updated:** 2026-08-02
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:
@@ -33,7 +33,7 @@ connector store, no third-party anything, no monetization yet.
 | 0.1.7   | Native theme tokens                       | ✅     | [7.1](docs/epics/design-system.md#-71--native-theme-tokens)                              |
 | 0.1.8   | Core component set                        | ✅     | [7.2](docs/epics/design-system.md#-72--core-component-set)                               |
 | 0.1.9   | App scaffold, navigation, and settings    | ✅     | [8.1](docs/epics/mobile-app-shell.md#-81--app-scaffold-navigation-and-settings)          |
-| 0.1.10  | Offline chat UI                           | 📋     | [1.3](docs/epics/core-inference-chat.md#-13--offline-chat-ui)                            |
+| 0.1.10  | Offline chat UI                           | ✅     | [1.3](docs/epics/core-inference-chat.md#-13--offline-chat-ui)                            |
 | 0.1.11  | Writing-assist modes                      | 📋     | [1.4](docs/epics/core-inference-chat.md#-14--writing-assist-modes)                       |
 | 0.1.12  | Zero-network enforcement and audit        | 📋     | [1.5](docs/epics/core-inference-chat.md#-15--zero-network-enforcement-and-audit)         |
 | 0.1.13  | Connector manifest schema (Tier 1)        | 📋     | [2.1](docs/epics/connector-framework.md#-21--connector-manifest-schema-tier-1)           |

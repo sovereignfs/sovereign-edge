@@ -83,7 +83,7 @@ installed.
 
 ---
 
-#### 📋 1.3 — Offline chat UI
+#### ✅ 1.3 — Offline chat UI
 
 **Goal:** The core conversational interface.
 
@@ -99,12 +99,19 @@ installed.
 
 **Review checklist:**
 
-- Chat is fully usable with the device offline. **Not yet verified on device** —
-  the code is written and covered by tests, but the checklist asks about a
-  real phone and the last build on the iPhone 15 Pro is the task 1.1 perf
-  harness, not the app. This stays 📋 until that rebuild happens.
+- ✅ Chat is fully usable with the device offline. Verified on an iPhone 15
+  Pro in airplane mode against a **Release** build — the distinction matters:
+  a debug build fetches its JS from Metro over the LAN, so it cannot answer
+  this question at all, and an early attempt against one had to be discarded.
+  The Release binary embeds `main.jsbundle` (2.0 MB) and has no Metro path.
+- ✅ The build was confirmed to be current code by reading the version off the
+  Settings screen (0.1.10). That value is a JS constant compiled into the
+  bundle, which is what makes it usable as evidence: the iOS `Info.plist`
+  version is stale at 0.1.4, because `ios/` is CNG-generated and
+  `expo run:ios` does not re-run prebuild, so the native version string
+  cannot distinguish an old install from a new one.
 
-**Built so far:**
+**Delivered:**
 
 - `ChatScreen` renders streaming tokens into the reply as they arrive, keeps
   history in memory only, and offers Stop while a reply is generating — the
