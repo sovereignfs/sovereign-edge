@@ -103,6 +103,15 @@ just a style preference.
   prebuild — native configuration belongs in `app.json` or a config plugin.
 - **Adding a native module requires a rebuild**, not just a Metro reload. A
   JS-only reload will appear to work until the native module is called.
+- **Bumping the version requires `pnpm prebuild`.** `expo run:ios` and
+  `run:android` do _not_ re-run prebuild when the native directory already
+  exists, so a version bump in `app.json` never reaches `Info.plist` or
+  `build.gradle` on its own. This has already bitten once: with the native
+  version stale, an old install and a new one were indistinguishable on a test
+  device, and the only trustworthy evidence was `APP_VERSION` on the Settings
+  screen, which is compiled into the JS bundle. `src/shared/app-info.test.ts`
+  locks the three JS-side copies together, but it cannot see the generated
+  files.
 - **Expo Go is not a supported workflow.** `llama.rn` is a native module, so a
   development build is the only path.
 
