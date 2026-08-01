@@ -25,11 +25,16 @@ export type CatalogEntry = ModelDescriptor & {
  * The final list is still an open question (research 0001); this is a working
  * set, not a committed one.
  *
- * On digests: publishers publish SHA-256, so that is what every entry carries.
- * `md5` is present only where a maintainer has downloaded the file and
- * computed it, because `expo-file-system` hashes MD5 natively and SHA-256
- * only in JS — see research 0003, and the note in `verify.ts` about why an
- * entry without `md5` cannot be verified quickly today.
+ * On digests: every entry carries only the publisher's SHA-256, and
+ * deliberately no MD5.
+ *
+ * This entry used to carry one, from the era when `expo-file-system`'s native
+ * MD5 was the only fast digest available. Measured on an iPhone 15 Pro, the
+ * native SHA-256 module (task 0.5) hashes at ~2.2 GB/s — roughly 4x faster
+ * than the native MD5 it was chosen over — so the MD5 bought nothing and cost
+ * a second full pass over the file: verifying this 491 MB model took 960ms
+ * with both digests against 223ms for SHA-256 alone. It was also the weaker
+ * claim, being maintainer-computed rather than publisher-published.
  */
 export const CURATED_MODELS: CatalogEntry[] = [
   {
@@ -41,7 +46,6 @@ export const CURATED_MODELS: CatalogEntry[] = [
     url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf',
     sizeBytes: 491_400_032,
     sha256: '74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db',
-    md5: 'a24e22d4ea0d9a6b3efd57936ecb127b',
   },
   {
     id: 'llama-3.2-1b-instruct-q4km',

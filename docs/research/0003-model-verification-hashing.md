@@ -196,3 +196,42 @@ The reasoning about MD5's second-preimage resistance still stands — it was
 never the weak point. What changed is that a stronger, publisher-authoritative
 digest became free, and there is no longer a reason to reason about MD5's
 properties at all.
+
+---
+
+## Update: measured on real hardware
+
+**Date:** August 2026 · **Device:** iPhone 15 Pro (A17 Pro, 7.50 GB)
+
+The figures above were all taken on an emulator, and this document said so —
+"a physical device should be measured before these numbers are quoted anywhere
+user-facing". That is now done, against the 491 MB Qwen2.5 0.5B model rather
+than a 25 MB synthetic file.
+
+| Implementation                    | Emulator     | iPhone 15 Pro |
+| --------------------------------- | ------------ | ------------- |
+| Native SHA-256 (this module)      | 599 MB/s     | **2204 MB/s** |
+| Native MD5 (`expo-file-system`)   | 74.5 MB/s    | ~512 MB/s\*   |
+
+\* Inferred: verifying the model with both digests took 960ms where SHA-256
+alone took 223ms, so the MD5 pass accounts for roughly 737ms of 491 MB.
+
+Two consequences.
+
+**Native SHA-256 is ~4x faster than the native MD5 it replaced**, not merely
+comparable. The gap is wider on real silicon than on the emulator, so the
+task 0.5 decision is more clearly right than the original measurements
+suggested.
+
+**The catalog no longer carries MD5 at all.** One entry still had one, left
+from when native MD5 was the only fast digest. Keeping it meant `verifyFile`
+made two full passes over the file for no gain — the MD5 was both slower and
+the weaker claim, being maintainer-computed rather than publisher-published.
+Removing it roughly halves verification time and makes every catalog entry
+uniform.
+
+### Still unmeasured
+
+Both devices available for testing have 8 GB of RAM, so the memory-fit
+heuristic has still never been exercised near its boundary — `unsupported`
+has only ever fired on a 3.8 GB emulator. That remains a guess.

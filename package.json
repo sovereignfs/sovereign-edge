@@ -1,6 +1,6 @@
 {
   "name": "sovereign-edge",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "description": "Sovereign Edge — a privacy-first, fully offline on-device AI companion for iOS and Android",
   "license": "AGPL-3.0-or-later",

@@ -81,6 +81,51 @@ x86_64 simulator slice.
 plugins are the source of truth. Hand-edits inside those directories are lost
 at the next prebuild.
 
+### Running on a physical iOS device
+
+A free Apple ID is enough — the $99 Developer Program is not needed. Builds
+signed this way expire after 7 days and must be reinstalled.
+
+```bash
+xcodebuild -workspace ios/SovereignEdge.xcworkspace -scheme SovereignEdge \
+  -configuration Release -destination "id=<device-udid>" \
+  -derivedDataPath ios/build-device DEVELOPMENT_TEAM=<team-id> \
+  -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
+
+xcrun devicectl device install app --device <device-udid> \
+  ios/build-device/Build/Products/Release-iphoneos/SovereignEdge.app
+```
+
+Get the UDID from `xcrun xctrace list devices` — **not** from
+`xcrun devicectl list devices`, which prints a CoreDevice UUID that tooling
+will not match.
+
+Four setup steps, each of which fails with an error naming something else:
+
+**`0 valid identities found` — usually a missing intermediate, not a missing
+key.** Apple Development certificates are issued by the WWDR **G3**
+intermediate. If only the old G1 one is installed (it expired in 2023), the
+chain cannot reach the Apple Root CA and macOS reports no valid identity even
+though the certificate and its private key are both fine. Xcode also greys out
+*Delete Certificate* in this state, which looks like a permissions problem.
+Fix: install [AppleWWDRCAG3.cer](https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer).
+
+**`No code signing certificates are available`** — the Apple ID is added but no
+certificate exists yet. Xcode → Settings → Accounts → Manage Certificates →
+`+` → Apple Development.
+
+**`Timed out waiting for all destinations`** — Developer Mode is off on the
+device. Settings → Privacy & Security → Developer Mode. The menu only appears
+after a device build has been attempted.
+
+**`its profile has not been explicitly trusted`** — on the device, Settings →
+General → VPN & Device Management → trust the developer certificate.
+
+Prefer **Release** for device testing: a Debug build needs Metro reachable over
+Wi-Fi, and dev-mode Hermes is slow enough to make any measurement misleading.
+The tradeoff is that Release strips `console.log` forwarding, so device logs
+are empty — a harness must render results on screen or write them to a file.
+
 ## Running the tests
 
 ```bash

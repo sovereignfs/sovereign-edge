@@ -16,7 +16,7 @@ draft/rewrite an email — all fully local.
 
 ## Tasks
 
-#### 📋 1.1 — `llama.rn` integration and inference engine wrapper
+#### ✅ 1.1 — `llama.rn` integration and inference engine wrapper
 
 **Goal:** Get a GGUF model running on-device via `llama.rn`, wrapped in a
 clean internal API the chat UI and connector framework both call.
@@ -36,6 +36,23 @@ clean internal API the chat UI and connector framework both call.
 - Chat streams tokens from a locally-downloaded GGUF model with the device's
   network interfaces disabled.
 
+- ✅ Verified on an iPhone 15 Pro (A17 Pro, 7.50 GB), Release build. Metal is
+  active — `GPU=true`, where every earlier figure came from an emulator
+  reporting `gpu=false` and running CPU-only. Generation reached 86–91 tok/s
+  against ~43 on the emulator, with time-to-first-token 233 ms cold and 17 ms
+  warm against 1123 ms.
+
+**Two findings worth carrying forward.** Model load took **8.7 s** on device
+against 1.8 s on the emulator — GPU acceleration is *why*, since Metal must
+upload weights to GPU memory where the CPU-only path simply memory-mapped
+them. So the ~2x generation win costs roughly seven seconds up front, which
+task 1.3's chat UI has to show honestly rather than hide behind a spinner.
+Verification also revealed a redundant digest pass; see
+[research 0003](../research/0003-model-verification-hashing.md).
+
+**Not established:** both available test devices have 8 GB, so every model
+rates `comfortable` and the memory heuristic remains unexercised near its
+boundary.
 ---
 
 #### ✅ 1.2 — Model manager
