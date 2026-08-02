@@ -88,6 +88,12 @@ installed.
   on an emulator. The download UI now exists and the claim above is true of
   the shipped app: Qwen2.5 0.5B (491,400,032 bytes) downloaded, verified,
   auto-loaded, and answered a question, entirely from the UI.
+- ✅ Confirmed on an iPhone 15 Pro as well, against a Release build reporting
+  0.1.10 to the OS — which is only usable as evidence because the native
+  version was regenerated first; before that it read 0.1.4 and could not
+  distinguish one install from another. Note this device cannot reproduce the
+  first-run case: it still holds model files from the task 1.1 perf harness,
+  so the Android emulator remains the evidence for the fresh-install path.
 - ✅ The Llama entry carries no MD5, so it was verified purely against the
   publisher's SHA-256: 807 MB in 1.0s (~790 MB/s) via the native module from
   task [0.5](infrastructure.md#-05--native-sha-256-hashing). The same
