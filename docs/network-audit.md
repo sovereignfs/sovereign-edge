@@ -22,7 +22,7 @@ The claim is narrower and checkable:
 | ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `src/chat/`       | **Never**               | Conversations, prompts, and replies. This is the claim.                                                                        |
 | `src/models/`     | **User-initiated only** | _Acquiring_ a model is a download you started and can see. _Using_ one never touches the network.                              |
-| `src/connectors/` | **Per-grant only**      | Every outbound call sits behind an explicit, separately revocable permission. Currently an empty directory — the framework is epic 2. |
+| `src/connectors/` | **Per-grant only**      | Every outbound call sits behind an explicit, separately revocable permission. The manifest schema and permission store exist (tasks 2.1–2.2); no connector ships yet. |
 | everything else   | **Never**               | `design-system/`, `shared/`, and `settings/` are inside the boundary by transitivity, because `chat/` imports them.            |
 
 Stated as one sentence: **no code path reachable from `src/chat/` can open a
@@ -127,6 +127,8 @@ What the app declares, and why:
 | `VIBRATE`                | **Removed** | Pulled in by a dependency; unused.                                                            |
 | `READ_EXTERNAL_STORAGE`  | **Removed** | Models live in app-private storage.                                                           |
 | `WRITE_EXTERNAL_STORAGE` | **Removed** | As above.                                                                                     |
+| `USE_BIOMETRIC`          | **Removed** | Added by `expo-secure-store`. Its `requireAuthentication` option is not used.                 |
+| `USE_FINGERPRINT`        | **Removed** | As above.                                                                                     |
 
 Removals come from `android.blockedPermissions` in `app.json`, which emits
 `tools:node="remove"` into the generated manifest. `ios/` and `android/` are
@@ -154,6 +156,13 @@ Running the same against the `debug` variant additionally shows
 `SYSTEM_ALERT_WINDOW`. That is the development overlay, and it is worth
 knowing the two variants differ before concluding a debug APK is what users
 receive.
+
+**Re-run this whenever a native dependency is added.** It has already caught
+one regression: adding `expo-secure-store` for connector credentials (task
+2.2) silently introduced `USE_BIOMETRIC` and `USE_FINGERPRINT`, invalidating
+the claim above within hours of it being written. A library's manifest merges
+into yours without asking, so the permission list is not a property of your
+own code and cannot be reasoned about from it.
 
 iOS App Transport Security sets `NSAllowsArbitraryLoads: false`, so cleartext
 HTTP is refused. `NSAllowsLocalNetworking: true` is **kept deliberately**: the

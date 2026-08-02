@@ -99,7 +99,7 @@ handling, timeouts, and retries belong to the runtime host (2.4).
 
 ---
 
-#### 📋 2.2 — Permission and consent model
+#### ✅ 2.2 — Permission and consent model
 
 **Goal:** Per-connector, explicit, revocable permission grants — never a
 blanket "this app can use the network" toggle.
@@ -116,8 +116,58 @@ blanket "this app can use the network" toggle.
 
 **Review checklist:**
 
-- Revoking one connector's permission does not affect any other connector's
-  access or stored credentials.
+- ✅ Revoking one connector's permission does not affect any other connector's
+  access or stored credentials. Two connectors sharing the same credential
+  *key* (`apiToken`) — the case a naive key scheme collides on — and revoking
+  one leaves the other's grant and secret intact. Verified by breaking it:
+  removing the connector id from the vault's key template failed exactly that
+  test and no other.
+
+**Isolation holds by construction, not by discipline.** No exported function
+takes a connector id and a key. The only route to a credential is a
+`ConnectorVault` handle that closes over its own id and builds every key
+itself, so code holding one connector's vault *cannot name* another's token —
+not "should not", cannot, without bypassing the module in a way that is
+visible in review.
+
+Credentials live in the OS keychain via `expo-secure-store` (iOS keychain,
+Android EncryptedSharedPreferences), so they are not readable from a
+filesystem dump the way `AsyncStorage` would be. Grants live in plain JSON
+instead: they are not secrets, and keeping them readable means a user can
+inspect what they agreed to without the app mediating.
+
+**Three decisions worth keeping:**
+
+- **`not-asked` is distinct from `denied`.** Absence of a decision is not
+  refusal, and the distinction is what lets the UI avoid re-prompting for
+  something already turned down. A dialog that reappears until answered
+  "correctly" is coercion, not consent.
+- **Revoking destroys credentials, not just the grant.** Otherwise "revoked"
+  describes the UI rather than the device, and a later re-grant silently
+  reuses a secret the user believed was gone.
+- **Granted origins are copied at grant time, not referenced.** A connector
+  update that widens `permissions.network.origins` cannot inherit old consent;
+  it surfaces as `NEEDS REVIEW`. An update is the natural moment for scope to
+  creep, and consent for one set of destinations is not consent for a larger
+  one.
+
+Corrupt grant state fails closed — no grants rather than stale ones, so
+nothing reaches the network until the user decides again.
+
+**Verified on device, and the check earned its keep.** `expo-secure-store` is
+a native module, so this needed a rebuild rather than a Metro reload. The
+rebuild silently added `USE_BIOMETRIC` and `USE_FINGERPRINT` to the Release
+manifest — invalidating
+[docs/network-audit.md](../network-audit.md)'s "exactly one permission" claim
+within hours of it being written. Both are blocked now, and the audit carries
+a standing instruction to re-check the merged manifest whenever a native
+dependency is added.
+
+**Not yet exercised through the UI.** The screen renders its empty state
+because no connector exists until task 3.1. Grant and revoke are covered by
+tests; the on-device run confirms the app boots with the new native module and
+the surface renders. The interactive path gets a real device run when the
+Search connector lands.
 
 ---
 

@@ -17,7 +17,9 @@
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.VIBRATE",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -34,7 +36,8 @@
           "enableEntitlements": true,
           "entitlementsProfile": "production"
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }
