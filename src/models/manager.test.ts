@@ -8,12 +8,21 @@ import { ModelManager, type LoadedModelHandle } from './manager';
 const mockInstalled = new Set<string>();
 const mockRemoveModel = jest.fn((id: string) => mockInstalled.delete(id));
 const mockDownloadModel = jest.fn(async () => ({}));
+/** Stands in for the on-disk `active-model.json`. */
+const mockActive = { id: null as string | null };
 
 jest.mock('./store', () => ({
   isInstalled: (id: string) => mockInstalled.has(id),
   listInstalled: () => [...mockInstalled].map((id) => ({ id })),
   modelFile: (id: string) => ({ uri: `file:///models/${id}.gguf` }),
   removeModel: (id: string) => mockRemoveModel(id),
+  // The real one returns null once the file it names is gone, so a model
+  // deleted outside the app degrades to a first-launch default.
+  readActiveModelId: () =>
+    mockActive.id && mockInstalled.has(mockActive.id) ? mockActive.id : null,
+  writeActiveModelId: (id: string | null) => {
+    mockActive.id = id;
+  },
 }));
 
 jest.mock('./download', () => ({
@@ -41,6 +50,7 @@ describe('ModelManager', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockInstalled.clear();
+    mockActive.id = null;
   });
 
   describe('list', () => {
@@ -154,6 +164,70 @@ describe('ModelManager', () => {
       await expect(
         new ModelManager().install('not-a-model'),
       ).rejects.toMatchObject({ code: 'storage' });
+    });
+  });
+
+  describe('preferredModelId', () => {
+    it('remembers the model the user chose', async () => {
+      // Without this the app loaded whichever *catalog* entry happened to be
+      // installed first, so switching to a later one silently reverted on the
+      // next launch. Task 1.4 measured Draft fabricating on the smallest
+      // model, which makes a silent revert to it a safety problem, not just
+      // an annoyance.
+      mockInstalled.add(SMALL);
+      mockInstalled.add(LARGE);
+
+      new ModelManager().markActive(LARGE);
+
+      // A fresh manager stands in for the next app launch.
+      expect(new ModelManager().preferredModelId()).toBe(LARGE);
+    });
+
+    it('falls back to the first installed model on a first launch', () => {
+      mockInstalled.add(SMALL);
+      mockInstalled.add(LARGE);
+      expect(new ModelManager().preferredModelId()).toBe(SMALL);
+    });
+
+    it('falls back when the remembered model is gone', async () => {
+      // The file can vanish without the app: an OS clean-up, a restore onto a
+      // new device. Startup must degrade to the default rather than fail.
+      mockInstalled.add(SMALL);
+      mockInstalled.add(LARGE);
+      const manager = new ModelManager();
+      manager.markActive(LARGE);
+
+      mockInstalled.delete(LARGE);
+
+      expect(new ModelManager().preferredModelId()).toBe(SMALL);
+    });
+
+    it('returns null when nothing is installed', () => {
+      expect(new ModelManager().preferredModelId()).toBeNull();
+    });
+
+    it('forgets the choice when that model is deleted', async () => {
+      mockInstalled.add(SMALL);
+      mockInstalled.add(LARGE);
+      const manager = new ModelManager({ engine: fakeEngine(true) });
+      manager.markActive(LARGE);
+
+      await manager.remove(LARGE);
+
+      expect(new ModelManager().preferredModelId()).toBe(SMALL);
+    });
+
+    it('forgets a stored choice deleted without being loaded first', async () => {
+      // The stored id outlives the session that set it, so `remove` cannot
+      // rely on `activeId` alone to know the preference points at this model.
+      mockInstalled.add(SMALL);
+      mockInstalled.add(LARGE);
+      new ModelManager().markActive(LARGE);
+
+      // A later session that never loaded LARGE deletes it.
+      await new ModelManager().remove(LARGE);
+
+      expect(new ModelManager().preferredModelId()).toBe(SMALL);
     });
   });
 });

@@ -1,7 +1,14 @@
 import { CURATED_MODELS, findInCatalog, type CatalogEntry } from './catalog';
 import { fitForDevice, type FitAssessment } from './device';
 import { downloadModel, type DownloadModelOptions } from './download';
-import { isInstalled, listInstalled, modelFile, removeModel } from './store';
+import {
+  isInstalled,
+  listInstalled,
+  modelFile,
+  readActiveModelId,
+  removeModel,
+  writeActiveModelId,
+} from './store';
 import { ModelError } from './types';
 
 /**
@@ -84,15 +91,33 @@ export class ModelManager {
       await this.engine.unload();
       this.activeId = null;
     }
+    // Clear the stored choice whenever it names this model, including when it
+    // was never loaded in this session — otherwise the next launch tries to
+    // load a file that is about to stop existing.
+    if (readActiveModelId() === id) writeActiveModelId(null);
     removeModel(id);
   }
 
   /**
    * Records which model the engine now holds. Call after a successful load so
    * `remove()` and `switchTo()` know what is live.
+   *
+   * Also persists the choice, so the next launch loads the model the user
+   * picked rather than whichever catalog entry happens to be installed first.
    */
   markActive(id: string | null): void {
     this.activeId = id;
+    writeActiveModelId(id);
+  }
+
+  /**
+   * The model to load at startup: the one last chosen, or the first installed
+   * entry when there is no stored choice or the stored one is gone.
+   */
+  preferredModelId(): string | null {
+    return (
+      readActiveModelId() ?? this.list().find((m) => m.installed)?.id ?? null
+    );
   }
 
   /**

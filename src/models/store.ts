@@ -73,6 +73,53 @@ export function removeModel(id: string): void {
   }
 }
 
+/**
+ * Which model the user last chose, so the choice survives a relaunch.
+ *
+ * Kept beside the model files rather than in a settings store because it is
+ * only meaningful while that file exists — deleting the model should not
+ * leave a preference pointing at nothing, and both are reclaimed together.
+ *
+ * The stored id is a hint, not a guarantee: `readActiveModelId` returns null
+ * once the file it names is gone, so a model deleted outside the app (or by
+ * an OS clean-up) degrades to the same behaviour as a first launch instead of
+ * failing to start.
+ */
+const ACTIVE_FILENAME = 'active-model.json';
+
+function activeFile(): File {
+  return new File(modelsDirectory(), ACTIVE_FILENAME);
+}
+
+export function readActiveModelId(): string | null {
+  const file = activeFile();
+  if (!file.exists) return null;
+
+  try {
+    const { id } = JSON.parse(file.textSync()) as { id?: unknown };
+    if (typeof id !== 'string' || !isInstalled(id)) return null;
+    return id;
+  } catch {
+    // Corrupt state is not worth failing a launch over. Fall back to the
+    // "first installed" default, which is always safe.
+    return null;
+  }
+}
+
+export function writeActiveModelId(id: string | null): void {
+  const file = activeFile();
+  try {
+    if (id === null) {
+      if (file.exists) file.delete();
+      return;
+    }
+    file.write(JSON.stringify({ id }));
+  } catch {
+    // Losing the preference costs one wrong model on next launch, which the
+    // user can correct. Failing the switch they just asked for is worse.
+  }
+}
+
 export function availableSpaceBytes(): number {
   return Paths.availableDiskSpace;
 }

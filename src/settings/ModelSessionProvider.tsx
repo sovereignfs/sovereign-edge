@@ -91,9 +91,16 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   // Whichever model the app loads on start, decided once at mount. Held as
   // state so the first render can already say "preparing" — announcing it from
   // the effect instead would mean a setState-driven second render.
-  const [bootstrap] = useState<ManagedModel | null>(
-    () => manager.list().find((m) => m.installed) ?? null,
-  );
+  //
+  // `preferredModelId` is the user's last choice, not simply the first
+  // installed catalog entry. That distinction is task 1.6: without it, someone
+  // who switched to a larger model was silently returned to the smaller one on
+  // next launch — including, after task 1.4's measurements, back to the model
+  // that fabricates in Draft.
+  const [bootstrap] = useState<ManagedModel | null>(() => {
+    const id = manager.preferredModelId();
+    return id ? (manager.list().find((m) => m.id === id) ?? null) : null;
+  });
 
   const [models, setModels] = useState<ManagedModel[]>(() => manager.list());
   const [status, setStatus] = useState<ChatSessionStatus>(

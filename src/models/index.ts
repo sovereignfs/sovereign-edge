@@ -20,7 +20,9 @@ export {
   listInstalled,
   modelFile,
   modelsDirectory,
+  readActiveModelId,
   removeModel,
+  writeActiveModelId,
 } from './store';
 export { assertVerifiable, verifyFile } from './verify';
 export { isNativeHashingAvailable, sha256File, sha256FileJs } from './hashing';

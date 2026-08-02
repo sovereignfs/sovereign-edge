@@ -102,27 +102,24 @@ installed.
   devices have 8 GB, where every catalog entry rates `comfortable`; a 3.8 GB
   emulator renders all three tiers, including "Likely too large for this
   device" for Gemma 2 2B.
-**Found after this task closed, tracked as [1.6](#-16--remember-the-chosen-model).**
-The checklist above is still true — switching works, and nothing here claimed
-the choice would survive a relaunch.
 
-- **The chosen model is not remembered across launches.** The provider
-  bootstraps with `manager.list().find((m) => m.installed)` — the first
-  *catalog* entry that happens to be installed, not the one the user picked.
-  Switch deliberately to Llama 3.2 1B, relaunch, and the app is silently back
-  on Qwen2.5 0.5B.
+**Found after this task closed, fixed in [1.6](#-16--remember-the-chosen-model).**
+The checklist above was still true — switching worked, and nothing here
+claimed the choice would survive a relaunch.
 
-  That is now more than an annoyance: task 1.4 measured Draft fabricating a
-  price on 0.5B and not on 1B, so this quietly returns the user to the model
-  they moved away from, and the mode warning is the only thing that catches
-  it. Found by accident — a Fast Refresh remount re-ran the bootstrap during
-  testing, made Qwen active again without any visible change, and the next tap
-  on that row deleted a 491 MB download instead of selecting it. The
-  destructive tap was a development artefact; the missing persistence is not.
+- **The chosen model was not remembered across launches.** The provider
+  bootstrapped with `manager.list().find((m) => m.installed)` — the first
+  *catalog* entry that happened to be installed, not the one the user picked.
+  Switching deliberately to Llama 3.2 1B and relaunching put the app silently
+  back on Qwen2.5 0.5B.
 
-  Fixing it needs the active model id persisted alongside the model files and
-  read back at startup, falling back to the current behaviour when the stored
-  id is no longer installed.
+  That was more than an annoyance: task 1.4 measured Draft fabricating a price
+  on 0.5B and not on 1B, so it quietly returned the user to the model they had
+  moved away from, with the mode warning as the only thing catching it. Found
+  by accident — a Fast Refresh remount re-ran the bootstrap mid-session, made
+  Qwen active again with no visible change, and the next tap on that row
+  deleted a 491 MB download instead of selecting it. The destructive tap was a
+  development artefact; the missing persistence was not.
 
 ---
 
@@ -269,7 +266,7 @@ current code review.
 - Attempting to add a network call inside the chat/inference module fails
   CI or the build, not just code review.
 
-#### 📋 1.6 — Remember the chosen model
+#### ✅ 1.6 — Remember the chosen model
 
 **Goal:** The model a user selects stays selected across app launches.
 
@@ -283,8 +280,22 @@ current code review.
 
 **Review checklist:**
 
-- Switch to a model that is not first in the catalog, force-quit, relaunch,
-  and it is still the one loaded.
+- ✅ Switch to a model that is not first in the catalog, force-quit, relaunch,
+  and it is still the one loaded. Verified on an Android emulator: selected
+  Llama 3.2 1B (second in the catalog, with Qwen2.5 0.5B also installed),
+  confirmed `active-model.json` held its id, force-stopped the app, and the
+  banner came back reading "On-device · Llama 3.2 1B Instruct". The first
+  attempt at this check was worthless and had to be redone — Qwen was active,
+  which is also what the old behaviour produces, so it distinguished nothing.
+
+**How it works.** The id is stored beside the model files rather than in a
+settings store, so deleting a model reclaims both together and no preference
+is left pointing at nothing. `readActiveModelId` returns null once the file it
+names is gone, meaning a model removed by an OS clean-up or absent after a
+restore degrades to first-launch behaviour instead of failing to start.
+`remove()` clears the stored id whenever it names the model being deleted,
+including in a session that never loaded it — the stored choice outlives the
+session that set it, so `activeId` alone is not enough to know.
 
 **Why this is not cosmetic.** Task 1.4 measured Draft fabricating a price on
 Qwen2.5 0.5B and not on Llama 3.2 1B. Without persistence, a user who moved
