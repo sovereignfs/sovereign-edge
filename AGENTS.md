@@ -72,16 +72,18 @@ overturned a design that looked obviously correct on paper.
 Violating any of these breaks a promise the product makes to its users, not
 just a style preference.
 
-1. **`src/chat/` must not import anything that opens a socket.** Enforced,
-   not merely intended: ESLint restricts imports and network globals under
-   `src/chat/`, and `pnpm check:offline` walks the import graph in CI to catch
-   a transitive route that lint cannot see. See
-   [docs/network-audit.md](docs/network-audit.md) for what each mechanism does
-   and does not cover. The
+1. **`src/chat/` must not import anything that opens a socket.** The
    chat/model/memory layers are offline by design — per
    [research 0001](docs/research/0001-concept-and-connector-architecture.md#decisions),
    "no network code path exists there at all". This is the product's central
-   claim, and it is enforced by structure rather than intent.
+   claim.
+
+   Enforced rather than intended (task 1.5): ESLint restricts both imports and
+   the ambient network globals under `src/chat/`, and `pnpm check:offline`
+   walks the import graph in CI to catch a transitive route that lint cannot
+   see. [docs/network-audit.md](docs/network-audit.md) records what each
+   mechanism does **and does not** cover — read it before assuming a check
+   guarantees more than it does.
 2. **All outbound network access goes through `src/connectors/`**, behind an
    explicit, per-connector, separately revocable permission grant. Granting
    one connector network access never grants another.
