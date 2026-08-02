@@ -111,7 +111,16 @@ overturned a design that looked obviously correct on paper.
 - **When a task completes, mark it ✅ in both `ROADMAP.md` and the matching
   `docs/epics/<file>.md` heading, in the same PR.** Those two places are the
   only status record; do not accumulate completion history in this file.
-- **Never merge a PR automatically.** Wait for explicit instruction.
+- **Never merge a PR automatically.** Wait for explicit instruction. Open
+  agent-created PRs as drafts (`gh pr create --draft`).
+- **Bump the version when a task completes**, to the roadmap slot just
+  finished, and run `pnpm prebuild` so the native projects pick it up — see
+  _Native project rules_. `package.json`, `app.json`,
+  `src/shared/app-info.ts`, and `ROADMAP.md`'s header must agree.
+- **Direct commits to `main` happen only on explicit, per-change
+  instruction.** Branch-and-PR is the default; permission for one task does
+  not carry to the next. Everything else — checks, version bump, status
+  marks — is unchanged either way.
 - **Docs are part of the change.** A change to the connector manifest schema,
   the model descriptor shape, or a documented command means updating the
   matching doc in the same PR.

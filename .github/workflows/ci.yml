@@ -30,7 +30,13 @@ jobs:
   checks:
     name: Lint, typecheck, and test
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    # Three ways to skip, matching `sovereign`: keep the PR a draft, add the
+    # `skip-ci` label, or put [skip ci] in the head commit. The last is
+    # GitHub's own behaviour and needs no condition here.
+    if: >-
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.draft == false) &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-ci')
 
     steps:
       - uses: actions/checkout@v4

@@ -85,10 +85,17 @@ none, because it looks authoritative.
    `pnpm test` — and then actually exercise the change (see below).
 2. **Update status.** Mark the task ✅ in `ROADMAP.md` *and* the matching
    `docs/epics/<file>.md` heading, in the same PR.
-3. **Record decisions.** If the task settled an open question, write or update
+3. **Bump the version** to the roadmap slot just completed, then run
+   `pnpm prebuild` so the native projects pick it up. Four files must agree —
+   `package.json`, `app.json`, `src/shared/app-info.ts`, and `ROADMAP.md`'s
+   header. See [CONTRIBUTING.md](../CONTRIBUTING.md#pull-requests) for why the
+   prebuild step is not optional.
+4. **Record decisions.** If the task settled an open question, write or update
    the research doc and add it to `docs/research/README.md`.
-4. **Open a draft PR** with `gh pr create --draft`. Mark it ready for review
-   only on explicit instruction, and **never merge automatically.**
+5. **Open a draft PR** with `gh pr create --draft`. Mark it ready for review
+   only on explicit instruction, and **never merge automatically.** When the
+   developer has instead asked for a direct commit to `main`, steps 1–4 are
+   unchanged; only this step differs.
 
 ---
 

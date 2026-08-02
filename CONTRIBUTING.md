@@ -194,12 +194,45 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>
 - **Mark the task ✅ in both `ROADMAP.md` and the matching
   `docs/epics/<file>.md` heading, in the same PR.** Those are the only two
   places status is tracked.
+- **Bump the version in the same PR**, to the roadmap slot the task just
+  completed. Four files must agree — `package.json`, `app.json`,
+  `src/shared/app-info.ts`, and the `Version:` header in `ROADMAP.md` — and
+  `src/shared/app-info.test.ts` locks the first three together.
+
+  Then run **`pnpm prebuild`**. `expo run:ios` and `run:android` do not
+  re-run prebuild when the native directory exists, so the bump never reaches
+  `Info.plist` or `build.gradle` on its own, and the shipped binary
+  misreports itself. This has already gone wrong twice: once leaving the
+  native version four releases stale, and once by regenerating only Android
+  and leaving iOS behind. Check both:
+
+  ```sh
+  grep versionName android/app/build.gradle
+  plutil -extract CFBundleShortVersionString raw ios/SovereignEdge/Info.plist
+  ```
 - PRs are merged with **rebase and merge** — no squash, no merge commits.
 - **Fix commit messages before the PR is merged.** Correcting them afterwards
   means rewriting `main`.
 - Agent-created PRs are opened as **drafts** (`gh pr create --draft`) and
   marked ready for review only on explicit instruction. **Never merge
   automatically.**
+
+### Working directly on `main`
+
+The branch-and-PR flow above is the default and the one to follow unless told
+otherwise. In practice the developer sometimes asks for work to be committed
+straight to `main` — early-stage, single-maintainer, no review to wait for.
+That is a deliberate exception, not the process changing:
+
+- It happens **only on explicit instruction**, per change. "Commit to main"
+  for one task does not carry to the next.
+- Everything else still applies. The checks still run, the version is still
+  bumped, and `ROADMAP.md` plus the epic heading are still marked in the same
+  commit.
+- `ci.yml` runs on push to `main` precisely so this path is still gated.
+
+Recorded because a reader comparing the git history against this document
+would otherwise conclude one of them is wrong.
 - PR bodies from Claude Code end with:
   `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
 
@@ -212,7 +245,16 @@ Two workflows, split so the slow native jobs do not gate every PR:
 | [`ci.yml`](.github/workflows/ci.yml)             | every PR and push to `main`   | lint, format, typecheck, test                             |
 | [`native.yml`](.github/workflows/native.yml)     | `main` and manual dispatch    | builds and launches on an iOS simulator + Android emulator |
 
-Draft PRs skip `ci.yml`; marking one ready for review runs it.
+**Three ways to skip `ci.yml`**, matching `sovereign`:
+
+- keep the PR a **draft** — marking it _Ready for review_ runs the checks;
+- add the **`skip-ci` label** to the PR;
+- put **`[skip ci]`** (or `[ci skip]`, `[no ci]`) in the head commit message.
+
+Unlike `sovereign`, this repo's `ci.yml` also runs on **push to `main`**.
+`sovereign` validates `main` purely pre-merge, which assumes every change
+arrives by PR. That assumption does not hold here yet — see the note on
+direct-to-`main` work below — so the push trigger is the safety net.
 
 The native workflow builds **Release**, not Debug — a Debug build loads its JS
 from a Metro server and so proves nothing about launching standalone. Both
