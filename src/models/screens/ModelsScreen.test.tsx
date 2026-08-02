@@ -123,6 +123,34 @@ describe('ModelsScreen', () => {
     expect(s.getByText(/checksum/)).toBeTruthy();
   });
 
+  it('does not present a model the device cannot run as an equal option', async () => {
+    // The row's own subtitle says "pick a smaller model". Offering it in the
+    // same accent style as the rest contradicts that in the one place the
+    // user actually taps, and costs them the whole download to find out.
+    const { CURATED_MODELS } =
+      jest.requireActual<typeof import('../catalog')>('../catalog');
+    const gemma = CURATED_MODELS.find((m) => m.id === 'gemma-2-2b-it-q4km')!;
+
+    const { view } = renderModels({
+      models: [
+        {
+          ...gemma,
+          installed: false,
+          fit: {
+            fit: 'unsupported',
+            estimatedPeakBytes: 2.1e9,
+            totalMemoryBytes: 3.8e9,
+            note: 'Likely too large for this device. Pick a smaller model.',
+          },
+        },
+      ],
+    });
+    const s = await view;
+
+    expect(s.getByText('DOWNLOAD ANYWAY')).toBeTruthy();
+    expect(s.queryByText('DOWNLOAD')).toBeNull();
+  });
+
   it('says what pressing an installed row will do', async () => {
     // The loaded model's row deletes it. That was previously signalled only by
     // drawing the title in the error colour, beside a green IN USE badge —

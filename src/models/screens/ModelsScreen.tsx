@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import { ListItem, useTheme } from '@/design-system';
+import type { Fit } from '@/models';
 import {
   useModelSession,
   type ModelDownload,
@@ -83,6 +84,7 @@ export function ModelsScreen() {
                   installed={model.installed}
                   active={active}
                   download={download}
+                  fit={model.fit.fit}
                 />
               }
               onPress={onPress(model.id, model.installed, download)}
@@ -153,30 +155,44 @@ function subtitleFor(download: ModelDownload | undefined): string | undefined {
   }
 }
 
+/**
+ * The trailing label, which is also the row's only affordance.
+ *
+ * A model the device cannot run still offers a download — the estimate is a
+ * heuristic and the choice is the user's — but it must not be presented as an
+ * equally good option. It reads "DOWNLOAD ANYWAY" in the muted colour, so the
+ * control agrees with the subtitle telling them to pick something smaller
+ * instead of contradicting it in accent colour.
+ */
 function Accessory({
   installed,
   active,
   download,
+  fit,
 }: {
   installed: boolean;
   active: boolean;
   download: ModelDownload | undefined;
+  fit: Fit;
 }) {
   const theme = useTheme();
+  const inFlight =
+    download?.phase === 'downloading' || download?.phase === 'verifying';
+  const discouraged = !installed && fit === 'unsupported';
 
   const label = (() => {
-    if (download?.phase === 'downloading' || download?.phase === 'verifying') {
-      return 'CANCEL';
-    }
+    if (inFlight) return 'CANCEL';
     if (download?.phase === 'failed') return 'RETRY';
-    if (!installed) return 'DOWNLOAD';
+    if (!installed) return discouraged ? 'DOWNLOAD ANYWAY' : 'DOWNLOAD';
     return active ? 'IN USE' : 'INSTALLED';
   })();
 
   const colour = (() => {
     if (download?.phase === 'failed') return theme.colors.errorText;
     if (active) return theme.colors.successText;
-    if (!installed) return theme.colors.accent;
+    if (!installed) {
+      return discouraged ? theme.colors.textMuted : theme.colors.accent;
+    }
     return theme.colors.textMuted;
   })();
 
