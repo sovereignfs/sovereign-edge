@@ -5,7 +5,10 @@
 
 ## Status
 
-⏳ In Progress
+✅ Complete — tasks 1.1 through 1.6
+
+The offline guarantee is now enforced rather than intended: see
+[docs/network-audit.md](../network-audit.md).
 
 ## Overview
 
@@ -246,7 +249,7 @@ output in quotation marks, against "return only the rewritten text". Draft on
 
 ---
 
-#### 📋 1.5 — Zero-network enforcement and audit
+#### ✅ 1.5 — Zero-network enforcement and audit
 
 **Goal:** Make the "fully offline" claim structurally true, not just true by
 current code review.
@@ -369,17 +372,35 @@ Turned up while scoping this task, and part of its audit surface:
 
 **Review checklist:**
 
-- Attempting to add a network call inside the chat/inference module fails
-  CI or the build, not just code review.
-- **Each mechanism is verified by deliberately breaking it**, not by observing
-  it pass — one commit per threat class that should fail CI, confirmed to fail
-  for the stated reason, then reverted. This repo has twice shipped a green
-  suite over a real defect (the download dead end, and modes defeated by
-  conversation history); a guard nobody has watched fail is not evidence.
-- A third party can reproduce every claim in `docs/network-audit.md` from the
-  commands it lists, without asking the maintainer anything.
-- Every permission in `AndroidManifest.xml` is either justified in writing or
-  removed.
+- ✅ Attempting to add a network call inside the chat/inference module fails
+  CI or the build, not just code review. Four mechanisms: restricted imports
+  and restricted globals in `eslint.config.js`, a module-graph walk in
+  `scripts/ci/check-offline-boundary.js` wired into CI as `pnpm check:offline`,
+  and a development-only runtime tripwire armed from `App.tsx`.
+- ✅ **Each mechanism was verified by deliberately breaking it.** Nine probes
+  across the threat classes, each confirmed to fail for its stated reason and
+  then reverted. The decisive one: an escape routed `chat/ → shared/helper →
+  @/models` produced **zero ESLint errors** and was caught by the graph check,
+  which printed the full three-step chain. That is the case lint provably
+  cannot see, and the reason the graph check exists rather than being a
+  belt-and-braces extra.
+- ✅ A third party can reproduce every claim in
+  [docs/network-audit.md](../network-audit.md) from the commands it lists.
+- ✅ Every Android permission is justified or removed. **A Release build
+  declares exactly one: `INTERNET`.** `VIBRATE` and both legacy external
+  storage permissions are removed via `android.blockedPermissions`;
+  `SYSTEM_ALERT_WINDOW` turned out to be debug-only, added by React Native's
+  dev overlay, and is absent from Release.
+
+**Two things the verification changed.** The permission check had to move from
+the source manifest to the merged one — the source still lists blocked
+permissions carrying `tools:node="remove"`, so grepping it reports the
+opposite of the truth, and the audit's original command would have misled a
+reader. And the runtime tripwire was tested against a real model download to
+confirm it does not break the one legitimate network path: `expo-file-system`
+downloads through native code rather than JS `fetch`, so a 1.12 GB transfer
+ran normally with the guard armed. That was an assumption until it was
+measured.
 
 ##### Resolved before implementation
 

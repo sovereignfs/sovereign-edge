@@ -174,6 +174,8 @@ Two workflows, split so the slow native jobs don't gate every PR:
 
 - [CONCEPT.md](CONCEPT.md) — concept paper: vision, architecture, phasing
 - [ROADMAP.md](ROADMAP.md) — chronological task index and canonical task status
+- [docs/network-audit.md](docs/network-audit.md) — how the offline claim is
+  enforced, what each mechanism misses, and the commands to check it yourself
 - [CONTRIBUTING.md](CONTRIBUTING.md) — setup, branching, commits, PRs, CI
 - [docs/development-workflow.md](docs/development-workflow.md) — task lifecycle
   and how these documents fit together

@@ -57,5 +57,10 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Task 1.5, threat 3. ESLint reads one file at a time and cannot see a
+      # transitive route out of the offline boundary; this walks the graph.
+      - name: Check the offline boundary
+        run: pnpm check:offline
+
       - name: Test
         run: pnpm test --ci

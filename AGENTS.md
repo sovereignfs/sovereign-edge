@@ -72,7 +72,12 @@ overturned a design that looked obviously correct on paper.
 Violating any of these breaks a promise the product makes to its users, not
 just a style preference.
 
-1. **`src/chat/` must not import anything that opens a socket.** The
+1. **`src/chat/` must not import anything that opens a socket.** Enforced,
+   not merely intended: ESLint restricts imports and network globals under
+   `src/chat/`, and `pnpm check:offline` walks the import graph in CI to catch
+   a transitive route that lint cannot see. See
+   [docs/network-audit.md](docs/network-audit.md) for what each mechanism does
+   and does not cover. The
    chat/model/memory layers are offline by design — per
    [research 0001](docs/research/0001-concept-and-connector-architecture.md#decisions),
    "no network code path exists there at all". This is the product's central
