@@ -279,44 +279,79 @@ function OfflineBanner({ modeId }: { modeId: ModeId }) {
   const failed = session.status === 'error';
   const mode = findMode(modeId);
 
+  // A measured limitation of the loaded model, not a general disclaimer about
+  // AI. It appears only for the mode and the sizes where fabrication was
+  // actually observed, so it stays worth reading.
+  const risky =
+    mode.cautionBelowB !== null &&
+    session.modelParametersB !== null &&
+    session.modelParametersB < mode.cautionBelowB;
+
   return (
-    <View
-      style={[
-        styles.banner,
-        {
-          paddingHorizontal: theme.space[4],
-          paddingVertical: theme.space[2],
-          gap: theme.space[2],
-          backgroundColor: failed
-            ? theme.colors.errorSurface
-            : theme.colors.surfaceSunken,
-          borderBottomColor: failed
-            ? theme.colors.errorBorder
-            : theme.colors.border,
-        },
-      ]}
-    >
-      {preparing ? <ActivityIndicator size="small" /> : null}
-      <Text
-        style={{
-          flex: 1,
-          color: failed ? theme.colors.errorText : theme.colors.textMuted,
-          fontSize: theme.fontSize.caption,
-          fontFamily: theme.fontFamily.body,
-        }}
+    <View>
+      <View
+        style={[
+          styles.banner,
+          {
+            paddingHorizontal: theme.space[4],
+            paddingVertical: theme.space[2],
+            gap: theme.space[2],
+            backgroundColor: failed
+              ? theme.colors.errorSurface
+              : theme.colors.surfaceSunken,
+            borderBottomColor: failed
+              ? theme.colors.errorBorder
+              : theme.colors.border,
+          },
+        ]}
       >
-        {session.detail ??
-          [
-            session.modelName
-              ? `On-device · ${session.modelName}`
-              : 'On-device · nothing leaves this phone',
-            // Only when a mode is on. Saying "Plain chat" on every screen
-            // would be noise on the default nobody chose.
-            mode.systemPrompt ? mode.banner : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-      </Text>
+        {preparing ? <ActivityIndicator size="small" /> : null}
+        <Text
+          style={{
+            flex: 1,
+            color: failed ? theme.colors.errorText : theme.colors.textMuted,
+            fontSize: theme.fontSize.caption,
+            fontFamily: theme.fontFamily.body,
+          }}
+        >
+          {session.detail ??
+            [
+              session.modelName
+                ? `On-device · ${session.modelName}`
+                : 'On-device · nothing leaves this phone',
+              // Only when a mode is on. Saying "Plain chat" on every screen
+              // would be noise on the default nobody chose.
+              mode.systemPrompt ? mode.banner : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+        </Text>
+      </View>
+
+      {risky ? (
+        <View
+          style={[
+            styles.banner,
+            {
+              paddingHorizontal: theme.space[4],
+              paddingVertical: theme.space[2],
+              backgroundColor: theme.colors.warningSurface,
+              borderBottomColor: theme.colors.warningBorder,
+            },
+          ]}
+        >
+          <Text
+            style={{
+              flex: 1,
+              color: theme.colors.warningText,
+              fontSize: theme.fontSize.caption,
+              fontFamily: theme.fontFamily.body,
+            }}
+          >
+            {`${session.modelName} is small enough to invent details that were not in your notes — it has produced figures nobody typed. Check any draft before sending it, or switch to a larger model in Models.`}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }

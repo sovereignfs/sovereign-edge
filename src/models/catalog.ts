@@ -10,6 +10,15 @@ import type { ModelDescriptor } from './types';
 export type CatalogEntry = ModelDescriptor & {
   /** Parameter count, for display: '0.5B', '1.5B'. */
   parameters: string;
+  /**
+   * The same count in billions, for comparison.
+   *
+   * Held separately rather than parsed out of `parameters`: that field is a
+   * display string, and capability decisions should not hinge on its
+   * formatting. Task 1.4 measured a real capability cliff between 0.5B and 1B
+   * — Draft fabricated a price on the smaller model and not the larger.
+   */
+  parametersB: number;
   /** One line on what this model is good for. */
   summary: string;
 };
@@ -41,6 +50,7 @@ export const CURATED_MODELS: CatalogEntry[] = [
     id: 'qwen2.5-0.5b-instruct-q4km',
     name: 'Qwen2.5 0.5B Instruct',
     parameters: '0.5B',
+    parametersB: 0.5,
     quantization: 'Q4_K_M',
     summary: 'Smallest option. Runs on almost anything; answers stay short.',
     url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf',
@@ -51,6 +61,7 @@ export const CURATED_MODELS: CatalogEntry[] = [
     id: 'llama-3.2-1b-instruct-q4km',
     name: 'Llama 3.2 1B Instruct',
     parameters: '1B',
+    parametersB: 1,
     quantization: 'Q4_K_M',
     summary:
       'A step up in coherence while staying comfortable on mid-range phones.',
@@ -62,6 +73,7 @@ export const CURATED_MODELS: CatalogEntry[] = [
     id: 'qwen2.5-1.5b-instruct-q4km',
     name: 'Qwen2.5 1.5B Instruct',
     parameters: '1.5B',
+    parametersB: 1.5,
     quantization: 'Q4_K_M',
     summary:
       'Noticeably better at following instructions. Wants a recent phone.',
@@ -73,6 +85,7 @@ export const CURATED_MODELS: CatalogEntry[] = [
     id: 'gemma-2-2b-it-q4km',
     name: 'Gemma 2 2B Instruct',
     parameters: '2B',
+    parametersB: 2,
     quantization: 'Q4_K_M',
     summary: 'Best quality here, and the heaviest. High-end devices only.',
     url: 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf',

@@ -33,6 +33,14 @@ export type ChatSession = {
   status: ChatSessionStatus;
   /** Human-readable name of the loaded model, when there is one. */
   modelName: string | null;
+  /**
+   * Its parameter count in billions, for capability decisions.
+   *
+   * Task 1.4 measured a cliff here rather than a gradient: on 0.5B the Draft
+   * mode invented a price that was never in the input, and on 1B the same
+   * input and prompt did not. Modes that generate prose need to know.
+   */
+  modelParametersB: number | null;
   /** Error text when `status` is 'error', otherwise a progress note or null. */
   detail: string | null;
   generate(request: GenerateRequest): Promise<GenerateResult>;

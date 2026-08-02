@@ -102,6 +102,9 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   const [modelName, setModelName] = useState<string | null>(
     bootstrap?.name ?? null,
   );
+  const [modelParametersB, setModelParametersB] = useState<number | null>(
+    bootstrap?.parametersB ?? null,
+  );
   // Loading a model measured 8.7s on an iPhone 15 Pro — Metal uploads the
   // weights to GPU memory, where the CPU-only path merely mapped them. The
   // wait is real and has to be stated rather than hidden behind a spinner.
@@ -153,6 +156,7 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
 
       setStatus('preparing');
       setModelName(entry.name);
+      setModelParametersB(entry.parametersB);
       setDetail(loadingDetail(entry.name));
       await load(entry);
     },
@@ -271,6 +275,7 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
         setActiveModelId(null);
         setStatus(left.length === 0 ? 'no-model' : 'ready');
         setModelName(null);
+        setModelParametersB(null);
       }
       refresh();
     },
@@ -298,8 +303,8 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const chatSession = useMemo<ChatSession>(
-    () => ({ status, modelName, detail, generate }),
-    [status, modelName, detail, generate],
+    () => ({ status, modelName, modelParametersB, detail, generate }),
+    [status, modelName, modelParametersB, detail, generate],
   );
 
   const modelSession = useMemo<ModelSession>(

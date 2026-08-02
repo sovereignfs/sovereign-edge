@@ -30,6 +30,7 @@ function renderChat(overrides: Partial<ChatSession> = {}) {
   const session: ChatSession = {
     status: 'ready' as ChatSessionStatus,
     modelName: 'Qwen2.5 0.5B Instruct',
+    modelParametersB: 0.5,
     detail: null,
     generate: jest.fn(async () => done),
     ...overrides,
@@ -259,6 +260,43 @@ describe('ChatScreen', () => {
 
       const { messages } = generate.mock.calls[1]![0];
       expect(messages.some((m) => m.content === 'first')).toBe(true);
+    });
+
+    it('warns that a small model may invent details in a draft', async () => {
+      // Measured: on Qwen2.5 0.5B, "prices rise 5 percent from March" produced
+      // a draft asserting "$100 per customer". Draft output is meant to be
+      // sent, and a fabricated figure reads as fluently as a real one.
+      const { view } = renderChat({ modelParametersB: 0.5 });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Draft mode'));
+
+      expect(s.getByText(/invent details/)).toBeTruthy();
+    });
+
+    it('does not warn once the model is large enough', async () => {
+      // Llama 3.2 1B invented nothing on the same input and prompt. A warning
+      // shown regardless of model would be noise, and noise gets ignored.
+      const { view } = renderChat({
+        modelName: 'Llama 3.2 1B Instruct',
+        modelParametersB: 1,
+      });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Draft mode'));
+
+      expect(s.queryByText(/invent details/)).toBeNull();
+    });
+
+    it('does not warn for modes that were not observed fabricating', async () => {
+      // Fix grammar returns the user's own words corrected; there is nothing
+      // for it to invent. Warning there would dilute the one that matters.
+      const { view } = renderChat({ modelParametersB: 0.5 });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Fix grammar mode'));
+
+      expect(s.queryByText(/invent details/)).toBeNull();
     });
 
     it('drops the system prompt when switched back to plain chat', async () => {

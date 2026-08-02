@@ -46,6 +46,21 @@ export type Mode = {
    * inside a mode; switch to Chat for that.
    */
   usesHistory: boolean;
+  /**
+   * Warn below this parameter count, in billions. `null` for modes that do not
+   * need it.
+   *
+   * Only Draft carries one, and the number is measured rather than guessed.
+   * Given "prices rise 5 percent from March, loyal customers get 3 months
+   * notice", Qwen2.5 0.5B produced a draft asserting "prices have increased by
+   * $100 per customer" — a figure with no source in the input. Llama 3.2 1B,
+   * same prompt and input, invented nothing.
+   *
+   * This matters more than the other rough edges because Draft output is meant
+   * to be sent to someone. A fabricated price reads as fluently as a real one,
+   * so the user has no cue that anything is wrong.
+   */
+  cautionBelowB: number | null;
 };
 
 export const MODES: readonly Mode[] = [
@@ -56,6 +71,7 @@ export const MODES: readonly Mode[] = [
     systemPrompt: null,
     temperature: 0.7,
     usesHistory: true,
+    cautionBelowB: null,
   },
   {
     id: 'brainstorm',
@@ -70,6 +86,7 @@ export const MODES: readonly Mode[] = [
     // avoid, and a small model at low temperature produces exactly that.
     temperature: 0.95,
     usesHistory: false,
+    cautionBelowB: null,
   },
   {
     id: 'grammar',
@@ -84,6 +101,7 @@ export const MODES: readonly Mode[] = [
     // creativity here shows up as unrequested rewriting.
     temperature: 0.2,
     usesHistory: false,
+    cautionBelowB: null,
   },
   {
     id: 'tone',
@@ -95,6 +113,7 @@ export const MODES: readonly Mode[] = [
       'every fact and all intent. Return only the rewritten text.',
     temperature: 0.6,
     usesHistory: false,
+    cautionBelowB: null,
   },
   {
     id: 'draft',
@@ -107,6 +126,7 @@ export const MODES: readonly Mode[] = [
       'draft.',
     temperature: 0.7,
     usesHistory: false,
+    cautionBelowB: 1,
   },
 ] as const;
 
