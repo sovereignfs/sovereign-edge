@@ -1,6 +1,6 @@
 # Research 0004 — Connector manifest schema: format, validation, and the templating surface
 
-**Status:** Proposed — decisions pending review\
+**Status:** Decided — implemented in task 2.1\
 **Date:** August 2026\
 **Author:** Claude Code (session with the developer)\
 **Scope:** Task 0.1.13 / epic [2.1](../epics/connector-framework.md) — the
@@ -134,7 +134,7 @@ convenience and buys the user risk.
 **F. Full string interpolation.** Simplest to implement, and unfixable later.
 Rejected outright.
 
-## Proposed decisions
+## Decisions
 
 - **Tool parameters are JSON Schema**, so grammar-constrained decoding in 2.3
   is free rather than a converter to maintain.

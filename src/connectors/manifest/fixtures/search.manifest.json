@@ -1,0 +1,57 @@
+{
+  "manifestVersion": 1,
+  "id": "fs.sovereign.search",
+  "name": "Search",
+  "version": "1.0.0",
+  "summary": "Answers questions using a privacy-respecting meta-search engine.",
+  "tier": 1,
+  "platforms": ["ios", "android"],
+  "tool": {
+    "name": "web_search",
+    "description": "Search the web for current information the model does not know.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "What to search for, in plain language."
+        },
+        "language": {
+          "type": "string",
+          "description": "Two-letter language code, e.g. en.",
+          "default": "en"
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  "permissions": {
+    "network": {
+      "origins": ["https://searx.example.org"]
+    },
+    "credentials": [
+      {
+        "key": "apiToken",
+        "label": "SearXNG API token"
+      }
+    ]
+  },
+  "request": {
+    "method": "GET",
+    "origin": "https://searx.example.org",
+    "path": [{ "literal": "search" }],
+    "query": {
+      "q": { "slot": "query" },
+      "language": { "slot": "language" },
+      "format": { "literal": "json" }
+    },
+    "headers": {
+      "Authorization": { "credential": "apiToken" }
+    }
+  },
+  "response": {
+    "textFrom": "results",
+    "maxBytes": 262144
+  },
+  "pricing": { "model": "free" }
+}

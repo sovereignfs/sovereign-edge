@@ -6,7 +6,7 @@
 
 ## Status
 
-📋 Planned
+⏳ In Progress
 
 ## Overview
 
@@ -27,7 +27,7 @@ Three trust tiers, per CONCEPT.md:
 
 ## Tasks
 
-#### 📋 2.1 — Connector manifest schema (Tier 1)
+#### ✅ 2.1 — Connector manifest schema (Tier 1)
 
 **Goal:** Define the declarative shape every Tier 1 connector — first-party
 or third-party — conforms to.
@@ -46,8 +46,56 @@ or third-party — conforms to.
 
 **Review checklist:**
 
-- The Search connector (epic 3) validates against this schema with no
-  special-casing.
+- ✅ The Search connector (epic 3) validates against this schema with no
+  special-casing. `fixtures/search.manifest.json` is a realistic connector —
+  query slot, language slot, literal `format=json`, and a bearer credential —
+  and it passes unmodified.
+
+**Design decisions are in
+[research 0004](../research/0004-connector-manifest-schema.md).** Two shape
+everything else:
+
+- **No expression language, no string interpolation.** A request is literal
+  parts plus named slots, and the runtime encodes each slot for the position
+  it occupies. Encoding is decided by position rather than declared, so the
+  two cannot disagree. The values filling slots come from a language model
+  steered by whatever the user pasted into chat, and a format permitting
+  interpolation could not later forbid it without breaking every connector
+  written against it.
+- **A credential may never appear in a URL** — not in the origin, a path
+  segment, or a query value. URLs reach proxy logs, `Referer` headers, and
+  crash reports.
+
+**What the validator rejects**, each with a test that fails for that reason:
+
+| Rejected | Attack closed |
+| --- | --- |
+| Credential in query or path | Token leaked through logs |
+| Userinfo in an origin | `https://real.example.org@evil.com` resolves to `evil.com` |
+| Origin carrying a path, query, or fragment | Author-controlled string joining |
+| Literal path segment containing `/`, `?`, `#` | Path traversal, invented structure |
+| Cleartext `http` | Refused by iOS ATS on device anyway |
+| Request origin outside `permissions.network.origins` | Undeclared network access |
+| Slot naming a parameter the tool does not declare | Silently empty value at runtime |
+| Credential the user is never asked for | Grant that cannot be honoured |
+| Unknown `manifestVersion` | Loading a manifest only partly understood |
+| Unknown top-level field | A typo indistinguishable from an unimplemented field |
+
+Validation is two passes: Zod for shape, then cross-field rules for everything
+that only makes sense in combination — which is where the security properties
+actually live, and none of it expressible as a per-field type. All issues are
+reported at once, because a connector author fixing one error per device
+round-trip is the slowest possible loop.
+
+**Chosen against Ajv deliberately.** Ajv compiles schemas by generating
+JavaScript at runtime; "we generate and execute code derived from a
+third-party manifest" is the wrong sentence for this product, independent of
+Hermes' restrictions on runtime codegen.
+
+**Left to later tasks.** Response mapping is deliberately minimal — a source
+path and a size cap — because turning a response back into model context is
+the mirror of the request problem and deserves its own pass. Redirect
+handling, timeouts, and retries belong to the runtime host (2.4).
 
 ---
 

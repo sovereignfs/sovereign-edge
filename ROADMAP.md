@@ -37,7 +37,7 @@ connector store, no third-party anything, no monetization yet.
 | 0.1.11  | Writing-assist modes                      | ✅     | [1.4](docs/epics/core-inference-chat.md#-14--writing-assist-modes)                       |
 | 0.1.11a | Remember the chosen model                 | ✅     | [1.6](docs/epics/core-inference-chat.md#-16--remember-the-chosen-model)                  |
 | 0.1.12  | Zero-network enforcement and audit        | ✅     | [1.5](docs/epics/core-inference-chat.md#-15--zero-network-enforcement-and-audit)         |
-| 0.1.13  | Connector manifest schema (Tier 1)        | 📋     | [2.1](docs/epics/connector-framework.md#-21--connector-manifest-schema-tier-1)           |
+| 0.1.13  | Connector manifest schema (Tier 1)        | ✅     | [2.1](docs/epics/connector-framework.md#-21--connector-manifest-schema-tier-1)           |
 | 0.1.14  | Permission and consent model              | 📋     | [2.2](docs/epics/connector-framework.md#-22--permission-and-consent-model)               |
 | 0.1.15  | Tool-routing / intent-detection layer     | 📋     | [2.3](docs/epics/connector-framework.md#-23--tool-routing--intent-detection-layer)       |
 | 0.1.16  | Connector runtime host                    | 📋     | [2.4](docs/epics/connector-framework.md#-24--connector-runtime-host)                     |
