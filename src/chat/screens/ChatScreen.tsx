@@ -208,7 +208,13 @@ function ModeBar({
         gap: theme.space[2],
       }}
       style={{
+        // `flexGrow: 0` alone is not enough: a ScrollView defaults to
+        // `flexShrink: 1`, so once the conversation grew tall this row was
+        // squeezed until the chip labels were clipped to slivers. Found by
+        // using the app, not by reading it — it looks correct while the
+        // thread is short.
         flexGrow: 0,
+        flexShrink: 0,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: theme.colors.border,
         backgroundColor: theme.colors.surface,

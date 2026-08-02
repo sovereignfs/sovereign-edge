@@ -190,7 +190,27 @@ rewrite/draft an email.
     fabricated price in a draft the user may then send is the most damaging
     failure available to this feature, and it reads fluently enough to pass a
     skim.
-  - ❔ **Rewrite tone** — not yet exercised on device; unit tests only.
+  - ✅ **Rewrite tone** (Llama 3.2 1B) — "make this polite: prices are going
+    up deal with it" became "I wanted to touch base with you regarding the
+    pricing for our services…". Wraps its output in quotation marks, against
+    "return only the rewritten text".
+
+**Re-measured on Llama 3.2 1B, same input, same prompt, only the model
+changed.** Draft returned "To accommodate our loyal customers, we will offer
+them 3 months' notice before increasing prices…" — no invented figure, and a
+short paragraph rather than an essay. It drops the 5 percent, so it omits a
+given fact instead of inventing one; a lesser fault, but still against the
+prompt.
+
+So the prompts were not the problem and were deliberately left alone. Tuning
+them against the smallest catalog entry would have contorted them around a
+limitation that disappears one size up.
+
+**What this leaves.** Draft is unsafe on Qwen2.5 0.5B specifically, and that
+is the first catalog entry and the one a new user is most likely to install.
+A fabricated price in text the user is about to send is the most damaging
+output this feature can produce, and it reads fluently enough to survive a
+skim. Recording it here is not a substitute for handling it in the product.
 
 - ✅ A mode receives its system prompt and the current message only. Sending
   conversation history defeated modes outright: with two grammar corrections
