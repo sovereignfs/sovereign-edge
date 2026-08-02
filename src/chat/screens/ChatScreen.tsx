@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, ChatBubble, TextField, useTheme } from '@/design-system';
 
 import type { ChatMessage } from '../inference';
+import { DEFAULT_MODE_ID, MODES, findMode, type ModeId } from '../modes';
 import { useChatSession } from '../session/ChatSessionContext';
 
 type Message = ChatMessage & { id: string; streaming?: boolean };
@@ -32,6 +34,9 @@ export function ChatScreen() {
 
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  // Sticky: the chosen mode stays until changed, and the banner names it so
+  // the state is never hidden. A one-off use just switches back to Chat.
+  const [modeId, setModeId] = useState<ModeId>(DEFAULT_MODE_ID);
   // Held so the composer's Stop button can cancel an in-flight reply. The
   // engine supports aborting; without this the user waits it out.
   const abort = useRef<AbortController | null>(null);
@@ -51,10 +56,22 @@ export function ChatScreen() {
     ]);
     setDraft('');
 
-    // The model sees the conversation so far plus this turn. The placeholder
-    // reply is UI-only and must not be sent as context.
+    // The mode's system prompt is prepended fresh each turn rather than stored
+    // in `messages`, so switching mode takes effect on the next reply instead
+    // of leaving a stale instruction in the history.
+    //
+    // Prior turns go only to plain chat. Sending them to a writing-assist mode
+    // was measured to defeat it outright: with grammar corrections in the
+    // transcript, Brainstorm returned another correction rather than ideas.
+    // See `usesHistory` in ../modes.
+    const mode = findMode(modeId);
     const history: ChatMessage[] = [
-      ...messages.map(({ role, content }) => ({ role, content })),
+      ...(mode.systemPrompt
+        ? [{ role: 'system' as const, content: mode.systemPrompt }]
+        : []),
+      ...(mode.usesHistory
+        ? messages.map(({ role, content }) => ({ role, content }))
+        : []),
       { role: 'user', content: text },
     ];
 
@@ -62,17 +79,18 @@ export function ChatScreen() {
     abort.current = controller;
 
     try {
-      await session.generate(
-        history,
-        (token) => {
+      await session.generate({
+        messages: history,
+        onToken: (token) => {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === replyId ? { ...m, content: m.content + token } : m,
             ),
           );
         },
-        controller.signal,
-      );
+        signal: controller.signal,
+        temperature: mode.temperature,
+      });
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -87,7 +105,7 @@ export function ChatScreen() {
         prev.map((m) => (m.id === replyId ? { ...m, streaming: false } : m)),
       );
     }
-  }, [draft, messages, session]);
+  }, [draft, messages, modeId, session]);
 
   return (
     <KeyboardAvoidingView
@@ -97,7 +115,7 @@ export function ChatScreen() {
       keyboardVerticalOffset={insets.top}
       style={[styles.fill, { backgroundColor: theme.colors.surface }]}
     >
-      <OfflineBanner />
+      <OfflineBanner modeId={modeId} />
 
       <ScrollView
         ref={scroll}
@@ -123,6 +141,8 @@ export function ChatScreen() {
           ))
         )}
       </ScrollView>
+
+      <ModeBar active={modeId} onChange={setModeId} />
 
       <View
         style={[
@@ -163,16 +183,95 @@ export function ChatScreen() {
 }
 
 /**
+ * The writing-assist modes (task 1.4), as a row of chips above the composer.
+ *
+ * Placed here rather than in a menu because the mode is sticky: it has to be
+ * visible next to the thing it changes, or the user types into a transform
+ * they have forgotten is on.
+ */
+function ModeBar({
+  active,
+  onChange,
+}: {
+  active: ModeId;
+  onChange: (id: ModeId) => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: theme.space[3],
+        paddingVertical: theme.space[2],
+        gap: theme.space[2],
+      }}
+      style={{
+        flexGrow: 0,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: theme.colors.border,
+        backgroundColor: theme.colors.surface,
+      }}
+    >
+      {MODES.map((mode) => {
+        const selected = mode.id === active;
+        return (
+          <Pressable
+            key={mode.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={`${mode.label} mode`}
+            onPress={() => onChange(mode.id)}
+            style={({ pressed }) => [
+              styles.chip,
+              {
+                paddingHorizontal: theme.space[3],
+                paddingVertical: theme.space[2],
+                borderRadius: theme.radius.full,
+                borderColor: selected
+                  ? theme.colors.accent
+                  : theme.colors.border,
+                backgroundColor: selected
+                  ? theme.colors.accent
+                  : theme.colors.surface,
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: selected
+                  ? theme.colors.textOnAccent
+                  : theme.colors.textMuted,
+                fontSize: theme.fontSize.caption,
+                fontFamily: theme.fontFamily.body,
+              }}
+            >
+              {mode.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/**
  * CONCEPT.md requires the active trust tier to be visible at all times, not
  * disclosed once during onboarding. While no connector exists this always
  * reads "on-device", and saying so plainly is the point rather than clutter.
+ *
+ * It also carries the active writing-assist mode. A sticky mode that is not
+ * shown is a trap: the next thing the user types gets silently transformed.
  */
-function OfflineBanner() {
+function OfflineBanner({ modeId }: { modeId: ModeId }) {
   const theme = useTheme();
   const session = useChatSession();
 
   const preparing = session.status === 'preparing';
   const failed = session.status === 'error';
+  const mode = findMode(modeId);
 
   return (
     <View
@@ -201,9 +300,16 @@ function OfflineBanner() {
         }}
       >
         {session.detail ??
-          (session.modelName
-            ? `On-device · ${session.modelName}`
-            : 'On-device · nothing leaves this phone')}
+          [
+            session.modelName
+              ? `On-device · ${session.modelName}`
+              : 'On-device · nothing leaves this phone',
+            // Only when a mode is on. Saying "Plain chat" on every screen
+            // would be noise on the default nobody chose.
+            mode.systemPrompt ? mode.banner : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
       </Text>
     </View>
   );
@@ -248,4 +354,5 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   grow: { flex: 1 },
+  chip: { borderWidth: StyleSheet.hairlineWidth },
 });

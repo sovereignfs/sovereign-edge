@@ -278,13 +278,14 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const generate = useCallback<ChatSession['generate']>(
-    async (messages, onToken, signal) => {
+    async ({ messages, onToken, signal, temperature }) => {
       setStatus('busy');
       try {
         return await engine.generate({
           messages,
           onToken,
           signal,
+          temperature,
           maxTokens: 512,
         });
       } finally {

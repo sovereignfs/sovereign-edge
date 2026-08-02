@@ -8,6 +8,7 @@ import {
   ChatSessionContext,
   type ChatSession,
   type ChatSessionStatus,
+  type GenerateRequest,
 } from '../session/ChatSessionContext';
 import { ChatScreen } from './ChatScreen';
 
@@ -44,6 +45,12 @@ function renderChat(overrides: Partial<ChatSession> = {}) {
   return { view, session };
 }
 
+/**
+ * Typed against the real contract so `mock.calls` carries the request shape —
+ * casting each call site instead would let a contract change slip past.
+ */
+const spyGenerate = () => jest.fn(async (_request: GenerateRequest) => done);
+
 describe('ChatScreen', () => {
   it('always shows which trust tier is active', async () => {
     // CONCEPT.md requires this to be visible at all times, not disclosed once.
@@ -72,10 +79,11 @@ describe('ChatScreen', () => {
 
   it('streams tokens into the reply as they arrive', async () => {
     const generate = jest.fn(
-      async (
-        _messages: unknown,
-        onToken: (t: string) => void,
-      ): Promise<GenerateResult> => {
+      async ({
+        onToken,
+      }: {
+        onToken: (t: string) => void;
+      }): Promise<GenerateResult> => {
         onToken('Blue');
         onToken(', green');
         return done;
@@ -87,7 +95,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'colours?');
-    await userEvent.press(s.getByRole('button'));
+    await userEvent.press(s.getByText('Send'));
 
     expect(s.getByText(/Blue, green/)).toBeTruthy();
   });
@@ -102,12 +110,14 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'hello');
-    await userEvent.press(s.getByRole('button'));
+    await userEvent.press(s.getByText('Send'));
 
     expect(generate).toHaveBeenCalledWith(
-      [{ role: 'user', content: 'hello' }],
-      expect.any(Function),
-      expect.any(AbortSignal),
+      expect.objectContaining({
+        messages: [{ role: 'user', content: 'hello' }],
+        onToken: expect.any(Function),
+        signal: expect.any(AbortSignal),
+      }),
     );
   });
 
@@ -126,6 +136,153 @@ describe('ChatScreen', () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
+  describe('writing-assist modes', () => {
+    it('sends no system prompt in plain chat', async () => {
+      // The default must stay an ordinary conversation; a persona nobody
+      // chose would change every answer without explanation.
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.type(s.getByPlaceholderText('Message'), 'hi');
+      await userEvent.press(s.getByText('Send'));
+
+      const { messages } = generate.mock.calls[0]![0];
+      expect(messages.some((m) => m.role === 'system')).toBe(false);
+    });
+
+    it('prepends the selected mode as a system message', async () => {
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Fix grammar mode'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
+      await userEvent.press(s.getByText('Send'));
+
+      const { messages, temperature } = generate.mock.calls[0]![0];
+      expect(messages[0]!.role).toBe('system');
+      expect(messages[0]!.content).toMatch(/only the corrected text/i);
+      // A grammar fix is close to a deterministic transform; creativity here
+      // shows up as unrequested rewriting.
+      expect(temperature).toBeLessThan(0.5);
+    });
+
+    it('gives brainstorming a materially different temperature', async () => {
+      // The epic's checklist asks that each mode transform the same input
+      // differently. Prompt aside, near-identical options are brainstorming's
+      // failure mode and low temperature is what causes them.
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Brainstorm mode'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'names');
+      await userEvent.press(s.getByText('Send'));
+
+      const { temperature } = generate.mock.calls[0]![0];
+      expect(temperature).toBeGreaterThan(0.8);
+    });
+
+    it('names the active mode in the banner', async () => {
+      // The mode is sticky. One that is not shown silently transforms
+      // whatever the user types next.
+      const { view } = renderChat();
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Brainstorm mode'));
+
+      expect(s.getByText(/Brainstorming/)).toBeTruthy();
+    });
+
+    it('stays on until switched back', async () => {
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Fix grammar mode'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'one');
+      await userEvent.press(s.getByText('Send'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'two');
+      await userEvent.press(s.getByText('Send'));
+
+      const second = generate.mock.calls[1]![0];
+      expect(second.messages[0]!.role).toBe('system');
+    });
+
+    it('sends a mode only the current message, not the conversation', async () => {
+      // Measured on an emulator, not reasoned about: with two grammar
+      // corrections in the transcript, switching to Brainstorm and sending the
+      // same text produced a third grammar correction. A 0.5B model follows
+      // the behaviour demonstrated in the transcript over the system prompt.
+      // The same input in a fresh conversation returned a list of ideas.
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Fix grammar mode'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'first');
+      await userEvent.press(s.getByText('Send'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'second');
+      await userEvent.press(s.getByText('Send'));
+
+      const { messages } = generate.mock.calls[1]![0];
+      // System prompt plus this message only — no trace of the first turn.
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toEqual({ role: 'user', content: 'second' });
+      expect(messages.some((m) => m.content.includes('first'))).toBe(false);
+    });
+
+    it('still sends the conversation in plain chat', async () => {
+      // The history drop is scoped to modes; ordinary chat must stay a
+      // conversation rather than a series of unrelated questions.
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.type(s.getByPlaceholderText('Message'), 'first');
+      await userEvent.press(s.getByText('Send'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'second');
+      await userEvent.press(s.getByText('Send'));
+
+      const { messages } = generate.mock.calls[1]![0];
+      expect(messages.some((m) => m.content === 'first')).toBe(true);
+    });
+
+    it('drops the system prompt when switched back to plain chat', async () => {
+      // The prompt is rebuilt each turn rather than stored in history, so
+      // switching away must not leave a stale instruction behind.
+      const generate = spyGenerate();
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.press(s.getByLabelText('Fix grammar mode'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'one');
+      await userEvent.press(s.getByText('Send'));
+
+      await userEvent.press(s.getByLabelText('Chat mode'));
+      await userEvent.type(s.getByPlaceholderText('Message'), 'two');
+      await userEvent.press(s.getByText('Send'));
+
+      const second = generate.mock.calls[1]![0];
+      expect(second.messages.some((m) => m.role === 'system')).toBe(false);
+    });
+  });
+
   it('shows a failed reply rather than losing the turn', async () => {
     const generate = jest.fn(async () => {
       throw new Error('engine exploded');
@@ -136,7 +293,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'hi');
-    await userEvent.press(s.getByRole('button'));
+    await userEvent.press(s.getByText('Send'));
 
     expect(s.getByText(/could not be generated/)).toBeTruthy();
   });

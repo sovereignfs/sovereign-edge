@@ -14,17 +14,28 @@ export type ChatSessionStatus =
   /** Loading or generation failed; see `detail`. */
   | 'error';
 
+/**
+ * One request for a reply.
+ *
+ * An options object rather than a growing positional list — it mirrors the
+ * engine's own `generate`, and writing-assist modes (task 1.4) already needed
+ * to add a fourth argument.
+ */
+export type GenerateRequest = {
+  messages: ChatMessage[];
+  onToken: (token: string) => void;
+  signal?: AbortSignal;
+  /** Per-mode sampling temperature; the engine's default applies when unset. */
+  temperature?: number;
+};
+
 export type ChatSession = {
   status: ChatSessionStatus;
   /** Human-readable name of the loaded model, when there is one. */
   modelName: string | null;
   /** Error text when `status` is 'error', otherwise a progress note or null. */
   detail: string | null;
-  generate(
-    messages: ChatMessage[],
-    onToken: (token: string) => void,
-    signal?: AbortSignal,
-  ): Promise<GenerateResult>;
+  generate(request: GenerateRequest): Promise<GenerateResult>;
 };
 
 /**
