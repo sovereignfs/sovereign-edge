@@ -22,16 +22,27 @@ Individual connectors (Search, Sovereign Tasks — epics 3 and 4) live under
 [research 0001](../docs/research/0001-concept-and-connector-architecture.md#decisions),
 the chat/model/memory layers are 100% offline by design — "no network code
 path exists there at all." Every outbound call goes through `connectors/`,
-behind an explicit per-connector permission grant. Task
-[1.5](../docs/epics/core-inference-chat.md) turns this into an enforced,
-audited boundary rather than a convention.
+behind an explicit per-connector permission grant.
+
+**This is enforced, not a convention** (task 1.5). ESLint restricts imports
+and the ambient network globals inside `chat/`, and `pnpm check:offline` walks
+the import graph to catch a transitive route lint cannot see.
+[docs/network-audit.md](../docs/network-audit.md) records what each mechanism
+covers and what it misses.
 
 `models/` is why this is a separate module rather than living under `chat/`.
 Downloading weights is unambiguously network activity, so putting it beside
 the inference code would violate the rule above on day one. The split follows
 the actual trust boundary: **acquiring** a model is a deliberate, visible,
 user-initiated network action; **using** one is not, and never touches the
-network. `chat/` may read from `models/`' storage layer, but the download
-path is not part of the inference path.
+network.
+
+**`chat/` does not import `models/` at all** — the checks reject it, including
+transitively. The dependency is inverted instead: `chat/session/
+ChatSessionContext` declares the narrow contract chat needs (status, model
+name, `generate`), and the app shell implements it in
+`settings/ModelSessionProvider`, which is the only place holding both the
+engine and the manager. If chat appears to need something `models/` owns, add
+it to that contract rather than reaching across.
 
 Imports resolve through the `@/` alias — `@/chat/...`, `@/connectors/...`.

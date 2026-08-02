@@ -14,6 +14,55 @@ goes through an explicitly permissioned **connector**.
 Fully standalone: no runtime dependency on `sovereign`, and it works with zero
 knowledge that `sovereign` exists.
 
+## State of play
+
+Accurate as of version 0.1.14. **[ROADMAP.md](ROADMAP.md) is canonical** — if
+this section disagrees with it, this section is stale.
+
+**Done.** The offline core is complete (epic 1, tasks 1.1–1.6): on-device
+inference, model catalog with download/verify/switch, streaming chat UI,
+writing-assist modes, model-choice persistence, and zero-network enforcement.
+Design system (7.1–7.2) and app shell (8.1) are done. The connector framework
+has its manifest schema and permission model (2.1–2.2).
+
+**Next**, in order: 2.3 tool-routing, 2.4 connector runtime host, 3.1 the
+Search connector — the first thing that actually uses the connector framework
+end to end.
+
+**Blocked.** 0.1.3 (native build tooling) and 8.2 (store release) both need an
+Apple team ID and a Play upload key that do not exist yet. Do not attempt to
+create accounts, handle signing keys, or enter credentials — those are the
+developer's to do.
+
+**Groundwork already done for 2.3**, from
+[research 0004](docs/research/0004-connector-manifest-schema.md): `llama.rn`
+converts JSON Schema to a decoding grammar (`json_schema` on `completion`), so
+constrained tool-call output comes free from a manifest's `tool.parameters`.
+And `chatTemplates.jinja.defaultCaps.tools` reports per-model whether the
+loaded model can call tools at all — which is what 2.3's required fallback
+message must be honest about, because it is a fact about the *model*, not the
+connector.
+
+### Environment quirks worth knowing before you burn time on them
+
+- **The Android emulator does not survive an agent session.** Launched with
+  `nohup … &` it still dies when background tasks are torn down. Resolve its
+  serial **by AVD name**, never assume `emulator-5554` — another project's AVD
+  has taken that serial mid-session and screenshots came back showing the
+  wrong app.
+- **Fast Refresh remounts providers.** `ModelSessionProvider` re-runs its
+  bootstrap, which silently changed the active model mid-session and made the
+  next tap on a Models row delete a 491 MB download instead of selecting it.
+  Re-read the screen state after editing provider code.
+- **Adding a native dependency changes the Android permission list** without
+  touching your code. `expo-secure-store` added `USE_BIOMETRIC` and
+  `USE_FINGERPRINT`. Always re-check the **merged Release** manifest, per
+  [docs/network-audit.md](docs/network-audit.md) — the source manifest lists
+  blocked permissions with `tools:node="remove"` and reports the opposite of
+  the truth.
+- **A debug build cannot answer "does this work offline"**, because it loads
+  its JS from Metro over the LAN. Offline claims need a Release build.
+
 ## Source of truth
 
 Read the relevant document before implementing — these are authoritative over
@@ -172,6 +221,7 @@ See [src/README.md](src/README.md). Imports resolve through the `@/` alias.
 | `pnpm test`        | Jest                                            |
 | `pnpm typecheck`   | `tsc --noEmit`                                  |
 | `pnpm lint`        | ESLint                                          |
+| `pnpm check:offline` | Import-graph walk from `src/chat/` (task 1.5) |
 | `pnpm format:check`| Prettier check (code only — Markdown excluded)  |
 
 ## Tech stack

@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** 0.1.10 · **Last updated:** 2026-08-02
+**Version:** 0.1.14 · **Last updated:** 2026-08-02
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:

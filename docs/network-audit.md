@@ -1,6 +1,6 @@
 # Network audit
 
-**Version:** 0.1.10 · **Last updated:** 2026-08-02
+**Version:** 0.1.14 · **Last updated:** 2026-08-02
 
 Sovereign Edge claims that your conversations never leave your device. This
 document is how you check that claim yourself rather than take our word for

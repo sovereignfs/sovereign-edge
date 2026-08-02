@@ -23,21 +23,28 @@ See [CONCEPT.md](CONCEPT.md) for the full concept paper.
 
 ## Current status
 
-**Early development — not usable yet, and not a release.**
+**Early development — not a release.** No store build exists, and task 0.1.3
+(native build tooling) is blocked on an Apple team ID and a Play upload key.
 
-Phase 1 is underway. What exists today is the foundation, not the product:
+The offline core is complete and works on real hardware. The connector layer
+has its foundations but no connector yet, so the app today is a fully offline
+chat client and nothing reaches the network except model downloads.
 
-| Area                       | State                                                      |
-| -------------------------- | ---------------------------------------------------------- |
-| Repo scaffold (0.1.1)      | ✅ Expo SDK 57, RN 0.86, TypeScript, iOS + Android          |
-| CI pipeline (0.1.2)        | ✅ lint/format/typecheck/test, plus a native boot gate      |
-| On-device inference        | 📋 not started — the app currently renders a placeholder    |
-| Chat UI, connectors, store | 📋 not started                                              |
+| Area                                | State                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| Offline chat (epic 1)               | ✅ Complete — streaming replies, model manager, writing-assist modes              |
+| Zero-network enforcement (1.5)      | ✅ Enforced in CI, not just intended — see [network audit](docs/network-audit.md) |
+| Design system, app shell (7, 8.1)   | ✅ Theme tokens, core components, navigation, settings                            |
+| Connector manifest + permissions    | ✅ Schema, validator, per-connector grants and keychain storage (2.1–2.2)         |
+| Connector routing, runtime, Search  | 📋 Next up — tasks 2.3, 2.4, 3.1                                                  |
+| Store release (8.2)                 | 📋 Blocked on signing credentials                                                 |
 
-The app builds and launches on both an iOS simulator and an Android emulator,
-verified on every push to `main`. It does not yet do anything.
+Measured on an iPhone 15 Pro (Release build, Metal active): Qwen2.5 0.5B
+generates at 86–91 tok/s with a 233 ms cold time-to-first-token, and takes
+8.7 s to load — the GPU upload that buys the generation speed.
 
-Track progress in [ROADMAP.md](ROADMAP.md).
+[ROADMAP.md](ROADMAP.md) is the canonical task status. Anything else claiming
+progress is a summary and may lag.
 
 ## How it works
 
@@ -126,6 +133,7 @@ first visible symptom appears one step later than the actual failure.
 | `pnpm test`         | Jest                                            |
 | `pnpm typecheck`    | `tsc --noEmit`                                  |
 | `pnpm lint`         | ESLint                                          |
+| `pnpm check:offline`| Walks imports from `src/chat/` for a socket path |
 | `pnpm format`       | Prettier (code only — Markdown is left alone)   |
 
 ### Native projects are generated, not committed
@@ -143,7 +151,8 @@ is in [research 0002](docs/research/0002-react-native-framework-choice.md).
 ```
 sovereign-edge/
 ├── src/
-│   ├── chat/           # inference engine, model manager, chat UI  (epic 1)
+│   ├── chat/           # inference engine, chat UI, writing modes  (epic 1)
+│   ├── models/         # catalog, download, verification, storage  (epic 1)
 │   ├── connectors/     # manifest schema, permissions, routing     (epic 2)
 │   ├── design-system/  # theme tokens, core components             (epic 7)
 │   ├── settings/       # navigation, settings, app shell           (epic 8)
@@ -154,9 +163,17 @@ sovereign-edge/
 └── scripts/ci/         # CI helper scripts
 ```
 
-One directory per epic, so code structure and planning structure stay
-aligned — see [src/README.md](src/README.md), which also documents the one
-structural rule: **`chat/` must not import anything that opens a socket.**
+`models/` is a sibling of `chat/` rather than a child, and that is deliberate:
+*acquiring* a model is a visible, user-initiated download, while *using* one
+never touches the network. Keeping them separate is what lets the rule below
+be enforced mechanically.
+
+**`chat/` must not import anything that opens a socket.** That is checked, not
+just documented — `pnpm lint` restricts imports and network globals inside
+`src/chat/`, and `pnpm check:offline` walks the import graph to catch a
+transitive route lint cannot see. See
+[docs/network-audit.md](docs/network-audit.md) for what each mechanism covers
+and, more importantly, what it does not.
 
 ## CI
 
