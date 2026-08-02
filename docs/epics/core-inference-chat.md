@@ -251,20 +251,153 @@ output in quotation marks, against "return only the rewritten text". Draft on
 **Goal:** Make the "fully offline" claim structurally true, not just true by
 current code review.
 
-**Deliverables:**
+Every other task in this epic delivers a feature. This one delivers *evidence*.
+[Research 0001](../research/0001-concept-and-connector-architecture.md#decisions)
+states that "the chat/model/memory layers are 100% offline by design — no
+network code path exists there at all", and CONCEPT.md sells that to users.
+Today it is true because the people who wrote the code intended it. This task
+is what makes it survive a contributor who did not read this document.
 
-- A build-time or lint-time check (or platform network-permission
-  configuration) that fails if any code path reachable from the chat/
-  inference module can make a network call.
-- Document the enforcement mechanism so it's auditable by a third party, not
-  just asserted in prose.
+##### What the claim actually means
+
+Precision first, because "offline app" is not what is being claimed and
+promising it would be a lie — the app downloads model weights over HTTPS.
+
+| Module | Network | Why |
+| --- | --- | --- |
+| `src/chat/` | **Never** | The claim. Conversations, prompts, and replies never leave the device. |
+| `src/models/` | **User-initiated only** | *Acquiring* a model is a visible, deliberate download. *Using* one never touches the network. The deliberate exception in AGENTS.md rule 3, and why it is a sibling of `chat/` rather than living inside it. |
+| `src/connectors/` | **Per-grant only** | Every outbound call, behind an explicit, separately revocable, per-connector permission. Currently an empty directory — the framework is epic 2. |
+| `src/design-system/`, `src/shared/` | **Never** | Not part of the claim as stated, but `chat/` imports them, so they are inside the boundary by transitivity. |
+
+The enforceable statement is therefore narrower and sharper than "the app is
+offline": **no code path reachable from `src/chat/` can open a socket.**
+
+##### Threat model
+
+What actually breaks this, roughly in order of likelihood. An enforcement
+mechanism that does not address each of these is theatre.
+
+1. **A direct import.** Someone adds `import { fetch } from 'expo/fetch'` or
+   an HTTP client to a file under `src/chat/`. The easy case, and the only one
+   a naive lint rule catches.
+2. **A global with no import at all.** `fetch`, `XMLHttpRequest`, `WebSocket`,
+   and `EventSource` are ambient in React Native. A file can reach the network
+   without importing anything, so import-based rules alone are insufficient.
+   This is the most likely way the boundary silently breaks.
+3. **A transitive import.** `src/chat/` imports something innocuous which, two
+   or three hops down, reaches `src/models/download.ts` or a networked
+   library. Lint sees one file at a time and cannot see this at all. Closing
+   it needs a graph walk from `src/chat/**` across the resolved import tree.
+   The `ChatSessionContext` inversion built in task 1.3 exists precisely to
+   keep this edge from forming; the check is what proves it stays absent.
+4. **A native module.** JavaScript-level analysis cannot see a socket opened
+   in Swift or Kotlin. `llama.rn` ships prebuilt native artifacts — an
+   unresolved supply-chain question already recorded in
+   [research 0002](../research/0002-react-native-framework-choice.md).
+5. **A dependency update.** A transitive npm package starts phoning home in a
+   patch release. Not addressed by any check scoped to first-party source.
+
+##### Enforcement layers to build
+
+Each is listed with what it *cannot* catch, because a mechanism whose limits
+are unstated will be trusted past them.
+
+- **Lint: restricted imports** under `src/chat/**`, denying network-capable
+  modules by path and pattern. Follows the existing `no-restricted-syntax`
+  colour rule in `eslint.config.js` — the precedent for turning a review
+  checklist item into a check. *Cannot catch:* threats 2–5.
+- **Lint: restricted globals** under `src/chat/**` for `fetch`,
+  `XMLHttpRequest`, `WebSocket`, `EventSource`, and `navigator.sendBeacon`.
+  Closes threat 2, which is the one most likely to occur. *Cannot catch:* 3–5.
+- **A module-graph check**, run in CI, that resolves imports from every file
+  under `src/chat/**` and fails if the closure reaches a denylisted module or
+  any file outside the permitted set. This is the layer with real teeth and
+  the only answer to threat 3. It needs to run on the same resolution Metro
+  uses, or it will disagree with the shipped bundle.
+- **A runtime tripwire in development builds** that replaces the network
+  globals with throwing stubs while a chat screen is mounted. `jest.setup.js`
+  already does this for tests and points at this task by name; the value here
+  is catching a path that only executes at runtime.
+- **A written audit document** covering the above plus the native surface: the
+  declared platform permissions, why `INTERNET` cannot be dropped, and what a
+  third party should run to reproduce every claim.
+
+##### What this task cannot close
+
+Stating these plainly is part of the deliverable. An audit that overclaims is
+worse than none, because it transfers unearned trust.
+
+- **Native code.** No JavaScript check sees a socket opened inside `llama.rn`.
+  Mitigation is auditing what that library links against and recording the
+  finding — not asserting a guarantee the mechanism does not provide.
+- **Platform permissions cannot express this.** `android.permission.INTERNET`
+  is app-wide and genuinely required for model downloads, so it cannot be
+  dropped to enforce the boundary. iOS has no per-module network entitlement
+  either. This is why the enforcement is a module boundary rather than a
+  platform control, and the audit should say so rather than leave a reader
+  assuming the OS is enforcing something it is not.
+- **Third-party runtime behaviour**, per threat 5.
+
+##### Findings already in hand
+
+Turned up while scoping this task, and part of its audit surface:
+
+- **`AndroidManifest.xml` declares `SYSTEM_ALERT_WINDOW`** (draw over other
+  apps), plus `VIBRATE` and legacy `READ`/`WRITE_EXTERNAL_STORAGE`. None are
+  used by any first-party code; they are pulled in by dependencies and merged
+  by the manifest merger. For an app whose pitch is restraint, shipping a
+  draw-over-other-apps permission is a genuine audit smell — it is the kind of
+  thing a reviewer finds and a user cannot explain away. The audit should
+  enumerate every declared permission with a justification or a removal.
+- **iOS ATS is `NSAllowsArbitraryLoads: false`** (good) with
+  `NSAllowsLocalNetworking: true`. The latter is what a Metro dev server
+  needs; whether it should survive into Release builds is an open question
+  below.
 
 **Dependencies:** Task 1.1.
+
+**Deliverables:**
+
+- Lint rules covering threats 1 and 2, scoped to `src/chat/**`.
+- A CI module-graph check covering threat 3.
+- A development-time runtime tripwire.
+- `docs/network-audit.md`: the enforced boundary, each mechanism and its
+  limits, every declared platform permission with a justification, and the
+  exact commands a third party runs to reproduce the claims.
+- Permission cleanup, or a recorded reason each one stays.
 
 **Review checklist:**
 
 - Attempting to add a network call inside the chat/inference module fails
   CI or the build, not just code review.
+- **Each mechanism is verified by deliberately breaking it**, not by observing
+  it pass — one commit per threat class that should fail CI, confirmed to fail
+  for the stated reason, then reverted. This repo has twice shipped a green
+  suite over a real defect (the download dead end, and modes defeated by
+  conversation history); a guard nobody has watched fail is not evidence.
+- A third party can reproduce every claim in `docs/network-audit.md` from the
+  commands it lists, without asking the maintainer anything.
+- Every permission in `AndroidManifest.xml` is either justified in writing or
+  removed.
+
+##### Open questions
+
+- **Source graph or bundle?** Checking the resolved bundle is the stronger
+  claim — it is what actually ships, and it covers `node_modules`. Checking
+  source is far simpler and gives better error messages. Possibly both, at
+  different frequencies.
+- **Does the runtime tripwire ship in Release builds?** Failing closed in
+  production turns a boundary violation into a user-visible crash; failing
+  open means the strongest guarantee is absent exactly where it matters.
+- **Should `NSAllowsLocalNetworking` be stripped from Release builds?** It
+  exists for Metro, which a Release build does not use.
+- **How far does the audit go into `node_modules`?** A full transitive audit
+  is not sustainable by hand at this project's size; some scoped, repeatable
+  subset needs defining.
+- **Does `llama.rn` link anything network-capable?** Needs answering with
+  evidence, not assumption, and it overlaps the unresolved prebuilt-binary
+  supply-chain question in research 0002.
 
 #### ✅ 1.6 — Remember the chosen model
 
