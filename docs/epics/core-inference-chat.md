@@ -292,9 +292,9 @@ mechanism that does not address each of these is theatre.
    The `ChatSessionContext` inversion built in task 1.3 exists precisely to
    keep this edge from forming; the check is what proves it stays absent.
 4. **A native module.** JavaScript-level analysis cannot see a socket opened
-   in Swift or Kotlin. `llama.rn` ships prebuilt native artifacts — an
-   unresolved supply-chain question already recorded in
-   [research 0002](../research/0002-react-native-framework-choice.md).
+   in Swift or Kotlin. `llama.rn` ships prebuilt native artifacts. Measured
+   during scoping and found clean — see *Resolved before implementation* — but
+   the hole stays open for any native module added later.
 5. **A dependency update.** A transitive npm package starts phoning home in a
    patch release. Not addressed by any check scoped to first-party source.
 
@@ -381,23 +381,64 @@ Turned up while scoping this task, and part of its audit surface:
 - Every permission in `AndroidManifest.xml` is either justified in writing or
   removed.
 
-##### Open questions
+##### Resolved before implementation
 
-- **Source graph or bundle?** Checking the resolved bundle is the stronger
-  claim — it is what actually ships, and it covers `node_modules`. Checking
-  source is far simpler and gives better error messages. Possibly both, at
-  different frequencies.
-- **Does the runtime tripwire ship in Release builds?** Failing closed in
-  production turns a boundary violation into a user-visible crash; failing
-  open means the strongest guarantee is absent exactly where it matters.
-- **Should `NSAllowsLocalNetworking` be stripped from Release builds?** It
-  exists for Metro, which a Release build does not use.
-- **How far does the audit go into `node_modules`?** A full transitive audit
-  is not sustainable by hand at this project's size; some scoped, repeatable
-  subset needs defining.
-- **Does `llama.rn` link anything network-capable?** Needs answering with
-  evidence, not assumption, and it overlaps the unresolved prebuilt-binary
-  supply-chain question in research 0002.
+- **The graph check runs on source imports, not the bundle.** Walking
+  first-party imports from `src/chat/**` runs on every PR, points at the file
+  and line that broke the rule, and covers the realistic failure. Bundle
+  analysis is the stronger claim — it is what actually ships — but it is slow,
+  its errors name generated module ids rather than source, and it cannot run
+  until a bundle is built. Recorded as a follow-up rather than dropped: the
+  gap it leaves is a dependency that reaches the network without any
+  first-party file importing it, which is threat 5 and is not closed here.
+- **The runtime tripwire is development and test only.** The static checks are
+  the production guarantee; a violation reaching a Release build means CI
+  already failed, and turning that into a user-visible crash punishes the user
+  for the project's mistake. Failing closed in Release was the tempting
+  choice for a product sold on this claim, and it was rejected because the
+  crash would land on a path never exercised in testing — precisely the path
+  least likely to have been the one anyone reasoned about.
+- **`NSAllowsLocalNetworking` stays, and the reason is not Metro.** Research
+  0001 specifies the Sovereign Tasks connector calling "the user's self-hosted
+  `sovereign` instance", and self-hosted instances commonly sit on a LAN.
+  Stripping it would break a planned connector on exactly the deployment this
+  product is built for. The audit records it as a connector requirement rather
+  than a development leftover — the distinction matters, because a reader who
+  sees it described as a dev artefact will reasonably ask why it shipped.
+- **The dependency audit covers only what `chat/` actually reaches** — today
+  `llama.rn`, `react`, `react-native`, and `react-native-safe-area-context`.
+  That is the exact set the claim depends on, small enough to re-audit when it
+  changes, and it does not rot into a list nobody rechecks. Everything else in
+  `package.json` is out of scope and says so in the audit.
+- **`llama.rn` links nothing network-capable.** Measured rather than assumed,
+  since this overlaps the unresolved prebuilt-binary supply-chain question in
+  [research 0002](../research/0002-react-native-framework-choice.md). Both
+  shipped artifacts — `ios/rnllama.xcframework` (arm64, 10,471,352 bytes) and
+  `android/.../arm64-v8a/librnllama.so` (9,530,928 bytes) — have **zero
+  undefined network symbols**: no `socket`, `connect`, `getaddrinfo`,
+  `NSURLSession`, or `curl_*`. A library that opens a socket must import those
+  from the system. The iOS/Android sources contain no `NSURLSession`,
+  `HttpURLConnection`, `OkHttp`, or `java.net.*`, and the bundled C++ has no
+  `sys/socket.h` or `curl` includes — upstream llama.cpp's optional
+  `LLAMA_CURL` model downloader is not compiled in.
+
+  The binaries do contain URL-shaped strings — GitHub PR links from source
+  comments, and `https://huggingface.co/` from llama.cpp's model-spec
+  parsing — which are inert without socket symbols to act on them.
+
+  **Limits of this evidence**, which the audit must carry rather than round
+  off to "verified safe": it covers arm64 artifacts via `nm` and `strings`,
+  and a `dlsym`-based lookup would evade it. That would be extraordinary for
+  an inference library, but "we checked the imports table" is the claim being
+  made, not "we proved it cannot".
+
+##### Deferred
+
+- **Bundle-level analysis**, per the first decision above. Closes threat 5;
+  needs its own task.
+- **Threat 5 generally** — a transitive npm package that starts phoning home
+  in a patch release is not addressed by anything scoped to first-party
+  source.
 
 #### ✅ 1.6 — Remember the chosen model
 
