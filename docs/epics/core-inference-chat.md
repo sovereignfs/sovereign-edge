@@ -102,6 +102,27 @@ installed.
   devices have 8 GB, where every catalog entry rates `comfortable`; a 3.8 GB
   emulator renders all three tiers, including "Likely too large for this
   device" for Gemma 2 2B.
+**Found after this task closed, tracked as [1.6](#-16--remember-the-chosen-model).**
+The checklist above is still true — switching works, and nothing here claimed
+the choice would survive a relaunch.
+
+- **The chosen model is not remembered across launches.** The provider
+  bootstraps with `manager.list().find((m) => m.installed)` — the first
+  *catalog* entry that happens to be installed, not the one the user picked.
+  Switch deliberately to Llama 3.2 1B, relaunch, and the app is silently back
+  on Qwen2.5 0.5B.
+
+  That is now more than an annoyance: task 1.4 measured Draft fabricating a
+  price on 0.5B and not on 1B, so this quietly returns the user to the model
+  they moved away from, and the mode warning is the only thing that catches
+  it. Found by accident — a Fast Refresh remount re-ran the bootstrap during
+  testing, made Qwen active again without any visible change, and the next tap
+  on that row deleted a 491 MB download instead of selecting it. The
+  destructive tap was a development artefact; the missing persistence is not.
+
+  Fixing it needs the active model id persisted alongside the model files and
+  read back at startup, falling back to the current behaviour when the stored
+  id is no longer installed.
 
 ---
 
@@ -158,7 +179,7 @@ installed.
 
 ---
 
-#### 📋 1.4 — Writing-assist modes
+#### ✅ 1.4 — Writing-assist modes
 
 **Goal:** The concrete scenario-1 use case — brainstorm, grammar-fix,
 rewrite/draft an email.
@@ -173,9 +194,9 @@ rewrite/draft an email.
 
 **Review checklist:**
 
-- ⚠️ Each mode produces a materially different, appropriate transformation of
-  the same input text. **Materially different: yes. Appropriate: not yet, on
-  Qwen2.5 0.5B.** Measured on an Android emulator:
+- ✅ Each mode produces a materially different, appropriate transformation of
+  the same input text. Measured on an Android emulator against both Qwen2.5
+  0.5B and Llama 3.2 1B:
   - ✅ **Fix grammar** — "we needs to tell customers there prices is going up"
     became "We need to tell customers that prices are going up." Four
     corrections, no commentary, nothing else touched. Two runs at temperature
@@ -206,11 +227,18 @@ So the prompts were not the problem and were deliberately left alone. Tuning
 them against the smallest catalog entry would have contorted them around a
 limitation that disappears one size up.
 
-**What this leaves.** Draft is unsafe on Qwen2.5 0.5B specifically, and that
-is the first catalog entry and the one a new user is most likely to install.
-A fabricated price in text the user is about to send is the most damaging
-output this feature can produce, and it reads fluently enough to survive a
-skim. Recording it here is not a substitute for handling it in the product.
+- ✅ Draft warns when the loaded model is below 1B, naming the model and the
+  specific failure rather than offering a generic disclaimer about AI. Scoped
+  to the one mode and the sizes where fabrication was observed: it is absent
+  on Fix grammar, which returns the user's own words corrected, and absent at
+  1B. Both directions verified on device. A warning shown everywhere becomes
+  wallpaper, and the place it matters would be lost in it.
+
+**Known rough edges, recorded rather than fixed.** Brainstorm on 0.5B restates
+one idea in several wordings, against its own prompt; repetitive options waste
+time but cannot mislead the way an invented figure can. Rewrite tone wraps its
+output in quotation marks, against "return only the rewritten text". Draft on
+1B drops a given fact (the 5 percent) — omission rather than invention.
 
 - ✅ A mode receives its system prompt and the current message only. Sending
   conversation history defeated modes outright: with two grammar corrections
@@ -218,14 +246,6 @@ skim. Recording it here is not a substitute for handling it in the product.
   0.5B model follows demonstrated behaviour over a system instruction. The
   same input in a fresh conversation returned ideas. Fixed and re-verified by
   reproducing the original two-turn sequence.
-
-**Open question before this can close.** Whether the prompts need tightening,
-whether 0.5B is simply below the floor for Draft, or whether the catalog's
-larger entries clear it. Draft should be re-run on Llama 3.2 1B before any
-prompt is rewritten — tuning prompts against the smallest model risks
-contorting them for a size the user may never run. If the fabrication survives
-on larger models, this feature needs a visible caution in the UI rather than
-better wording, since the output is meant to be sent.
 
 ---
 
@@ -248,6 +268,31 @@ current code review.
 
 - Attempting to add a network call inside the chat/inference module fails
   CI or the build, not just code review.
+
+#### 📋 1.6 — Remember the chosen model
+
+**Goal:** The model a user selects stays selected across app launches.
+
+**Deliverables:**
+
+- Persist the active model id alongside the model files.
+- Read it back at startup, falling back to the current "first installed
+  catalog entry" behaviour when the stored id is no longer installed.
+
+**Dependencies:** Task 1.2.
+
+**Review checklist:**
+
+- Switch to a model that is not first in the catalog, force-quit, relaunch,
+  and it is still the one loaded.
+
+**Why this is not cosmetic.** Task 1.4 measured Draft fabricating a price on
+Qwen2.5 0.5B and not on Llama 3.2 1B. Without persistence, a user who moved
+to the larger model for exactly that reason is returned to the smaller one on
+next launch, with no announcement. The mode's fabrication warning is currently
+the only thing standing between that and a draft they send.
+
+---
 
 ## Related Docs
 
