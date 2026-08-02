@@ -173,8 +173,39 @@ rewrite/draft an email.
 
 **Review checklist:**
 
-- Each mode produces a materially different, appropriate transformation of
-  the same input text.
+- ⚠️ Each mode produces a materially different, appropriate transformation of
+  the same input text. **Materially different: yes. Appropriate: not yet, on
+  Qwen2.5 0.5B.** Measured on an Android emulator:
+  - ✅ **Fix grammar** — "we needs to tell customers there prices is going up"
+    became "We need to tell customers that prices are going up." Four
+    corrections, no commentary, nothing else touched. Two runs at temperature
+    0.2 produced identical output.
+  - ⚠️ **Brainstorm** — returns a list rather than prose, but restates one
+    idea five ways ("pricing increase", "rising prices", "increasing prices"),
+    which its own prompt forbids. Temperature 0.95 does not rescue it.
+  - ❌ **Draft** — "Prices rise 5 percent from March, loyal customers get 3
+    months notice" produced a nine-line essay opening "which implies that the
+    prices have increased by **$100 per customer**". The figure is invented;
+    the prompt says to invent no new facts, and to match length to input. A
+    fabricated price in a draft the user may then send is the most damaging
+    failure available to this feature, and it reads fluently enough to pass a
+    skim.
+  - ❔ **Rewrite tone** — not yet exercised on device; unit tests only.
+
+- ✅ A mode receives its system prompt and the current message only. Sending
+  conversation history defeated modes outright: with two grammar corrections
+  in the transcript, Brainstorm returned a third grammar correction, because a
+  0.5B model follows demonstrated behaviour over a system instruction. The
+  same input in a fresh conversation returned ideas. Fixed and re-verified by
+  reproducing the original two-turn sequence.
+
+**Open question before this can close.** Whether the prompts need tightening,
+whether 0.5B is simply below the floor for Draft, or whether the catalog's
+larger entries clear it. Draft should be re-run on Llama 3.2 1B before any
+prompt is rewritten — tuning prompts against the smallest model risks
+contorting them for a size the user may never run. If the fabrication survives
+on larger models, this feature needs a visible caution in the UI rather than
+better wording, since the output is meant to be sent.
 
 ---
 
