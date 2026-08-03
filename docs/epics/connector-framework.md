@@ -237,7 +237,7 @@ stops being a hypothetical.
 
 ---
 
-#### 📋 2.4 — Connector runtime host
+#### ✅ 2.4 — Connector runtime host
 
 **Goal:** Execute a validated tool call against a Tier 1 connector's
 manifest.
@@ -255,8 +255,65 @@ manifest.
 
 **Review checklist:**
 
-- A Tier 1 connector's manifest alone (no connector-specific code) is enough
-  to execute a real request/response round trip.
+- ✅ A Tier 1 connector's manifest alone (no connector-specific code) is
+  enough to execute a real request/response round trip.
+
+`executeConnectorCall()` (`src/connectors/runtime/`) maps a `RoutingDecision`
+of kind `tool-call` into an HTTP request per `request`, and the response back
+into `text` per `response`, returning a typed `ExecutionResult` — `ok: true`
+or `ok: false` with a specific `reason` (`not-permitted`,
+`missing-credential`, `invalid-arguments`, `network-error`, `redirected`,
+`http-error`, `response-too-large`, `malformed-response`), same shape task
+2.3 established for `RoutingDecision`: a switch for the caller, not a
+try/catch.
+
+**`isAllowed()` is re-checked here, not just trusted from routing.** 2.2's own
+doc comment already called this "the single question the runtime asks before
+any request" — this function does not assume its caller already asked it.
+
+**Redirects are never followed.** `fetch(url, { redirect: 'manual' })`, and
+any 3xx (or an opaque redirect response) is a hard `redirected` failure.
+Research 0004 flagged this as an open question — a redirect to another origin
+defeats the origin allowlist that makes 2.2's grant enforceable — and this
+task is where it got settled rather than deferred again.
+
+**No manifest field for timeout**, so it's a runtime constant (15s via
+`AbortController`) rather than connector-configurable, matching the epic's
+own field list. No retries: one clean failure is more honest than silently
+repeating a request the user never saw happen once.
+
+**`response.maxBytes` is enforced against the actual decoded byte length, not
+just `Content-Length`** — a header that can be absent or simply wrong. A
+response is rejected before `JSON.parse` either way it fails the cap.
+
+**Verified on-device against a real endpoint, not just mocks** — the round
+trip the review checklist asks for is a device claim, same as 2.3's. Hitting
+httpbin.org from the iOS simulator: a GET request built from a manifest
+template and args (`?q=hello-from-sovereign-edge`) echoed back and mapped
+through `textFrom` correctly; a POST with a JSON body round-tripped the same
+way; and a real 302 from `httpbin.org/redirect-to` was refused exactly as
+designed (`{ ok: false, reason: 'redirected' }`) — resolving, on a real
+device rather than by reading the spec, whether Expo's `fetch` reports a
+manual redirect as an opaque response or a plain 3xx status (it can do either
+depending on path, which is why the runtime checks both).
+
+**A pre-existing conflict with task 1.5's offline tripwire, found by that same
+device run.** `src/connectors/runtime/execute.ts` is the first code in this
+repo to call `fetch` directly, and `armOfflineTripwire()`
+(`src/chat/session/offlineTripwire.ts`) replaced the global for the entire
+process in development builds — not scoped to `src/chat/` — so every call
+from the runtime host threw the tripwire's own violation error, whose message
+already (and, until now, only aspirationally) said "network access belongs in
+`src/connectors/`, behind an explicit per-connector grant." Nothing had
+exercised that claim before a connector runtime existed to call `fetch`.
+Fixed with `allowNetworkForConnector()`, a narrow, named, importable escape
+hatch added to the same file: the only legitimate call site has to name
+itself explicitly, which is a stronger guarantee than the blanket replacement
+it replaces, not a weaker one — the same "not 'should not', cannot without it
+being visible in review" property 2.2 gives credential isolation. `jest.setup.js`'s
+own network-in-tests guard is untouched: the escape hatch reaches through to
+whatever `fetch` was originally there, which in Jest is still that throwing
+stub.
 
 ---
 

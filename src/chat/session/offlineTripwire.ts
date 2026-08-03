@@ -40,6 +40,40 @@ function violation(name: NetworkGlobal): Error {
 }
 
 /**
+ * How many `allowNetworkForConnector` calls are currently on the stack.
+ *
+ * Module-scoped rather than per-armed-instance: the guard functions created
+ * below close over it, and it only ever needs to answer "is a permitted
+ * caller mid-call right now," not track who.
+ */
+let bypassDepth = 0;
+
+/**
+ * The one door `src/connectors/` is allowed to use to reach the network
+ * while the tripwire is armed (task 2.4).
+ *
+ * The violation message above has always said "network access belongs in
+ * `src/connectors/`, behind an explicit per-connector grant" — but until a
+ * connector runtime existed to call `fetch`, nothing had actually exercised
+ * that claim. Blanket-replacing the global made every caller indistinguishable,
+ * connector or otherwise, which is wrong-shaped now that one is legitimate.
+ *
+ * Deliberately a named, importable function rather than a blanket exemption:
+ * grepping this file shows the entire boundary and its one exception in one
+ * place, and a caller reaching the network without going through it is a
+ * visible-in-review act, not an easy mistake — the same guarantee task 2.2
+ * gives credential isolation.
+ */
+export function allowNetworkForConnector<T>(fn: () => T): T {
+  bypassDepth++;
+  try {
+    return fn();
+  } finally {
+    bypassDepth--;
+  }
+}
+
+/**
  * Replaces the ambient network globals with throwing stubs.
  *
  * Returns a function that restores them. No-op outside development, so
@@ -58,8 +92,12 @@ export function armOfflineTripwire(): () => void {
     // request-shaped globals are replaced when a packager connection is live.
     if (name === 'WebSocket') continue;
 
-    saved.set(name, scope[name]);
-    scope[name] = function guarded() {
+    const original = scope[name];
+    saved.set(name, original);
+    scope[name] = function guarded(this: unknown, ...args: unknown[]) {
+      if (bypassDepth > 0) {
+        return (original as (...a: unknown[]) => unknown).apply(this, args);
+      }
       throw violation(name);
     };
   }
