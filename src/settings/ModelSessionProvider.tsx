@@ -14,12 +14,23 @@ import {
   type ChatSession,
   type ChatSessionStatus,
 } from '@/chat/session/ChatSessionContext';
+import type { ConnectorManifest } from '@/connectors';
 import {
   ModelError,
   ModelManager,
   type DownloadPhase,
   type ManagedModel,
 } from '@/models';
+
+import { generateWithConnectors } from './connectorOrchestration';
+
+/**
+ * Installed connectors (task 2.5). Empty until task 3.1 ships the Search
+ * connector — same placeholder `ConnectorsScreen.tsx` already uses, kept
+ * local rather than promoted to a shared registry module ahead of the one
+ * connector that would need it.
+ */
+const INSTALLED: ConnectorManifest[] = [];
 
 /**
  * Owns the app's single inference engine and model manager.
@@ -290,16 +301,29 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const generate = useCallback<ChatSession['generate']>(
-    async ({ messages, onToken, signal, temperature }) => {
+    async ({ messages, onToken, signal, temperature, allowConnectors }) => {
       setStatus('busy');
       try {
-        return await engine.generate({
+        // Writing-assist modes never reach connector code at all, not just
+        // an empty-manifest no-op through it — `allowConnectors` is chat's
+        // own "this is a conversation, not a transform" signal.
+        if (allowConnectors) {
+          return await generateWithConnectors(engine, INSTALLED, {
+            messages,
+            onToken,
+            signal,
+            temperature,
+            maxTokens: 512,
+          });
+        }
+        const result = await engine.generate({
           messages,
           onToken,
           signal,
           temperature,
           maxTokens: 512,
         });
+        return { text: result.text, connector: null };
       } finally {
         // Back to ready even on failure: the model is still loaded, and
         // leaving the composer disabled would strand the user.

@@ -6,7 +6,7 @@
 
 ## Status
 
-⏳ In Progress
+✅ Done
 
 ## Overview
 
@@ -317,7 +317,7 @@ stub.
 
 ---
 
-#### 📋 2.5 — In-chat connector provenance
+#### ✅ 2.5 — In-chat connector provenance
 
 **Goal:** Make it visible in the UI which connector (if any) answered a given
 message — per CONCEPT.md's "always show which trust tier is active."
@@ -331,8 +331,66 @@ message — per CONCEPT.md's "always show which trust tier is active."
 
 **Review checklist:**
 
-- A user can tell, without opening settings, whether a given reply touched
+- ✅ A user can tell, without opening settings, whether a given reply touched
   the network and which connector did it.
+
+The marker itself needed no new UI work — `ChatBubble`'s `connector?: string`
+prop already existed, fully implemented and tested, from earlier design-system
+work; it had simply never been passed from `ChatScreen`. The actual task was
+the orchestration underneath: `generateWithConnectors()`
+(`src/settings/connectorOrchestration.ts`) is the one place `RoutingDecision`
+(2.3) and `ExecutionResult` (2.4) meet a user-facing reply — routes a message,
+executes a connector if one was called, maps every `blocked` / `ok: false`
+outcome to a short, specific, honest fallback string (never a generic
+"something went wrong"), and returns `{ text, connector }` for `ChatScreen` to
+render.
+
+**Gated to plain Chat mode only.** `GenerateRequest` gained `allowConnectors`,
+set by `ChatScreen` to `modeId === 'plain'`. The writing-assist modes are
+documented as transformations of the text handed to them, not conversations
+— offering a connector to "Fix grammar" is a category error before even
+asking whether one is installed, and it also sidesteps 2.3's own device
+finding that a small model offered a tool will sometimes call it when it
+plainly should not have.
+
+**No shared connector registry.** `INSTALLED: ConnectorManifest[] = []` in
+`ModelSessionProvider.tsx` follows the exact placeholder pattern
+`ConnectorsScreen.tsx` already established for task 2.2 — empty until 3.1,
+local rather than promoted to a shared module ahead of the one connector that
+would need it.
+
+**Three real bugs, all found on-device, none caught by unit tests** — every
+suite was green before any of these were discovered, which is the specific
+thing this project's own verification discipline exists to catch:
+
+1. **`routeMessage`'s `unsupported` branch generated nothing.** It returned
+   immediately without ever calling `engine.generate()` — a tool-incapable
+   model produced no reply at all, not a silent-but-normal one as designed.
+   Fixed to always generate when nothing can be offered, whether that's
+   because no connector exists (`answered`) or the model can't call tools
+   (`unsupported`); `RoutingDecision`'s `unsupported` variant now carries
+   `text`.
+2. **Tool-call syntax leaked into the visible chat.** `routeMessage` streamed
+   the tool-decision completion's raw tokens live via `onToken`. On a real
+   device, Qwen2.5-0.5B emitted its literal `<tool_call>{"name":"web_search",
+   ...}</tool_call>` block as part of its raw text stream before that syntax
+   was recognised as a tool call — it appeared in the chat bubble ahead of
+   the real answer. Fixed by no longer forwarding `onToken` into that one
+   completion; its `result.text` is flushed to the caller in a single call,
+   and only once the outcome is known to be a plain answer — never for a
+   `tool-call` outcome, whose raw text was never meant to be seen at all.
+3. **A `blocked` fallback rendered as a permanently empty bubble.**
+   `ChatScreen` built visible message content purely by accumulating
+   `onToken` calls. A `blocked` reply resolves with real, specific text (e.g.
+   "hasn't been granted access") but streams zero tokens, since it is
+   app-generated text, not model output. Fixed by also setting content from
+   the resolved `generate()` result, not only from streamed tokens.
+
+All three were verified fixed against a real device, using a temporary
+synthetic connector (an httpbin.org-backed manifest, fully reverted after
+use) — the same device-first pattern 2.3 and 2.4 already established, and
+this task's own reminder that a green suite is not the same claim as "the
+feature works."
 
 ## Related Docs
 

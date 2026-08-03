@@ -32,25 +32,130 @@ describe('routeMessage', () => {
     mockIsAllowed.mockReset();
   });
 
-  it('reports unsupported when the loaded model cannot call tools', async () => {
-    const generate = jest.fn();
+  it('reports unsupported but still answers when the loaded model cannot call tools', async () => {
+    // A tool-incapable model must not mean silence — the model still
+    // generates an ordinary reply, just without tools ever offered.
+    const generate = jest
+      .fn()
+      .mockResolvedValue({ text: 'plain reply', toolCalls: [] });
     const engine = fakeEngine(false, generate);
 
     const decision = await routeMessage(engine, [search], messages);
 
-    expect(decision).toEqual({ kind: 'unsupported' });
-    expect(generate).not.toHaveBeenCalled();
+    expect(decision).toEqual({ kind: 'unsupported', text: 'plain reply' });
+    expect(generate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ tools: expect.anything() }),
+    );
   });
 
-  it('answers directly when the model does not call a tool', async () => {
+  it('answers plainly without offering tools when no connector is installed', async () => {
+    // The common case in production today: no connector ships until task
+    // 3.1, so this is what every message hits. Distinct from `unsupported`
+    // — nothing here says anything about the model's own capability.
+    const generate = jest
+      .fn()
+      .mockResolvedValue({ text: 'plain reply', toolCalls: [] });
+    const engine = fakeEngine(true, generate);
+
+    const decision = await routeMessage(engine, [], messages);
+
+    expect(decision).toEqual({ kind: 'answered', text: 'plain reply' });
+    expect(generate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ tools: expect.anything() }),
+    );
+  });
+
+  it('answers plainly with no connectors even when the model cannot call tools', async () => {
+    // toolCapable is irrelevant when there is nothing to offer regardless.
+    const generate = jest
+      .fn()
+      .mockResolvedValue({ text: 'plain reply', toolCalls: [] });
+    const engine = fakeEngine(false, generate);
+
+    const decision = await routeMessage(engine, [], messages);
+
+    expect(decision).toEqual({ kind: 'answered', text: 'plain reply' });
+  });
+
+  it('forwards streaming and generation options when nothing is offered', async () => {
+    // The manifests-empty / not-toolCapable branch is unconditionally the
+    // final answer, so it is safe to stream live.
+    const generate = jest.fn().mockResolvedValue({ text: 'ok', toolCalls: [] });
+    const engine = fakeEngine(true, generate);
+    const onToken = jest.fn();
+    const signal = new AbortController().signal;
+
+    await routeMessage(engine, [], messages, {
+      onToken,
+      signal,
+      temperature: 0.3,
+      maxTokens: 128,
+    });
+
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onToken,
+        signal,
+        temperature: 0.3,
+        maxTokens: 128,
+      }),
+    );
+  });
+
+  it('forwards generation options but not onToken when tools are offered', async () => {
+    // Not live-streamed: this completion doubles as the tool-decision call
+    // and may contain literal tool-call syntax ahead of a decision. See the
+    // next two tests for what the caller actually sees.
+    const generate = jest.fn().mockResolvedValue({ text: 'ok', toolCalls: [] });
+    const engine = fakeEngine(true, generate);
+    const onToken = jest.fn();
+    const signal = new AbortController().signal;
+
+    await routeMessage(engine, [search], messages, {
+      onToken,
+      signal,
+      temperature: 0.3,
+      maxTokens: 128,
+    });
+
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({ signal, temperature: 0.3, maxTokens: 128 }),
+    );
+    expect(generate.mock.calls[0]![0]).not.toHaveProperty('onToken');
+  });
+
+  it('answers directly when the model does not call a tool, flushing onToken once', async () => {
     const generate = jest
       .fn()
       .mockResolvedValue({ text: 'Here is an idea.', toolCalls: [] });
     const engine = fakeEngine(true, generate);
+    const onToken = jest.fn();
 
-    const decision = await routeMessage(engine, [search], messages);
+    const decision = await routeMessage(engine, [search], messages, {
+      onToken,
+    });
 
     expect(decision).toEqual({ kind: 'answered', text: 'Here is an idea.' });
+    expect(onToken).toHaveBeenCalledTimes(1);
+    expect(onToken).toHaveBeenCalledWith('Here is an idea.');
+  });
+
+  it('never calls onToken when a tool is called instead of answering', async () => {
+    // The whole point of buffering: a tool call's raw text — which can
+    // contain literal tool-call syntax — must never reach the visible chat.
+    mockIsAllowed.mockReturnValue(true);
+    const generate = jest.fn().mockResolvedValue({
+      text: '<tool_call>{"name":"web_search"}</tool_call>',
+      toolCalls: [
+        { name: 'web_search', arguments: '{"query":"chili recipe"}' },
+      ],
+    });
+    const engine = fakeEngine(true, generate);
+    const onToken = jest.fn();
+
+    await routeMessage(engine, [search], messages, { onToken });
+
+    expect(onToken).not.toHaveBeenCalled();
   });
 
   it('offers every manifest as a tool, by name and JSON-Schema parameters', async () => {

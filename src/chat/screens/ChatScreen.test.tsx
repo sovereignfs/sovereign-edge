@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 
 import { ThemeProvider } from '@/design-system';
 
-import type { GenerateResult } from '../inference';
 import {
   ChatSessionContext,
+  type ChatGenerateResult,
   type ChatSession,
   type ChatSessionStatus,
   type GenerateRequest,
@@ -18,14 +18,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
-const done: GenerateResult = {
-  text: 'ok',
-  stopReason: 'eos',
-  tokensGenerated: 1,
-  timeToFirstTokenMs: 10,
-  tokensPerSecond: 10,
-  toolCalls: [],
-};
+const done: ChatGenerateResult = { text: 'ok', connector: null };
 
 function renderChat(overrides: Partial<ChatSession> = {}) {
   const session: ChatSession = {
@@ -85,10 +78,12 @@ describe('ChatScreen', () => {
         onToken,
       }: {
         onToken: (t: string) => void;
-      }): Promise<GenerateResult> => {
+      }): Promise<ChatGenerateResult> => {
         onToken('Blue');
         onToken(', green');
-        return done;
+        // Resolves with the same text it streamed, like any real
+        // implementation — the UI trusts this as the source of truth.
+        return { text: 'Blue, green', connector: null };
       },
     );
     const { view } = renderChat({
@@ -119,8 +114,73 @@ describe('ChatScreen', () => {
         messages: [{ role: 'user', content: 'hello' }],
         onToken: expect.any(Function),
         signal: expect.any(AbortSignal),
+        allowConnectors: true,
       }),
     );
+  });
+
+  it('shows which connector answered, without opening settings', async () => {
+    // The epic 2.5 review checklist, verbatim: a user can tell from the
+    // message itself, not by navigating anywhere.
+    const generate = jest
+      .fn()
+      .mockResolvedValue({ text: 'Found a recipe.', connector: 'Search' });
+    const { view } = renderChat({
+      generate: generate as ChatSession['generate'],
+    });
+    const s = await view;
+
+    await userEvent.type(s.getByPlaceholderText('Message'), 'find a recipe');
+    await userEvent.press(s.getByText('Send'));
+
+    expect(s.getByText(/via Search/)).toBeTruthy();
+  });
+
+  it('shows a reply that was never streamed a single token', async () => {
+    // A `blocked` connector fallback (task 2.5) resolves with real text but
+    // calls onToken zero times — nothing to stream, since it was never
+    // model output. Caught on-device: content built purely from onToken
+    // accumulation stayed permanently empty for exactly this case.
+    const generate = jest.fn().mockResolvedValue({
+      text: "This would use Search, which hasn't been granted access.",
+      connector: null,
+    });
+    const { view } = renderChat({
+      generate: generate as ChatSession['generate'],
+    });
+    const s = await view;
+
+    await userEvent.type(s.getByPlaceholderText('Message'), 'find a recipe');
+    await userEvent.press(s.getByText('Send'));
+
+    expect(s.getByText(/hasn't been granted access/)).toBeTruthy();
+  });
+
+  it('says nothing about a connector for a purely local reply', async () => {
+    const { view } = renderChat();
+    const s = await view;
+
+    await userEvent.type(s.getByPlaceholderText('Message'), 'hello');
+    await userEvent.press(s.getByText('Send'));
+
+    expect(s.queryByText(/via /)).toBeNull();
+  });
+
+  it('never offers connectors from a writing-assist mode', async () => {
+    // Fix grammar and the other modes transform the text handed to them —
+    // they are not conversations, and should not be able to reach a
+    // connector regardless of whether one is installed.
+    const generate = spyGenerate();
+    const { view } = renderChat({
+      generate: generate as ChatSession['generate'],
+    });
+    const s = await view;
+
+    await userEvent.press(s.getByLabelText('Fix grammar mode'));
+    await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
+    await userEvent.press(s.getByText('Send'));
+
+    expect(generate.mock.calls[0]![0].allowConnectors).toBe(false);
   });
 
   it('offers Stop instead of Send while generating', async () => {

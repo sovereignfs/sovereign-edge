@@ -36,6 +36,9 @@ export type RoutingDecision =
    * The loaded model's chat template cannot emit tool calls at all
    * (`EngineInfo.toolCapable`). A fact about the model, not about any
    * connector — no tools were offered, so there is no `blocked` case to
-   * report.
+   * report. Still carries `text`: the model answers normally either way, and
+   * a caller that has no UI treatment for `unsupported` (task 2.3 left that
+   * to whoever wires chat) should not have to special-case "no reply came
+   * back at all."
    */
-  | { kind: 'unsupported' };
+  | { kind: 'unsupported'; text: string };
