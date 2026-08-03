@@ -17,6 +17,9 @@ const mockCompletion = jest.fn();
 const mockContext = {
   gpu: true,
   reasonNoGPU: '',
+  model: {
+    chatTemplates: { jinja: { defaultCaps: { tools: true } } },
+  },
   release: mockRelease,
   stopCompletion: mockStopCompletion,
   completion: mockCompletion,
@@ -37,6 +40,9 @@ describe('InferenceEngine', () => {
     jest.clearAllMocks();
     mockContext.gpu = true;
     mockContext.reasonNoGPU = '';
+    mockContext.model = {
+      chatTemplates: { jinja: { defaultCaps: { tools: true } } },
+    };
     mockInitLlama.mockImplementation(async () => mockContext);
     mockCompletion.mockImplementation(async () => ({
       text: 'hi there',
@@ -53,8 +59,17 @@ describe('InferenceEngine', () => {
         gpu: true,
         reasonNoGpu: null,
         contextSize: 2048,
+        toolCapable: true,
       });
       expect(engine.isLoaded).toBe(true);
+    });
+
+    it('reports a model whose chat template cannot call tools', async () => {
+      mockContext.model = {
+        chatTemplates: { jinja: { defaultCaps: { tools: false } } },
+      };
+      const info = await engine.load({ modelPath: '/models/m.gguf' });
+      expect(info.toolCapable).toBe(false);
     });
 
     it('surfaces why the GPU was declined rather than silently using CPU', async () => {
@@ -219,6 +234,50 @@ describe('InferenceEngine', () => {
       expect(result.timeToFirstTokenMs).toBe(3000);
       expect(result.tokensPerSecond).toBeCloseTo(4); // 4 tokens / 1s, not / 4s
       jest.useRealTimers();
+    });
+
+    it('passes tools through to completion and reports tool calls back', async () => {
+      const tools = [
+        {
+          type: 'function' as const,
+          function: {
+            name: 'web_search',
+            description: 'Search the web.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ];
+      mockCompletion.mockImplementation(async () => ({
+        text: '',
+        tokens_predicted: 3,
+        stopped_eos: true,
+        tool_calls: [
+          {
+            type: 'function',
+            function: { name: 'web_search', arguments: '{"query":"x"}' },
+          },
+        ],
+      }));
+      await engine.load({ modelPath: '/models/m.gguf' });
+      const result = await engine.generate({
+        messages,
+        tools,
+        toolChoice: 'auto',
+      });
+
+      expect(mockCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({ tools, tool_choice: 'auto', jinja: true }),
+        expect.any(Function),
+      );
+      expect(result.toolCalls).toEqual([
+        { name: 'web_search', arguments: '{"query":"x"}' },
+      ]);
+    });
+
+    it('reports no tool calls when the model just answers', async () => {
+      await engine.load({ modelPath: '/models/m.gguf' });
+      const result = await engine.generate({ messages });
+      expect(result.toolCalls).toEqual([]);
     });
 
     it('reports no rate rather than dividing by zero', async () => {

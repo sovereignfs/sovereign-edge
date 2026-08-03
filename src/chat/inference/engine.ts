@@ -81,6 +81,9 @@ export class InferenceEngine {
       gpu: context.gpu,
       reasonNoGpu: context.gpu ? null : context.reasonNoGPU || 'unknown',
       contextSize,
+      toolCapable: Boolean(
+        context.model?.chatTemplates?.jinja?.defaultCaps?.tools,
+      ),
     };
     return this.info;
   }
@@ -111,6 +114,8 @@ export class InferenceEngine {
       stop = [],
       onToken,
       signal,
+      tools,
+      toolChoice,
     } = options;
 
     this.generating = true;
@@ -131,6 +136,7 @@ export class InferenceEngine {
           n_predict: maxTokens,
           temperature,
           stop,
+          ...(tools ? { tools, tool_choice: toolChoice, jinja: true } : {}),
         },
         (data) => {
           firstTokenAt ??= Date.now();
@@ -163,6 +169,10 @@ export class InferenceEngine {
           generationSeconds > 0 && tokensGenerated > 0
             ? tokensGenerated / generationSeconds
             : null,
+        toolCalls: (result.tool_calls ?? []).map((call) => ({
+          name: call.function.name,
+          arguments: call.function.arguments,
+        })),
       };
     } catch (cause) {
       if (aborted) {
@@ -175,6 +185,7 @@ export class InferenceEngine {
           timeToFirstTokenMs:
             firstTokenAt === null ? null : firstTokenAt - startedAt,
           tokensPerSecond: null,
+          toolCalls: [],
         };
       }
       throw new InferenceError(

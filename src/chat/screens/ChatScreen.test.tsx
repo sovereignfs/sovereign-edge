@@ -24,6 +24,7 @@ const done: GenerateResult = {
   tokensGenerated: 1,
   timeToFirstTokenMs: 10,
   tokensPerSecond: 10,
+  toolCalls: [],
 };
 
 function renderChat(overrides: Partial<ChatSession> = {}) {
