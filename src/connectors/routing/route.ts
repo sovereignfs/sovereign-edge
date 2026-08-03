@@ -7,6 +7,15 @@ import type { ConnectorManifest } from '../manifest';
 import { isAllowed } from '../permissions';
 import type { RoutingDecision } from './types';
 
+/** Passed straight through to the engine, so a caller streaming a normal
+ * chat reply keeps doing so through a routed one. */
+export type RouteOptions = {
+  onToken?: (token: string) => void;
+  signal?: AbortSignal;
+  temperature?: number;
+  maxTokens?: number;
+};
+
 /**
  * Tool-routing / intent-detection layer (task 2.3).
  *
@@ -26,12 +35,29 @@ export async function routeMessage(
   engine: InferenceEngine,
   manifests: ConnectorManifest[],
   messages: ChatMessage[],
+  options: RouteOptions = {},
 ): Promise<RoutingDecision> {
-  // A fact about the model, not the connector — per research 0004, offering
-  // tools to a model whose chat template can't emit them would not fail
-  // cleanly, so the honest move is not to offer them at all.
-  if (!engine.engineInfo?.toolCapable) {
-    return { kind: 'unsupported' };
+  const { onToken, signal, temperature, maxTokens } = options;
+
+  // Two different reasons to offer nothing, both ending in an ordinary
+  // generated reply rather than silence: no connector exists to offer
+  // (common in production today — no connector ships until task 3.1), or one
+  // exists but this model's chat template can't emit tool calls at all
+  // (`toolCapable`, per research 0004). The `kind` still distinguishes them
+  // — "nothing to offer" is not the same fact as "couldn't use what's
+  // there" — but neither should mean the user gets no answer at all, which
+  // returning early without generating anything used to do.
+  if (manifests.length === 0 || !engine.engineInfo?.toolCapable) {
+    const result = await engine.generate({
+      messages,
+      onToken,
+      signal,
+      temperature,
+      maxTokens,
+    });
+    return manifests.length === 0
+      ? { kind: 'answered', text: result.text }
+      : { kind: 'unsupported', text: result.text };
   }
 
   const tools: ToolDefinition[] = manifests.map((manifest) => ({
@@ -43,10 +69,26 @@ export async function routeMessage(
     },
   }));
 
-  const result = await engine.generate({ messages, tools, toolChoice: 'auto' });
+  // `onToken` is deliberately not forwarded here, unlike the branch above.
+  // This completion doubles as the tool-decision call, and a model that does
+  // call a tool is not guaranteed to keep the tool-call syntax out of its
+  // raw token stream — measured on-device, a small model emitted a literal
+  // `<tool_call>{...}` block as ordinary text ahead of choosing to call it.
+  // Streaming that live would show it to the user for the fraction of a
+  // second it takes to find out this text was never the answer. `result.text`
+  // below carries the same content once the outcome says it is safe to show.
+  const result = await engine.generate({
+    messages,
+    tools,
+    toolChoice: 'auto',
+    signal,
+    temperature,
+    maxTokens,
+  });
 
   const call = result.toolCalls[0];
   if (!call) {
+    onToken?.(result.text);
     return { kind: 'answered', text: result.text };
   }
 

@@ -17,7 +17,12 @@ import type { ChatMessage } from '../inference';
 import { DEFAULT_MODE_ID, MODES, findMode, type ModeId } from '../modes';
 import { useChatSession } from '../session/ChatSessionContext';
 
-type Message = ChatMessage & { id: string; streaming?: boolean };
+type Message = ChatMessage & {
+  id: string;
+  streaming?: boolean;
+  /** Name of the connector that produced this reply, if any (task 2.5). */
+  connector?: string;
+};
 
 /**
  * The chat surface.
@@ -79,7 +84,12 @@ export function ChatScreen() {
     abort.current = controller;
 
     try {
-      await session.generate({
+      // Only a real conversation may reach a connector — the writing-assist
+      // modes are transformations of the text handed to them, not
+      // conversations (see `usesHistory` above), and offering one a
+      // connector would be a category error regardless of whether one is
+      // even installed.
+      const result = await session.generate({
         messages: history,
         onToken: (token) => {
           setMessages((prev) =>
@@ -90,7 +100,25 @@ export function ChatScreen() {
         },
         signal: controller.signal,
         temperature: mode.temperature,
+        allowConnectors: modeId === 'plain',
       });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === replyId
+            ? // Set from the resolved result, not just accumulated onToken
+              // calls: a routed reply that never streams — blocked by a
+              // missing permission, or any other connector fallback — calls
+              // onToken zero times, and content built purely from streaming
+              // would stay empty forever despite `generate()` having
+              // resolved with real text to show.
+              {
+                ...m,
+                content: result.text,
+                connector: result.connector ?? undefined,
+              }
+            : m,
+        ),
+      );
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -137,6 +165,7 @@ export function ChatScreen() {
               role={m.role === 'user' ? 'user' : 'assistant'}
               text={m.content}
               streaming={m.streaming}
+              connector={m.connector}
             />
           ))
         )}

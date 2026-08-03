@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { ChatMessage, GenerateResult } from '../inference';
+import type { ChatMessage } from '../inference';
 
 export type ChatSessionStatus =
   /** No model is installed. Chat cannot run at all. */
@@ -27,6 +27,33 @@ export type GenerateRequest = {
   signal?: AbortSignal;
   /** Per-mode sampling temperature; the engine's default applies when unset. */
   temperature?: number;
+  /**
+   * Whether this reply may reach a connector (task 2.5).
+   *
+   * Chat's own view of "conversation, not transform": the writing-assist
+   * modes are documented as transformations of the text handed to them, not
+   * conversations, and offering a connector to "Fix grammar" would be a
+   * category error even before asking whether one is installed. Defaults to
+   * false rather than true so a caller has to opt in, not opt out.
+   */
+  allowConnectors?: boolean;
+};
+
+/**
+ * What a reply resolves to.
+ *
+ * Deliberately narrow rather than re-exporting the inference engine's own
+ * `GenerateResult` — `ChatScreen` never reads its other fields, and once a
+ * reply may have taken a routing detour through a connector (task 2.5),
+ * per-call metrics like `tokensGenerated` stop meaning one clear thing
+ * anyway (which call's tokens — the routing decision's, or the follow-up
+ * answer's?). `connector` is the one fact task 2.5 exists to add.
+ */
+export type ChatGenerateResult = {
+  text: string;
+  /** Name of the connector whose data is in this reply, or null when the
+   * reply came entirely from the local model. */
+  connector: string | null;
 };
 
 export type ChatSession = {
@@ -43,7 +70,7 @@ export type ChatSession = {
   modelParametersB: number | null;
   /** Error text when `status` is 'error', otherwise a progress note or null. */
   detail: string | null;
-  generate(request: GenerateRequest): Promise<GenerateResult>;
+  generate(request: GenerateRequest): Promise<ChatGenerateResult>;
 };
 
 /**
