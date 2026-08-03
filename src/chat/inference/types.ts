@@ -27,6 +27,16 @@ export type LoadOptions = {
   onProgress?: (fraction: number) => void;
 };
 
+/** A tool the model may call, in the OpenAI function-calling shape. */
+export type ToolDefinition = {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: object;
+  };
+};
+
 export type GenerateOptions = {
   messages: ChatMessage[];
   maxTokens?: number;
@@ -37,6 +47,15 @@ export type GenerateOptions = {
   onToken?: (token: string) => void;
   /** Aborts generation. Resolves with whatever was produced so far. */
   signal?: AbortSignal;
+  /**
+   * Tools the model may call (task 2.3). Passed straight through to
+   * `llama.rn`, which converts each tool's JSON Schema `parameters` into a
+   * decoding grammar — the model's tool-call output is constrained to be
+   * valid rather than merely likely to be.
+   */
+  tools?: ToolDefinition[];
+  /** OpenAI-style tool_choice, e.g. `'auto'`. Ignored when `tools` is unset. */
+  toolChoice?: string;
 };
 
 export type GenerateResult = {
@@ -57,6 +76,13 @@ export type GenerateResult = {
    * short reply the difference is roughly 6×.
    */
   tokensPerSecond: number | null;
+  /**
+   * Tool calls the model made, if any (task 2.3). Empty when `tools` was
+   * unset on the request or the model chose to answer directly. Arguments
+   * are the raw JSON string `llama.rn` reports — the caller's problem to
+   * parse, since only it knows which tool's schema they should match.
+   */
+  toolCalls: { name: string; arguments: string }[];
 };
 
 /** What actually got loaded — reported after load, not assumed beforehand. */
@@ -66,6 +92,14 @@ export type EngineInfo = {
   /** Why the GPU was not used, when it was not. */
   reasonNoGpu: string | null;
   contextSize: number;
+  /**
+   * Whether the loaded model's chat template can emit tool calls at all
+   * (task 2.3). A fact about the model, not about any connector — read from
+   * `chatTemplates.jinja.defaultCaps.tools` per research 0004. Callers must
+   * check this before offering `tools` on `generate()`: a model that can't
+   * call tools will just ignore them rather than reliably falling back.
+   */
+  toolCapable: boolean;
 };
 
 export type InferenceErrorCode =

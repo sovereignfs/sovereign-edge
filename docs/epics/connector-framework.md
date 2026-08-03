@@ -171,7 +171,7 @@ Search connector lands.
 
 ---
 
-#### 📋 2.3 — Tool-routing / intent-detection layer
+#### ✅ 2.3 — Tool-routing / intent-detection layer
 
 **Goal:** Let the local model decide "this needs a connector" vs. "just
 answer in chat," and pick the right one.
@@ -189,9 +189,51 @@ answer in chat," and pick the right one.
 
 **Review checklist:**
 
-- A request that should trigger a connector call produces valid, schema-
+- ✅ A request that should trigger a connector call produces valid, schema-
   conformant tool-call output in a controlled test set, not just "it usually
   works."
+
+`routeMessage()` (`src/connectors/routing/`) turns one completion into a
+`RoutingDecision`: `answered` (no tool needed), `tool-call` (a permitted
+connector matched), `blocked` (a tool was called but can't be honoured —
+`no-connector`, `not-permitted`, or `malformed`), or `unsupported` (the
+loaded model's chat template can't emit tool calls at all —
+`EngineInfo.toolCapable`, read from `chatTemplates.jinja.defaultCaps.tools`
+per research 0004). One completion call does double duty: the same request
+that offers tools either returns a chat answer or a tool call, rather than a
+separate classifier guessing intent ahead of generation.
+
+**No argument validator, by design.** `tool.parameters` is JSON Schema
+specifically so `llama.rn` can convert it into a decoding grammar — the
+model's output is constrained to be valid rather than merely likely to be.
+`routeMessage` trusts that guarantee and only `JSON.parse`s the arguments,
+rather than re-validating them against the schema. The `malformed` outcome
+exists for the same reason 2.1's validator exists at all: the arguments are
+still model output steered by whatever the user pasted into chat, and this
+repo treats that as untrusted regardless of what the decoding grammar is
+supposed to guarantee.
+
+**Capability gate is silent, not user-facing.** When `toolCapable` is false,
+no `tools` are offered and the model just answers normally — there is no
+`blocked` case to report, because nothing was ever offered. The `blocked`
+cases are for the two failures that can only happen once a tool *was*
+offered and something after that failed. Whether `unsupported` gets any UI
+treatment is left to whichever task wires this into `ChatScreen` (2.5, most
+likely) — 2.3 has no chat-surface deliverable.
+
+**Verified on-device against a real model, and it surfaced a real
+limitation.** Qwen2.5-0.5B-Instruct correctly emitted a grammar-constrained
+call naming the Search fixture's actual tool (`web_search`) for a
+search-shaped prompt — confirming the mechanism this task depends on. But
+the same model also called `web_search` for "What is 12 plus 30?", which
+needs no connector at all. `tool_choice: 'auto'` is not reliably choosing
+"just answer" on a model this small — a routing-layer concern in the sense
+that whoever executes tool calls (2.4) or exposes a real connector (3.1)
+should not assume "the model called a tool" means "the model needed to."
+Worth a closer look — a different `tool_choice`, an explicit intent gate
+before offering tools, or simply not offering tools on models this size —
+when a connector is actually reachable and an unnecessary network round-trip
+stops being a hypothetical.
 
 ---
 

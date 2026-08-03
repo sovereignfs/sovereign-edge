@@ -7,4 +7,5 @@ export {
   type GenerateResult,
   type InferenceErrorCode,
   type LoadOptions,
+  type ToolDefinition,
 } from './types';

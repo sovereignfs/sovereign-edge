@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** 0.1.14 · **Last updated:** 2026-08-02
+**Version:** 0.1.15 · **Last updated:** 2026-08-03
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:
@@ -39,7 +39,7 @@ connector store, no third-party anything, no monetization yet.
 | 0.1.12  | Zero-network enforcement and audit        | ✅     | [1.5](docs/epics/core-inference-chat.md#-15--zero-network-enforcement-and-audit)         |
 | 0.1.13  | Connector manifest schema (Tier 1)        | ✅     | [2.1](docs/epics/connector-framework.md#-21--connector-manifest-schema-tier-1)           |
 | 0.1.14  | Permission and consent model              | ✅     | [2.2](docs/epics/connector-framework.md#-22--permission-and-consent-model)               |
-| 0.1.15  | Tool-routing / intent-detection layer     | 📋     | [2.3](docs/epics/connector-framework.md#-23--tool-routing--intent-detection-layer)       |
+| 0.1.15  | Tool-routing / intent-detection layer     | ✅     | [2.3](docs/epics/connector-framework.md#-23--tool-routing--intent-detection-layer)       |
 | 0.1.16  | Connector runtime host                    | 📋     | [2.4](docs/epics/connector-framework.md#-24--connector-runtime-host)                     |
 | 0.1.17  | In-chat connector provenance              | 📋     | [2.5](docs/epics/connector-framework.md#-25--in-chat-connector-provenance)               |
 | 0.1.18  | Default Search connector                  | 📋     | [3.1](docs/epics/search-connector.md#-31--default-search-connector)                      |
