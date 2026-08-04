@@ -163,6 +163,69 @@ separate remains to build; kept as its own epic task line rather than
 deleted, because the id is permanent and the roadmap should show why the
 slot closed rather than simply vanish.
 
+---
+
+#### ✅ 3.3 — Explicit Search mode
+
+**Goal:** Remove the ambiguity `tool_choice: 'auto'` leaves in a small
+model's hands, per 3.1's fifth finding — a mode where the user's own
+selection is the decision, not a judgment call asked of the model at all.
+
+**Deliverables:**
+
+- A new `'search'` mode (`src/chat/modes/modes.ts`), alongside Chat/
+  Brainstorm/Fix grammar/Rewrite tone, selected the same way as any other
+  mode via the existing mode bar — no new UI surface needed.
+- `tool_choice: 'required'` threaded end to end: `routeMessage` (task 2.3)
+  gains a caller-specified `toolChoice` on `RouteOptions` (default `'auto'`,
+  unchanged for every existing caller); `generateWithConnectors` (task 2.5)
+  gains the same on `ConnectorOrchestrationRequest`; `ChatSessionContext`'s
+  `GenerateRequest` replaces the old `allowConnectors: boolean` with a
+  `connectorMode: 'off' | 'auto' | 'required'` tri-state, since a boolean
+  cannot also carry "and skip asking the model" without a fourth, invalid
+  combination existing in the type. `ChatScreen` maps mode → `connectorMode`:
+  `'plain'` → `'auto'`, `'search'` → `'required'`, everything else → `'off'`.
+- Two failure modes specific to `'required'`, handled explicitly rather than
+  falling through to `'auto'`'s existing (correct, for `'auto'`) behavior:
+  no connector configured at all (a plain instruction to go configure one,
+  no generation attempted — forcing a tool call with nothing to call is
+  nonsensical) and a model that cannot call tools (a clear "this model can't
+  use connectors" message, not the model's own prose about lacking
+  real-time access, which in a mode the user explicitly chose *because* they
+  wanted a real search would otherwise read as a search that was quietly
+  skipped rather than a capability gap).
+
+**Dependencies:** Task 3.1 (the connector this mode forces), task 2.3
+(`routeMessage`), task 2.5 (`generateWithConnectors`).
+
+**Review checklist:**
+
+- ✅ Every message sent in Search mode either genuinely calls the connector
+  or explains clearly why it could not (not configured, not granted, or the
+  model can't call tools) — never a plain, unlabelled answer standing in for
+  a search that didn't happen.
+- ✅ The other modes are unaffected: Chat still lets the model decide, and
+  the writing-assist modes still never reach a connector at all.
+
+**Verified on the user's own physical device** (Metro Fast Refresh — pure
+TypeScript, no native change, no rebuild needed): the Search chip appears,
+selecting it and asking a question forces a real connector call, and the
+banner names the mode the same way a writing-assist mode's does — which
+needed its own small fix, since the banner's visibility was keyed off
+`mode.systemPrompt` being non-null, a proxy that happened to hold for every
+mode that existed before this one. Search has no system prompt at all — its
+effect is entirely the forced `connectorMode`, not a model instruction — so
+the condition was changed to `mode.id !== DEFAULT_MODE_ID`, the thing the
+banner was actually trying to express.
+
+**Left open:** whether `llama.rn`/the underlying grammar engine honors
+`tool_choice: 'required'` as strictly as `'auto'` was already confirmed to
+work (research 0004's finding) has not been independently stress-tested the
+way `'auto'` was across many device runs in tasks 2.3 and 3.1 — the on-device
+check above confirms it works for the cases tried, not that it is airtight
+against every phrasing. Worth a closer look if a `'required'` request is
+ever observed resolving to `answered` rather than `tool-call` or `blocked`.
+
 ## Related Docs
 
 - [CONCEPT.md](../../CONCEPT.md)

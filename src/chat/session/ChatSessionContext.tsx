@@ -28,15 +28,28 @@ export type GenerateRequest = {
   /** Per-mode sampling temperature; the engine's default applies when unset. */
   temperature?: number;
   /**
-   * Whether this reply may reach a connector (task 2.5).
+   * Whether, and how eagerly, this reply may reach a connector (task 2.5;
+   * `'required'` added by the explicit Search mode that followed it).
    *
-   * Chat's own view of "conversation, not transform": the writing-assist
-   * modes are documented as transformations of the text handed to them, not
-   * conversations, and offering a connector to "Fix grammar" would be a
-   * category error even before asking whether one is installed. Defaults to
-   * false rather than true so a caller has to opt in, not opt out.
+   * `'off'` (default): never — chat's own view of "conversation, not
+   * transform." The writing-assist modes are documented as transformations
+   * of the text handed to them, not conversations, and offering a connector
+   * to "Fix grammar" is a category error even before asking whether one is
+   * installed.
+   *
+   * `'auto'`: the model decides whether a tool is needed (plain Chat mode).
+   * Found unreliable on-device — a small model sometimes skips a tool it
+   * should use, and at least once claimed to have searched when it had
+   * not — which is exactly what `'required'` exists to remove.
+   *
+   * `'required'`: every message searches. The Search mode's own selection
+   * *is* the decision; nothing is asked of the model at all.
+   *
+   * Not a plain boolean — `false` cannot also mean "and skip asking the
+   * model," so a tri-state avoids a fourth, invalid combination existing in
+   * the type at all.
    */
-  allowConnectors?: boolean;
+  connectorMode?: 'off' | 'auto' | 'required';
 };
 
 /**
