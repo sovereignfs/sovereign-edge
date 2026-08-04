@@ -1,33 +1,40 @@
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import {
   grant,
   grantFor,
-  listGrants,
   needsRedecision,
   revoke,
   type ConnectorManifest,
   type GrantState,
 } from '@/connectors';
+import { readSearchConfig } from '@/connectors/search/config';
+import {
+  TAVILY_MANIFEST,
+  buildSearxngManifest,
+} from '@/connectors/search/manifest';
 import { ListItem, useTheme } from '@/design-system';
 
-/**
- * Connector permissions (task 2.2).
- *
- * The settings surface for every connector and its current state. There is
- * deliberately no master switch: research 0001 requires permission to be
- * per-connector, and a single "allow network" toggle is exactly the blanket
- * grant this product exists to avoid.
- *
- * No connector ships yet — the Search connector is task 3.1 — so in practice
- * this renders its empty state today. It is built against the real permission
- * store rather than a placeholder, so installing the first connector is the
- * only change needed.
- */
+import type { SettingsStackParamList } from '../navigation/RootNavigator';
 
-/** Installed connectors. Empty until task 3.1 ships the Search connector. */
-const INSTALLED: ConnectorManifest[] = [];
+/**
+ * Connector permissions (task 2.2), plus the Search connector's own
+ * grant/revoke row (task 3.1).
+ *
+ * There is deliberately no master switch: research 0001 requires permission
+ * to be per-connector, and a single "allow network" toggle is exactly the
+ * blanket grant this product exists to avoid.
+ *
+ * Search is the only connector that can exist here today, and it has no
+ * built-in configuration — a fresh install has nothing to grant until the
+ * user picks a provider in `SearchSetupScreen`. Reading `readSearchConfig()`
+ * at render time (rather than a static list) is what makes "configure once,
+ * then it behaves like any other connector row" true without a second data
+ * path for Search specifically.
+ */
 
 function stateLabel(state: GrantState, redecide: boolean): string {
   if (redecide) return 'NEEDS REVIEW';
@@ -43,11 +50,31 @@ function stateLabel(state: GrantState, redecide: boolean): string {
 
 export function ConnectorsScreen() {
   const theme = useTheme();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
   const [, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
-  const decided = listGrants();
-  const empty = INSTALLED.length === 0;
+  // `readSearchConfig()` below only runs when this component re-renders.
+  // React Navigation keeps a stack screen mounted and does not re-render it
+  // just because it regained focus, so without this, returning from
+  // `SearchSetupScreen` after saving showed stale "not set up" state — the
+  // save had worked, this screen just never looked again. Found on a real
+  // device, not in a mocked test: the earlier reachability test only
+  // asserted the screen could be navigated to, not that it stayed correct
+  // after a round trip through setup.
+  useFocusEffect(refresh);
+
+  const searchConfig = readSearchConfig();
+  const installed: ConnectorManifest[] = searchConfig
+    ? [
+        searchConfig.provider === 'searxng'
+          ? buildSearxngManifest(searchConfig.searxngUrl)
+          : TAVILY_MANIFEST,
+      ]
+    : [];
+
+  const empty = installed.length === 0;
 
   return (
     <ScrollView style={{ backgroundColor: theme.colors.surface }}>
@@ -60,7 +87,7 @@ export function ConnectorsScreen() {
           }}
         >
           {empty
-            ? 'No connectors are installed.'
+            ? 'No connectors are set up.'
             : 'Each connector is granted access separately.'}
         </Text>
         <Text
@@ -71,22 +98,19 @@ export function ConnectorsScreen() {
           }}
         >
           {empty
-            ? 'Nothing in this app can reach the network. Chat runs entirely on device. When a connector is added it will appear here, and it can only act after you grant it permission — each one separately.'
+            ? 'Nothing in this app can reach the network. Chat runs entirely on device. Set up Search below to let it look things up online — it can only act once you configure and grant it access.'
             : 'Granting one connector never grants another. Revoking a connector also deletes any credential you gave it.'}
         </Text>
       </View>
 
       {empty ? (
         <ListItem
-          title="Network access"
-          subtitle={
-            decided.length === 0
-              ? 'No connector has been granted access'
-              : `${decided.filter((g) => g.state === 'granted').length} of ${decided.length} previously decided connectors allowed`
-          }
+          title="Search"
+          subtitle="Not set up — tap to choose a provider"
+          onPress={() => navigation.navigate('SearchSetup')}
         />
       ) : (
-        INSTALLED.map((manifest) => {
+        installed.map((manifest) => {
           const state = grantFor(manifest.id).state;
           const redecide = needsRedecision(manifest);
           const allowed = state === 'granted' && !redecide;
@@ -127,6 +151,18 @@ export function ConnectorsScreen() {
             />
           );
         })
+      )}
+
+      {empty ? null : (
+        // A way back into setup once configured — found missing when a real
+        // user needed to fix a mistyped key and had nowhere to go but
+        // revoke-then-grant, which re-offers the same (wrong) stored
+        // credential rather than letting them enter a new one.
+        <ListItem
+          title="Change provider or key"
+          subtitle="Reconfigure Search"
+          onPress={() => navigation.navigate('SearchSetup')}
+        />
       )}
     </ScrollView>
   );

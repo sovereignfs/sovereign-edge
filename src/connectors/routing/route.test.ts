@@ -124,6 +124,31 @@ describe('routeMessage', () => {
     expect(generate.mock.calls[0]![0]).not.toHaveProperty('onToken');
   });
 
+  it('defaults toolChoice to auto', async () => {
+    const generate = jest.fn().mockResolvedValue({ text: 'ok', toolCalls: [] });
+    const engine = fakeEngine(true, generate);
+
+    await routeMessage(engine, [search], messages);
+
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({ toolChoice: 'auto' }),
+    );
+  });
+
+  it('forwards a caller-specified toolChoice, for the explicit Search mode', async () => {
+    // The mode's own selection is the decision in that case, not something
+    // asked of the model — 'required' forces a tool call rather than
+    // offering the model a choice to (sometimes unreliably) make itself.
+    const generate = jest.fn().mockResolvedValue({ text: 'ok', toolCalls: [] });
+    const engine = fakeEngine(true, generate);
+
+    await routeMessage(engine, [search], messages, { toolChoice: 'required' });
+
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({ toolChoice: 'required' }),
+    );
+  });
+
   it('answers directly when the model does not call a tool, flushing onToken once', async () => {
     const generate = jest
       .fn()

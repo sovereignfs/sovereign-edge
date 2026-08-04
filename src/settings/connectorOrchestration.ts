@@ -35,6 +35,12 @@ export type ConnectorOrchestrationRequest = {
   signal?: AbortSignal;
   temperature?: number;
   maxTokens?: number;
+  /**
+   * `'auto'` (default) lets the model decide whether a tool is needed, per
+   * task 2.3. `'required'` is the explicit Search mode's own knob — the
+   * user's mode selection is the decision, not something asked of the model.
+   */
+  toolChoice?: 'auto' | 'required';
 };
 
 export type ConnectorOrchestrationResult = {
@@ -45,6 +51,27 @@ export type ConnectorOrchestrationResult = {
    * being tagged as if a connector had actually answered. */
   connector: string | null;
 };
+
+/**
+ * Character budget for a connector's result once it's folded into the
+ * follow-up prompt.
+ *
+ * `response.maxBytes` (task 2.4) caps what the *network* will hand back, but
+ * that is generous enough (up to hundreds of KB) to protect against a
+ * misbehaving endpoint, not to fit a model's context window. Found on-device
+ * against a real SearXNG response, not reasoned about in advance: an
+ * ordinary `results` array was large enough on its own to exhaust the
+ * default 2048-token context, failing generation outright rather than
+ * merely giving a worse answer. A rough 3–4 chars/token for English leaves
+ * this well short of the input budget once the system prompt, the user's
+ * own message, and the reserved output tokens are accounted for.
+ */
+const CONNECTOR_RESULT_CHAR_BUDGET = 2_000;
+
+function truncateForContext(text: string): string {
+  if (text.length <= CONNECTOR_RESULT_CHAR_BUDGET) return text;
+  return text.slice(0, CONNECTOR_RESULT_CHAR_BUDGET) + '…';
+}
 
 function connectorName(
   manifests: ConnectorManifest[],
@@ -113,19 +140,52 @@ export async function generateWithConnectors(
   manifests: ConnectorManifest[],
   request: ConnectorOrchestrationRequest,
 ): Promise<ConnectorOrchestrationResult> {
-  const { messages, onToken, signal, temperature, maxTokens } = request;
+  const {
+    messages,
+    onToken,
+    signal,
+    temperature,
+    maxTokens,
+    toolChoice = 'auto',
+  } = request;
+
+  // Forcing a tool call with nothing to call is nonsensical, and would
+  // otherwise reach routeMessage's own "nothing to offer" branch and answer
+  // in the model's own voice — exactly the silent, ambiguous outcome the
+  // Search mode exists to remove. Caught here, before any generation, with
+  // a plain instruction rather than a wasted completion.
+  if (toolChoice === 'required' && manifests.length === 0) {
+    return {
+      text: "Search isn't set up yet. Open Settings → Connectors → Search to configure one.",
+      connector: null,
+    };
+  }
 
   const decision = await routeMessage(engine, manifests, messages, {
     onToken,
     signal,
     temperature,
     maxTokens,
+    toolChoice,
   });
 
   switch (decision.kind) {
     case 'answered':
-    case 'unsupported':
       return { text: decision.text, connector: null };
+
+    case 'unsupported':
+      // In auto mode this is silent by design (task 2.3) — nothing was
+      // offered, so the model's own answer is the honest outcome. Under an
+      // explicit `required` request, silence is the wrong call: the user
+      // chose Search mode specifically, and the model's own prose here
+      // never attempted one, which the wording of a plain answer would not
+      // make obvious.
+      return toolChoice === 'required'
+        ? {
+            text: "The loaded model can't use connectors. Try a different model in Models.",
+            connector: null,
+          }
+        : { text: decision.text, connector: null };
 
     case 'blocked':
       return { text: blockedMessage(decision, manifests), connector: null };
@@ -161,7 +221,7 @@ export async function generateWithConnectors(
         {
           role: 'system',
           content:
-            `Result from ${manifest.name}: ${result.text}\n\n` +
+            `Result from ${manifest.name}: ${truncateForContext(result.text)}\n\n` +
             "Answer the user's question using this information.",
         },
       ];

@@ -76,6 +76,73 @@ describe('generateWithConnectors', () => {
       signal,
       temperature: 0.3,
       maxTokens: 128,
+      toolChoice: 'auto',
+    });
+  });
+
+  it('forwards an explicit toolChoice into routeMessage', async () => {
+    mockRouteMessage.mockResolvedValue({ kind: 'answered', text: 'Hi.' });
+    const engine = fakeEngine(jest.fn());
+
+    await generateWithConnectors(engine, [search], {
+      messages,
+      toolChoice: 'required',
+    });
+
+    expect(mockRouteMessage).toHaveBeenCalledWith(
+      engine,
+      [search],
+      messages,
+      expect.objectContaining({ toolChoice: 'required' }),
+    );
+  });
+
+  describe('required (explicit Search mode)', () => {
+    it('gives a clear message without generating anything when nothing is configured', async () => {
+      const engine = fakeEngine(jest.fn());
+
+      const result = await generateWithConnectors(engine, [], {
+        messages,
+        toolChoice: 'required',
+      });
+
+      expect(result).toEqual({
+        text: "Search isn't set up yet. Open Settings → Connectors → Search to configure one.",
+        connector: null,
+      });
+      expect(mockRouteMessage).not.toHaveBeenCalled();
+    });
+
+    it("gives a clear message rather than the model's own words when the model cannot use connectors", async () => {
+      mockRouteMessage.mockResolvedValue({
+        kind: 'unsupported',
+        text: "I don't have real-time access, but here's what I know...",
+      });
+      const engine = fakeEngine(jest.fn());
+
+      const result = await generateWithConnectors(engine, [search], {
+        messages,
+        toolChoice: 'required',
+      });
+
+      expect(result).toEqual({
+        text: "The loaded model can't use connectors. Try a different model in Models.",
+        connector: null,
+      });
+    });
+
+    it("still passes the model's own words through in auto mode", async () => {
+      mockRouteMessage.mockResolvedValue({
+        kind: 'unsupported',
+        text: 'plain reply',
+      });
+      const engine = fakeEngine(jest.fn());
+
+      const result = await generateWithConnectors(engine, [search], {
+        messages,
+      });
+
+      expect(result).toEqual({ text: 'plain reply', connector: null });
     });
   });
 
@@ -174,6 +241,28 @@ describe('generateWithConnectors', () => {
         content:
           "Result from Search: chili recipes found\n\nAnswer the user's question using this information.",
       });
+    });
+
+    it('truncates an oversized connector result before it reaches the model', async () => {
+      // Found on-device: an ordinary SearXNG results array was large enough
+      // on its own to exhaust the model's context window and fail
+      // generation outright, not just produce a worse answer.
+      mockRouteMessage.mockResolvedValue(toolCallDecision);
+      mockExecuteConnectorCall.mockResolvedValue({
+        ok: true,
+        text: 'x'.repeat(5_000),
+      });
+      const generate = jest.fn().mockResolvedValue({ text: 'answer' });
+      const engine = fakeEngine(generate);
+
+      await generateWithConnectors(engine, [search], { messages });
+
+      const [{ messages: followUp }] = generate.mock.calls[0] as [
+        { messages: { role: string; content: string }[] },
+      ];
+      const content = followUp.at(-1)!.content;
+      expect(content.length).toBeLessThan(2_100);
+      expect(content).toContain('…');
     });
 
     it('forwards streaming and generation options into the follow-up call', async () => {

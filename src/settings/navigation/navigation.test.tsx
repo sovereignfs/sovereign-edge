@@ -49,7 +49,17 @@ describe('RootNavigator', () => {
     const s = await renderApp();
     await userEvent.press(s.getByLabelText('Settings tab'));
     await userEvent.press(s.getByText('Connectors'));
-    expect(s.getByText('No connectors are installed.')).toBeTruthy();
+    expect(s.getByText('No connectors are set up.')).toBeTruthy();
+  });
+
+  it('reaches Search setup from connector settings (task 3.1)', async () => {
+    // Three hops: the row most likely to be wired up but orphaned once a
+    // second screen sits behind Connectors.
+    const s = await renderApp();
+    await userEvent.press(s.getByLabelText('Settings tab'));
+    await userEvent.press(s.getByText('Connectors'));
+    await userEvent.press(s.getByText('Search'));
+    expect(s.getByLabelText('Instance URL')).toBeTruthy();
   });
 
   it('states plainly that nothing can reach the network', async () => {
@@ -69,5 +79,37 @@ describe('RootNavigator', () => {
     // The switch for the selected option reflects the new preference.
     expect(s.getByLabelText('Dark').props.value).toBe(true);
     expect(s.getByLabelText('Match system').props.value).toBe(false);
+  });
+
+  it('reflects a completed Search setup back on the Connectors screen', async () => {
+    // Found on a real device: ConnectorsScreen reads config at render time,
+    // and React Navigation does not re-render a screen just because it
+    // regained focus — returning from setup showed stale "not set up" state
+    // even though the save had genuinely worked. This exercises the full
+    // round trip a mocked unit test never could.
+    //
+    // Last in the file deliberately: it persists real config through the
+    // unmocked expo-file-system test double, which is not reset between
+    // tests, so anything asserting on the empty state must run before it.
+    const s = await renderApp();
+    await userEvent.press(s.getByLabelText('Settings tab'));
+    await userEvent.press(s.getByText('Connectors'));
+    await userEvent.press(s.getByText('Search'));
+
+    await userEvent.type(
+      s.getByLabelText('Instance URL'),
+      'https://searx.example.org',
+    );
+    await userEvent.press(s.getByText('Save & enable'));
+
+    expect(await s.findByText('Search (SearXNG)')).toBeTruthy();
+    expect(s.getByText('ALLOWED')).toBeTruthy();
+    expect(s.queryByText('Not set up — tap to choose a provider')).toBeNull();
+
+    // Also found on a real device: once configured, there was no way back
+    // into setup to fix a mistyped key or switch provider — only grant/
+    // revoke on the existing configuration.
+    await userEvent.press(s.getByText('Change provider or key'));
+    expect(await s.findByLabelText('Instance URL')).toBeTruthy();
   });
 });
