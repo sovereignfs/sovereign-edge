@@ -84,11 +84,16 @@ export function ChatScreen() {
     abort.current = controller;
 
     try {
-      // Only a real conversation may reach a connector — the writing-assist
-      // modes are transformations of the text handed to them, not
-      // conversations (see `usesHistory` above), and offering one a
-      // connector would be a category error regardless of whether one is
-      // even installed.
+      // Only a real conversation may reach a connector at all — the
+      // writing-assist modes are transformations of the text handed to
+      // them, not conversations (see `usesHistory` above), and offering one
+      // a connector would be a category error regardless of whether one is
+      // even installed. Plain Chat leaves the decision to the model
+      // ('auto'); Search forces it ('required') — its own mode selection is
+      // the decision, not a judgment call left to a small model that has
+      // been measured getting it wrong both directions.
+      const connectorMode =
+        modeId === 'search' ? 'required' : modeId === 'plain' ? 'auto' : 'off';
       const result = await session.generate({
         messages: history,
         onToken: (token) => {
@@ -100,7 +105,7 @@ export function ChatScreen() {
         },
         signal: controller.signal,
         temperature: mode.temperature,
-        allowConnectors: modeId === 'plain',
+        connectorMode,
       });
       setMessages((prev) =>
         prev.map((m) =>
@@ -348,9 +353,15 @@ function OfflineBanner({ modeId }: { modeId: ModeId }) {
               session.modelName
                 ? `On-device · ${session.modelName}`
                 : 'On-device · nothing leaves this phone',
-              // Only when a mode is on. Saying "Plain chat" on every screen
-              // would be noise on the default nobody chose.
-              mode.systemPrompt ? mode.banner : null,
+              // Only when a mode other than the default is on. Saying "Plain
+              // chat" on every screen would be noise on the default nobody
+              // chose. Keyed off the id rather than `systemPrompt` — Search
+              // has no system prompt (its whole effect is the forced
+              // `connectorMode`, not a model instruction) but still needs
+              // its banner shown: it is the one mode that reaches the
+              // network on every message, which is exactly what this
+              // banner exists to make visible.
+              mode.id !== DEFAULT_MODE_ID ? mode.banner : null,
             ]
               .filter(Boolean)
               .join(' · ')}

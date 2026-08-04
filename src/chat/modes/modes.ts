@@ -15,7 +15,8 @@
  * preset is improved, which is its own task.
  */
 
-export type ModeId = 'plain' | 'brainstorm' | 'grammar' | 'tone' | 'draft';
+export type ModeId =
+  'plain' | 'search' | 'brainstorm' | 'grammar' | 'tone' | 'draft';
 
 export type Mode = {
   id: ModeId;
@@ -68,6 +69,22 @@ export const MODES: readonly Mode[] = [
     id: 'plain',
     label: 'Chat',
     banner: 'Plain chat',
+    systemPrompt: null,
+    temperature: 0.7,
+    usesHistory: true,
+    cautionBelowB: null,
+  },
+  {
+    id: 'search',
+    label: 'Search',
+    banner: 'Search — every message reaches your configured connector',
+    // Not a transform, so no system prompt to steer generation — this mode's
+    // whole effect is external to the model: `ChatScreen` forces
+    // `connectorMode: 'required'` for exactly `id === 'search'`, which is
+    // what actually makes every message search rather than anything written
+    // here. `usesHistory` still matters, though: unlike a transform mode,
+    // Search is a conversation, and a follow-up like "and tomorrow?" needs
+    // the prior turn to mean anything.
     systemPrompt: null,
     temperature: 0.7,
     usesHistory: true,

@@ -114,7 +114,7 @@ describe('ChatScreen', () => {
         messages: [{ role: 'user', content: 'hello' }],
         onToken: expect.any(Function),
         signal: expect.any(AbortSignal),
-        allowConnectors: true,
+        connectorMode: 'auto',
       }),
     );
   });
@@ -180,7 +180,35 @@ describe('ChatScreen', () => {
     await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
     await userEvent.press(s.getByText('Send'));
 
-    expect(generate.mock.calls[0]![0].allowConnectors).toBe(false);
+    expect(generate.mock.calls[0]![0].connectorMode).toBe('off');
+  });
+
+  it('forces a connector attempt in Search mode', async () => {
+    // The point of the mode: no ambiguity left for the model to (sometimes
+    // wrongly) resolve — the mode selection itself is the decision.
+    const generate = spyGenerate();
+    const { view } = renderChat({
+      generate: generate as ChatSession['generate'],
+    });
+    const s = await view;
+
+    await userEvent.press(s.getByLabelText('Search mode'));
+    await userEvent.type(
+      s.getByPlaceholderText('Message'),
+      'weather in Berlin',
+    );
+    await userEvent.press(s.getByText('Send'));
+
+    expect(generate.mock.calls[0]![0].connectorMode).toBe('required');
+  });
+
+  it('names the active mode in the banner for Search, unlike the silent default', async () => {
+    const { view } = renderChat();
+    const s = await view;
+
+    await userEvent.press(s.getByLabelText('Search mode'));
+
+    expect(s.getByText(/Search — every message/)).toBeTruthy();
   });
 
   it('offers Stop instead of Send while generating', async () => {
