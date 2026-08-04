@@ -14,6 +14,14 @@ export type RouteOptions = {
   signal?: AbortSignal;
   temperature?: number;
   maxTokens?: number;
+  /**
+   * OpenAI-style tool_choice. Defaults to `'auto'` — the model decides
+   * whether a tool is needed, per task 2.3's original design. An explicit
+   * Search mode (task 3.1's follow-up) passes `'required'` instead, since
+   * the point of that mode is that the user's own mode selection is the
+   * decision, not something asked of the model at all.
+   */
+  toolChoice?: string;
 };
 
 /**
@@ -37,7 +45,13 @@ export async function routeMessage(
   messages: ChatMessage[],
   options: RouteOptions = {},
 ): Promise<RoutingDecision> {
-  const { onToken, signal, temperature, maxTokens } = options;
+  const {
+    onToken,
+    signal,
+    temperature,
+    maxTokens,
+    toolChoice = 'auto',
+  } = options;
 
   // Two different reasons to offer nothing, both ending in an ordinary
   // generated reply rather than silence: no connector exists to offer
@@ -80,7 +94,7 @@ export async function routeMessage(
   const result = await engine.generate({
     messages,
     tools,
-    toolChoice: 'auto',
+    toolChoice,
     signal,
     temperature,
     maxTokens,

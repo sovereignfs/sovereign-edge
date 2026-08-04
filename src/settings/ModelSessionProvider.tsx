@@ -15,6 +15,11 @@ import {
   type ChatSessionStatus,
 } from '@/chat/session/ChatSessionContext';
 import type { ConnectorManifest } from '@/connectors';
+import { readSearchConfig } from '@/connectors/search/config';
+import {
+  TAVILY_MANIFEST,
+  buildSearxngManifest,
+} from '@/connectors/search/manifest';
 import {
   ModelError,
   ModelManager,
@@ -25,12 +30,24 @@ import {
 import { generateWithConnectors } from './connectorOrchestration';
 
 /**
- * Installed connectors (task 2.5). Empty until task 3.1 ships the Search
- * connector — same placeholder `ConnectorsScreen.tsx` already uses, kept
- * local rather than promoted to a shared registry module ahead of the one
- * connector that would need it.
+ * Every connector currently configured and available to route to (task 3.1).
+ *
+ * Reads `readSearchConfig()` fresh on every call rather than once at mount —
+ * the config can change between messages (the user configures and grants
+ * Search in Settings, then returns to a chat that was already open), and
+ * `generate` only runs at send time, so there is no render in between to
+ * pick up a `useState` change. Search is the only connector that can exist
+ * today; a second one would join this same list, not replace the pattern.
  */
-const INSTALLED: ConnectorManifest[] = [];
+function installedConnectors(): ConnectorManifest[] {
+  const config = readSearchConfig();
+  if (!config) return [];
+  return [
+    config.provider === 'searxng'
+      ? buildSearxngManifest(config.searxngUrl)
+      : TAVILY_MANIFEST,
+  ];
+}
 
 /**
  * Owns the app's single inference engine and model manager.
@@ -301,19 +318,27 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const generate = useCallback<ChatSession['generate']>(
-    async ({ messages, onToken, signal, temperature, allowConnectors }) => {
+    async ({
+      messages,
+      onToken,
+      signal,
+      temperature,
+      connectorMode = 'off',
+    }) => {
       setStatus('busy');
       try {
         // Writing-assist modes never reach connector code at all, not just
-        // an empty-manifest no-op through it — `allowConnectors` is chat's
-        // own "this is a conversation, not a transform" signal.
-        if (allowConnectors) {
-          return await generateWithConnectors(engine, INSTALLED, {
+        // an empty-manifest no-op through it — `connectorMode` is chat's own
+        // "this is a conversation, not a transform" signal, and 'off' is its
+        // default for exactly that reason.
+        if (connectorMode !== 'off') {
+          return await generateWithConnectors(engine, installedConnectors(), {
             messages,
             onToken,
             signal,
             temperature,
             maxTokens: 512,
+            toolChoice: connectorMode,
           });
         }
         const result = await engine.generate({

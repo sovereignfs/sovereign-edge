@@ -12,11 +12,13 @@ import { useTheme, type Theme } from '@/design-system';
 import { ModelsScreen } from '@/models/screens/ModelsScreen';
 
 import { ConnectorsScreen } from '../screens/ConnectorsScreen';
+import { SearchSetupScreen } from '../screens/SearchSetupScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 
 export type SettingsStackParamList = {
   SettingsHome: undefined;
   Connectors: undefined;
+  SearchSetup: undefined;
 };
 
 export type RootTabParamList = {
@@ -69,6 +71,11 @@ function SettingsNavigator() {
         name="Connectors"
         component={ConnectorsScreen}
         options={{ title: 'Connectors' }}
+      />
+      <SettingsStack.Screen
+        name="SearchSetup"
+        component={SearchSetupScreen}
+        options={{ title: 'Search' }}
       />
     </SettingsStack.Navigator>
   );

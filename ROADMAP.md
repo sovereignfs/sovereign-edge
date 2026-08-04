@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** 0.1.17 · **Last updated:** 2026-08-03
+**Version:** 0.1.18 · **Last updated:** 2026-08-04
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:
@@ -42,8 +42,8 @@ connector store, no third-party anything, no monetization yet.
 | 0.1.15  | Tool-routing / intent-detection layer     | ✅     | [2.3](docs/epics/connector-framework.md#-23--tool-routing--intent-detection-layer)       |
 | 0.1.16  | Connector runtime host                    | ✅     | [2.4](docs/epics/connector-framework.md#-24--connector-runtime-host)                     |
 | 0.1.17  | In-chat connector provenance              | ✅     | [2.5](docs/epics/connector-framework.md#-25--in-chat-connector-provenance)               |
-| 0.1.18  | Default Search connector                  | 📋     | [3.1](docs/epics/search-connector.md#-31--default-search-connector)                      |
-| 0.1.19  | Configurable meta-search endpoint         | 📋     | [3.2](docs/epics/search-connector.md#-32--configurable-meta-search-endpoint)             |
+| 0.1.18  | Default Search connector                  | ✅     | [3.1](docs/epics/search-connector.md#-31--default-search-connector)                      |
+| —       | Configurable meta-search endpoint         | ✅ merged into 3.1 | [3.2](docs/epics/search-connector.md#-32--configurable-meta-search-endpoint)  |
 | 0.1.20  | Store release setup                       | 📋     | [8.2](docs/epics/mobile-app-shell.md#-82--store-release-setup)                           |
 
 ---
