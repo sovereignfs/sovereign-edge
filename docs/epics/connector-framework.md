@@ -6,7 +6,7 @@
 
 ## Status
 
-✅ Done
+⏳ In Progress
 
 ## Overview
 
@@ -392,14 +392,63 @@ use) — the same device-first pattern 2.3 and 2.4 already established, and
 this task's own reminder that a green suite is not the same claim as "the
 feature works."
 
+---
+
+#### 📋 2.6 — Tier 3 connector scaffolding
+
+**Goal:** Build the reserved-but-unimplemented Tier 3 extension point —
+first-party native OS integration — that tasks 2.1 and 2.4 always left room
+for, and that the Calendar and Device connectors (epics 10, 11) are the
+first to actually need.
+
+**Deliverables:**
+
+- A Tier 3 manifest schema variant (`tier: 3`), replacing Tier 1's
+  HTTP `request`/`response` templates with a reference to a registered
+  native handler. No expression language here either, for the same reason
+  task 2.1 forbade one in Tier 1: arguments still originate from a language
+  model steered by untrusted chat input.
+- A generalized grant-scope concept in `src/connectors/permissions/`. The
+  grant *state machine* (`not-asked`/`granted`/`denied`, one record per
+  connector ID, no blanket toggle) is already tier-agnostic and needs no
+  change; only `ConnectorGrant.grantedOrigins` and the two functions that
+  read/write it (`grant()`, `needsRedecision()`) are hardwired to
+  `permissions.network.origins`. This task generalizes that one field to a
+  granted-scope concept Tier 1 fills with origins and Tier 3 fills with
+  named OS capabilities (e.g. `calendar.write`, `device.torch`), without
+  touching the state machine itself.
+- A `case 3` in `executeConnectorCall()` dispatching to a small first-party
+  registry of native handlers (one per capability, e.g. backed by
+  `expo-calendar`, `expo-camera`, `expo-sensors`), gated by `isAllowed()`
+  exactly as Tier 1 is today.
+
+**Dependencies:** Tasks 2.1, 2.2, 2.4. Unblocked immediately — this is
+scaffolding, not a feature with its own product surface.
+
+**Review checklist:**
+
+- A Tier 3 connector's manifest plus one registered native handler function
+  is enough to execute a permitted on-device action, with no other
+  connector-specific code in the runtime.
+- Revoking a Tier 3 connector's grant blocks its native handler from running,
+  the same way revoking a Tier 1 connector's grant blocks its `fetch` call.
+- A Tier 1 connector's existing behavior (manifest shape, grant shape,
+  `case 1` dispatch) is unchanged — this is additive, not a migration.
+
+---
+
 ## Related Docs
 
 - [CONCEPT.md](../../CONCEPT.md)
 - [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [research 0005](../research/0005-calendar-connector.md) (the Tier 3
+  classification finding that motivated task 2.6)
 
 ## Cross-references
 
 - The Search connector (epic 3) and Sovereign Tasks connector (epic 4) are
-  the first consumers of this framework.
+  the first consumers of this framework's Tier 1 shape.
+- The Calendar connector (epic 10) and Device connector (epic 11) are the
+  first consumers of task 2.6's Tier 3 shape.
 - Epic 5 (Connector Store & SDK) reuses this framework's manifest schema
   unchanged when opening it to third parties.

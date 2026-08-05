@@ -51,13 +51,17 @@ connector store, no third-party anything, no monetization yet.
 
 ### Phase 2 — Fully agentic layer, default connectors
 
-Goal: add the Sovereign Tasks connector (scenario 3) and real connector-
-management UI. Still first-party only.
+Goal: add the Sovereign Tasks connector (scenario 3), the first Tier 3
+(on-device) connectors — Calendar and Device Utilities — and real
+connector-management UI. Still first-party only.
 
 | Version | Task                                | Status | Epic task                                                                                              |
 | ------- | ------------------------------------ | ------ | --------------------------------------------------------------------------------------------------------- |
-| 0.2.1   | Sovereign Tasks connector            | 📋     | [4.1](docs/epics/sovereign-tasks-connector.md#-41--sovereign-tasks-connector)                            |
-| 0.2.2   | Instance URL and API token setup flow | 📋   | [4.2](docs/epics/sovereign-tasks-connector.md#-42--instance-url-and-api-token-setup-flow)                |
+| 0.2.1   | Tier 3 connector scaffolding          | 📋     | [2.6](docs/epics/connector-framework.md#-26--tier-3-connector-scaffolding)                                |
+| 0.2.2   | Calendar connector                   | 📋     | [10.1](docs/epics/calendar-connector.md#-101--calendar-connector)                                        |
+| 0.2.3   | Device Utilities connector           | 📋     | [11.1](docs/epics/device-connector.md#-111--device-utilities-connector)                                  |
+| 0.2.4   | Sovereign Tasks connector            | 📋     | [4.1](docs/epics/sovereign-tasks-connector.md#-41--sovereign-tasks-connector)                            |
+| 0.2.5   | Instance URL and API token setup flow | 📋   | [4.2](docs/epics/sovereign-tasks-connector.md#-42--instance-url-and-api-token-setup-flow)                |
 
 ---
 
