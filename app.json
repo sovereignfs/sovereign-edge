@@ -9,7 +9,8 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "fs.sovereign.edge",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "appleTeamId": "8CJGS4873L"
     },
     "android": {
       "package": "fs.sovereign.edge",
@@ -37,7 +38,8 @@
           "entitlementsProfile": "production"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/withAndroidReleaseSigning"
     ]
   }
 }

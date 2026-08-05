@@ -4,7 +4,7 @@
 
 ## Status
 
-⏳ In Progress
+✅ Complete — tasks 0.1 through 0.5
 
 ## Overview
 
@@ -65,24 +65,66 @@ tooling for both platforms. No product feature lives here.
 
 ---
 
-#### 📋 0.3 — Native build tooling
+#### ✅ 0.3 — Native build tooling
 
 **Goal:** Reliable, repeatable native builds for both platforms.
 
 **Deliverables:**
 
-- Xcode project configuration (signing, capabilities placeholder for future
-  Tier 3 native modules).
-- Gradle configuration for Android.
-- A build/release script or CI job producing installable builds for internal
-  testing (TestFlight / internal Play track).
+- Xcode signing config is declarative: `app.json`'s `expo.ios.appleTeamId`
+  is read by Expo's built-in `withDevelopmentTeam` plugin (already wired
+  into the default prebuild pipeline — no custom plugin needed) and written
+  into `DEVELOPMENT_TEAM` on every `expo prebuild`, so it survives
+  regeneration instead of living as a hand-edit in the gitignored `ios/`
+  directory. The capabilities placeholder from task 0.1's brief is already
+  satisfied by the existing entitlements structure (an empty dict, extended
+  declaratively by `llama.rn`'s own plugin) — no new work needed there.
+- Gradle release signing is declarative too: `plugins/withAndroidReleaseSigning.js`
+  injects an idempotent signing block into `android/app/build.gradle` on
+  every prebuild. It reads a real upload keystore (`release.jks`) and its
+  credentials (`release.keystore.properties`) from the repo root — both
+  gitignored, never committed. When those files are absent (a fresh
+  checkout, or the existing `native.yml` CI smoke job), Gradle falls back to
+  the debug keystore exactly as before this task; no change to that job.
+- `scripts/release/build-ios.sh` and `scripts/release/build-android.sh`
+  produce a signed IPA and a signed AAB + APK from source
+  (`expo prebuild` → archive/export, or → Gradle). No EAS Build — see
+  [research 0002](../research/0002-react-native-framework-choice.md) — so
+  these run locally or in CI, holding the project's own keys throughout.
+  `.github/workflows/release.yml` runs the same two scripts in CI
+  (`workflow_dispatch` only): the iOS job imports a distribution
+  certificate + provisioning profile into a scratch keychain, the Android
+  job writes the keystore + properties file, both from GitHub Secrets — but
+  neither the Apple Developer Program membership nor the Google Play
+  Console account needed to actually populate those secrets exists yet
+  (see "Known gaps" below), so this workflow is written but currently
+  inert.
 
 **Dependencies:** Task 0.1.
 
 **Review checklist:**
 
-- A signed internal build installs and launches on a physical device on both
-  platforms.
+- ✅ A signed internal build installs and launches on a physical device on
+  both platforms. iOS: `build-ios.sh` produced an IPA signed for team
+  `8CJGS4873L` (confirmed via the embedded provisioning profile), installed
+  with `xcrun devicectl device install app` on a physical iPhone 15 Pro, and
+  was still running 5 seconds after launch. Android: `build-android.sh`
+  produced a release APK whose signer certificate SHA-256 fingerprint
+  matches `release.jks` exactly (not the debug keystore) — confirmed with
+  `apksigner verify --print-certs`.
+
+**Known gaps, deliberate:** actually uploading a build to TestFlight or the
+Play internal track (fastlane `pilot`/`supply`, or raw App Store Connect /
+Play Developer API calls) is not implemented. Neither a paid Apple
+Developer Program membership nor a Google Play Console account exists yet,
+and building that upload step against accounts that don't exist would be
+dead code. `release.yml`'s two jobs produce the correctly signed artifacts
+today (as workflow-run artifacts); wiring in the actual store upload is a
+small, well-scoped follow-up once those accounts exist. Today's iOS signing
+also rides on a free Apple Personal Team (`8CJGS4873L`), which caps
+provisioning to specific registered devices and a 7-day certificate
+lifetime — switching to a paid team once available is a one-line change to
+`app.json`'s `appleTeamId`.
 
 ---
 

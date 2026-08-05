@@ -26,6 +26,7 @@ modules/*/ios/build/
 *.p12
 *.key
 *.mobileprovision
+release.keystore.properties
 
 # Metro
 .metro-health-check*
