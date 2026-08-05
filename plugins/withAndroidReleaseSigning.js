@@ -15,9 +15,9 @@
 // `@expo/config-plugins` directly: `expo` is a direct dependency, but
 // `@expo/config-plugins` is only transitive, and pnpm's strict node_modules
 // layout doesn't let a project-root file `require` a transitive dependency.
-const { withAppBuildGradle } = require('expo/config-plugins')
+const { withAppBuildGradle } = require('expo/config-plugins');
 
-const MARKER = 'SOVEREIGN_EDGE_RELEASE_SIGNING'
+const MARKER = 'SOVEREIGN_EDGE_RELEASE_SIGNING';
 
 const RELEASE_SIGNING_CONFIG = `
     def releaseSigningPropsFile = rootProject.file('../release.keystore.properties') // ${MARKER}
@@ -31,34 +31,34 @@ const RELEASE_SIGNING_CONFIG = `
             keyPassword releaseSigningProps['keyPassword']
         }
     }
-`
+`;
 
 const withAndroidReleaseSigning = (config) =>
   withAppBuildGradle(config, (config) => {
     if (config.modResults.language !== 'groovy') {
       throw new Error(
         'withAndroidReleaseSigning expects a Groovy app/build.gradle',
-      )
+      );
     }
 
     if (config.modResults.contents.includes(MARKER)) {
-      return config
+      return config;
     }
 
-    let contents = config.modResults.contents
+    let contents = config.modResults.contents;
 
     contents = contents.replace(
       /(signingConfigs\s*\{\s*\n\s*debug\s*\{[^}]*\}\n)/,
       `$1${RELEASE_SIGNING_CONFIG}`,
-    )
+    );
 
     contents = contents.replace(
       /(buildTypes\s*\{\s*\n\s*debug\s*\{[^}]*\}\n\s*release\s*\{\n\s*(?:\/\/[^\n]*\n\s*)*)signingConfig signingConfigs\.debug/,
       "$1signingConfig rootProject.file('../release.keystore.properties').exists() ? signingConfigs.release : signingConfigs.debug",
-    )
+    );
 
-    config.modResults.contents = contents
-    return config
-  })
+    config.modResults.contents = contents;
+    return config;
+  });
 
-module.exports = withAndroidReleaseSigning
+module.exports = withAndroidReleaseSigning;
