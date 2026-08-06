@@ -1,6 +1,12 @@
 import { allowNetworkForConnector } from '../../chat/session/offlineTripwire';
-import type { ConnectorManifest, ValueSource } from '../manifest';
+import type {
+  ConnectorManifest,
+  ConnectorManifestTier1,
+  ConnectorManifestTier3,
+  ValueSource,
+} from '../manifest';
 import { isAllowed, openVault } from '../permissions';
+import { nativeHandlerFor } from './nativeHandlers';
 import type { ExecutionResult } from './types';
 
 /**
@@ -58,7 +64,7 @@ function readPath(value: unknown, path: string): unknown {
 }
 
 async function executeTier1(
-  manifest: ConnectorManifest,
+  manifest: ConnectorManifestTier1,
   args: unknown,
 ): Promise<ExecutionResult> {
   if (!isAllowed(manifest)) {
@@ -207,13 +213,50 @@ async function executeTier1(
 }
 
 /**
+ * Executes a Tier 3 tool call by dispatching to its registered native
+ * handler (task 2.6) — the mirror of `executeTier1`, one manifest field
+ * (`handler.capability`) and a registry lookup standing in for the HTTP
+ * request/response mapping above.
+ */
+async function executeTier3(
+  manifest: ConnectorManifestTier3,
+  args: unknown,
+): Promise<ExecutionResult> {
+  if (!isAllowed(manifest)) {
+    return { ok: false, reason: 'not-permitted' };
+  }
+
+  const handler = nativeHandlerFor(manifest.handler.capability);
+  if (!handler) {
+    return {
+      ok: false,
+      reason: 'handler-error',
+      detail: `No native handler registered for capability "${manifest.handler.capability}".`,
+    };
+  }
+
+  const argRecord =
+    typeof args === 'object' && args !== null
+      ? (args as Record<string, unknown>)
+      : {};
+
+  try {
+    return await handler(argRecord);
+  } catch (cause) {
+    return {
+      ok: false,
+      reason: 'handler-error',
+      detail: cause instanceof Error ? cause.message : String(cause),
+    };
+  }
+}
+
+/**
  * Executes a validated tool call against a connector's manifest.
  *
- * Dispatches on `manifest.tier`, though `tier` is typed as the literal `1`
- * until epic 5 (Tier 2, sandboxed scripts) or epic 9 (Tier 3, native module
- * dispatch) widen the manifest schema — there is nothing to route to yet, so
- * this is the reserved extension point the epic asks for, not a second
- * implementation in waiting.
+ * Dispatches on `manifest.tier` — Tier 1's HTTP request/response mapping,
+ * Tier 3's native handler registry lookup (task 2.6). Epic 5 (Tier 2,
+ * sandboxed scripts) is the one tier still reserved but unimplemented.
  */
 export async function executeConnectorCall(
   manifest: ConnectorManifest,
@@ -222,5 +265,7 @@ export async function executeConnectorCall(
   switch (manifest.tier) {
     case 1:
       return executeTier1(manifest, args);
+    case 3:
+      return executeTier3(manifest, args);
   }
 }

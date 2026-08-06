@@ -28,13 +28,15 @@ export type ConnectorGrant = {
   /** When the current state was set, for the settings surface. */
   decidedAt: string | null;
   /**
-   * The origins the user actually agreed to, copied from the manifest at
-   * grant time.
+   * What the user actually agreed to, copied from the manifest at grant time.
    *
-   * Stored rather than re-read so that a connector update which widens
-   * `permissions.network.origins` cannot silently inherit the old consent.
-   * The runtime compares the two and treats a widened set as needing a fresh
-   * decision.
+   * Tier-agnostic (task 2.6): Tier 1 fills this with the granted origins,
+   * Tier 3 with the granted native capabilities (e.g. `calendar.write`). One
+   * shape either way, so the state machine above needs no tier of its own.
+   *
+   * Stored rather than re-read so that a connector update which widens its
+   * declared scope cannot silently inherit the old consent. The runtime
+   * compares the two and treats a widened set as needing a fresh decision.
    */
-  grantedOrigins: string[];
+  grantedScope: string[];
 };

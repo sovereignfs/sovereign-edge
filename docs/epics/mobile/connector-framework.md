@@ -399,7 +399,7 @@ feature works."
 
 ---
 
-#### 📋 2.6 — Tier 3 connector scaffolding
+#### ✅ 2.6 — Tier 3 connector scaffolding
 
 **Goal:** Build the reserved-but-unimplemented Tier 3 extension point —
 first-party native OS integration — that tasks 2.1 and 2.4 always left room
@@ -439,6 +439,78 @@ scaffolding, not a feature with its own product surface.
   the same way revoking a Tier 1 connector's grant blocks its `fetch` call.
 - A Tier 1 connector's existing behavior (manifest shape, grant shape,
   `case 1` dispatch) is unchanged — this is additive, not a migration.
+
+`connectorManifest` (`src/connectors/manifest/schema.ts`) is now a
+`z.discriminatedUnion('tier', …)` of `connectorManifestTier1` (unchanged) and
+the new `connectorManifestTier3` — `manifestCommon` factors out the fields
+every tier shares (`id`, `name`, `tool`, `pricing`, …) so the two variants
+can't drift on those by accident. Tier 3 replaces `request`/`response` with a
+single `handler: { capability }` reference, and `permissions` with
+`tier3Permissions` (`{ device: { capabilities: string[] } }`) — the
+capability-scoped mirror of Tier 1's `{ network: { origins } }`.
+`validateManifest`'s cross-field pass dispatches on tier the same way:
+Tier 3's own check is one rule, that `handler.capability` is a member of
+`permissions.device.capabilities`, the exact shape Tier 1's "request origin
+must be in the allowlist" check already had.
+
+**The grant-scope generalization is a rename, not a new field.**
+`ConnectorGrant.grantedOrigins` is now `grantedScope: string[]`, and
+`grants.ts` gained one small function, `connectorScope(manifest)`, that
+switches on tier to produce it — origins for Tier 1, capabilities for Tier 3.
+`grant()` and `needsRedecision()` are now one line each, built on top of it,
+instead of reading `permissions.network.origins` directly. No migration for
+existing on-device grant files: this app has no shipped release yet (task
+0.1.20 is still open), so there is no stored `grantedOrigins` to carry
+forward — the honest fix was renaming the field, not keeping both.
+
+**`revoke()` only clears vault credentials for Tier 1.** A Tier 3 connector
+has no app-managed secret — the "credential" is an OS permission grant, not a
+token this app stores — so `manifest.tier === 1` gates the
+`openVault(...).clear(...)` call; a Tier 3 revoke still flips the grant to
+`denied`, same as Tier 1, just with nothing to clear.
+
+**`case 3` in `executeConnectorCall()`** (`src/connectors/runtime/execute.ts`)
+re-checks `isAllowed()` exactly like `case 1` does, then looks up
+`manifest.handler.capability` in a small registry
+(`src/connectors/runtime/nativeHandlers.ts`) and calls whatever it finds. A
+handler returns an `ExecutionResult` directly — the same union
+`executeTier1` returns — so a native failure and an HTTP failure are both
+just "the connector didn't answer" to `connectorOrchestration.ts`, which
+gained one more `case` (`'handler-error'`) in its exhaustive switch over
+failure reasons. No capability, or a handler that throws, both map to
+`handler-error`; there is no separate "not registered" reason, since neither
+is something a user's retry can fix.
+
+**`device.info` is the one registered handler**, backed by `expo-device`
+(already a dependency — no new native module pulled in for scaffolding that
+has no product surface of its own). It exists to prove the extension point
+end to end, the same way task 2.4's `httpbin.org` round trip proved Tier 1's
+— not as a connector this task ships. The real capabilities (`calendar.write`,
+`device.torch`, …) arrive with the connectors that need them, tasks 0.2.2 and
+0.2.3.
+
+**Verified on-device**, iOS Simulator (iPhone 17, iOS 26.5), via
+`expo run:ios` — a real native build, not Metro's cached bundle. A temporary
+hook in `App.tsx` (reverted before commit, never merged) ran
+`executeConnectorCall` against the `device.info` fixture manifest three times
+— before granting, after granting, after revoking — and surfaced the result
+in an `Alert`:
+
+```json
+{
+  "beforeGrant": { "ok": false, "reason": "not-permitted" },
+  "afterGrant": { "ok": true, "text": "Simulator iOS iOS (26.5)" },
+  "afterRevoke": { "ok": false, "reason": "not-permitted" }
+}
+```
+
+`afterGrant.text` is the real `expo-device` native module's own values
+(`Device.modelName` / `osName` / `osVersion` for the actual simulator), not
+Jest's mocked `"Pixel 9" "Android" "15"` — the on-device round trip this
+project's own history says a mock cannot stand in for. `isAllowed()` gates
+`case 3` correctly in both directions: refused before the grant existed, and
+refused again the instant it was revoked, with no code path in between that
+could serve a result outside that window.
 
 ---
 

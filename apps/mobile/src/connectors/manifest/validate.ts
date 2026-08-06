@@ -2,6 +2,8 @@ import {
   MANIFEST_VERSION,
   connectorManifest,
   type ConnectorManifest,
+  type ConnectorManifestTier1,
+  type ConnectorManifestTier3,
   type ValueSource,
 } from './schema';
 
@@ -79,9 +81,43 @@ function sources(
 
 /**
  * Cross-field rules. Runs only once the shape is known good, so it can read
- * the manifest as typed rather than defensively.
+ * the manifest as typed rather than defensively. Dispatches on `tier` —
+ * Tier 1's HTTP-shaped rules below, Tier 3's own (much shorter) set after.
  */
 function crossFieldIssues(manifest: ConnectorManifest): ValidationIssue[] {
+  switch (manifest.tier) {
+    case 1:
+      return tier1CrossFieldIssues(manifest);
+    case 3:
+      return tier3CrossFieldIssues(manifest);
+  }
+}
+
+function tier3CrossFieldIssues(
+  manifest: ConnectorManifestTier3,
+): ValidationIssue[] {
+  const { handler, permissions } = manifest;
+  const declared = new Set(permissions.device.capabilities);
+
+  // Same shape as Tier 1's origin-allowlist check: what the manifest
+  // dispatches to must be a subset of what it declared to the user.
+  if (!declared.has(handler.capability)) {
+    return [
+      {
+        path: 'handler.capability',
+        message:
+          `${handler.capability} is not in permissions.device.capabilities. ` +
+          'Every capability a connector uses must be declared, so the user ' +
+          'sees it before granting access.',
+      },
+    ];
+  }
+  return [];
+}
+
+function tier1CrossFieldIssues(
+  manifest: ConnectorManifestTier1,
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const { request, permissions, tool } = manifest;
 

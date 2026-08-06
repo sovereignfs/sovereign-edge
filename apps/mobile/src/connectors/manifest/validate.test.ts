@@ -1,3 +1,4 @@
+import deviceInfoManifest from './fixtures/device-info.manifest.json';
 import searchManifest from './fixtures/search.manifest.json';
 import { validateManifest } from './validate';
 
@@ -173,5 +174,42 @@ describe('validateManifest', () => {
       withRequest({ body: { q: { slot: 'query' } } }),
     );
     expect(result).toMatchObject({ valid: false });
+  });
+
+  describe('Tier 3 (task 2.6)', () => {
+    it('accepts a native-handler connector with no special-casing', () => {
+      const result = validateManifest(deviceInfoManifest);
+      expect(result).toMatchObject({ valid: true });
+    });
+
+    it('refuses a handler capability outside the declared allowlist', () => {
+      // Same shape as Tier 1's origin-allowlist check: what dispatch reaches
+      // for must be a subset of what the user was shown before granting.
+      const result = validateManifest({
+        ...deviceInfoManifest,
+        handler: { capability: 'calendar.write' },
+      });
+      expect(result).toMatchObject({ valid: false });
+      if (result.valid) throw new Error('expected rejection');
+      expect(result.issues[0]!.message).toMatch(/must be declared/);
+    });
+
+    it('rejects a Tier 1 request/response shape smuggled onto a Tier 3 manifest', () => {
+      // Additive, not a migration: a Tier 3 manifest cannot borrow Tier 1's
+      // HTTP fields, and vice versa — the schema is strict either way.
+      const result = validateManifest({
+        ...deviceInfoManifest,
+        request: searchManifest.request,
+      });
+      expect(result).toMatchObject({ valid: false });
+    });
+
+    it('rejects an unknown top-level field the same as Tier 1 does', () => {
+      const result = validateManifest({
+        ...deviceInfoManifest,
+        permission: {},
+      });
+      expect(result).toMatchObject({ valid: false });
+    });
   });
 });

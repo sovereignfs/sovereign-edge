@@ -51,7 +51,7 @@ export function grantFor(connectorId: string): ConnectorGrant {
       connectorId,
       state: 'not-asked',
       decidedAt: null,
-      grantedOrigins: [],
+      grantedScope: [],
     }
   );
 }
@@ -63,14 +63,14 @@ export function listGrants(): ConnectorGrant[] {
 function setGrant(
   connectorId: string,
   state: GrantState,
-  grantedOrigins: string[],
+  grantedScope: string[],
 ): ConnectorGrant {
   const record = readAll();
   const grant: ConnectorGrant = {
     connectorId,
     state,
     decidedAt: new Date().toISOString(),
-    grantedOrigins,
+    grantedScope,
   };
   record[connectorId] = grant;
   writeAll(record);
@@ -78,15 +78,27 @@ function setGrant(
 }
 
 /**
- * Records consent for exactly the origins this manifest declares.
+ * What a manifest declares access to, tier-agnostic (task 2.6): origins for
+ * Tier 1, native capabilities for Tier 3. The one thing `grant()`,
+ * `needsRedecision()`, and the settings UI need to agree on.
+ */
+export function connectorScope(manifest: ConnectorManifest): string[] {
+  switch (manifest.tier) {
+    case 1:
+      return manifest.permissions.network.origins;
+    case 3:
+      return manifest.permissions.device.capabilities;
+  }
+}
+
+/**
+ * Records consent for exactly the scope this manifest declares.
  *
- * The origins are copied rather than referenced, so a later connector update
- * that widens them does not inherit this decision — see `needsRedecision`.
+ * The scope is copied rather than referenced, so a later connector update
+ * that widens it does not inherit this decision — see `needsRedecision`.
  */
 export function grant(manifest: ConnectorManifest): ConnectorGrant {
-  return setGrant(manifest.id, 'granted', [
-    ...manifest.permissions.network.origins,
-  ]);
+  return setGrant(manifest.id, 'granted', connectorScope(manifest));
 }
 
 export function deny(connectorId: string): ConnectorGrant {
@@ -105,7 +117,12 @@ export function deny(connectorId: string): ConnectorGrant {
  * even if asked to.
  */
 export async function revoke(manifest: ConnectorManifest): Promise<void> {
-  const keys = (manifest.permissions.credentials ?? []).map((c) => c.key);
+  // Only Tier 1 stores credentials — a Tier 3 native handler has no
+  // app-managed secret of its own to clear.
+  const keys =
+    manifest.tier === 1
+      ? (manifest.permissions.credentials ?? []).map((c) => c.key)
+      : [];
   await openVault(manifest.id).clear(keys);
   setGrant(manifest.id, 'denied', []);
 }
@@ -113,23 +130,24 @@ export async function revoke(manifest: ConnectorManifest): Promise<void> {
 /**
  * Whether a granted connector must be asked about again.
  *
- * True when it now declares an origin the user never agreed to. A connector
- * update is the natural moment for scope to creep, and consent given for one
- * set of destinations is not consent for a larger one.
+ * True when it now declares scope the user never agreed to — an origin for
+ * Tier 1, a native capability for Tier 3. A connector update is the natural
+ * moment for scope to creep, and consent given for one scope is not consent
+ * for a larger one.
  */
 export function needsRedecision(manifest: ConnectorManifest): boolean {
   const existing = grantFor(manifest.id);
   if (existing.state !== 'granted') return false;
 
-  const agreed = new Set(existing.grantedOrigins);
-  return manifest.permissions.network.origins.some((o) => !agreed.has(o));
+  const agreed = new Set(existing.grantedScope);
+  return connectorScope(manifest).some((s) => !agreed.has(s));
 }
 
 /**
  * The single question the runtime asks before any request.
  *
  * Deliberately not a boolean on its own — a connector that is granted but has
- * since widened its origins is not allowed, and callers must not have to
+ * since widened its scope is not allowed, and callers must not have to
  * remember to check that separately.
  */
 export function isAllowed(manifest: ConnectorManifest): boolean {

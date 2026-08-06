@@ -1,4 +1,8 @@
-import type { ConnectorManifest } from '../manifest';
+import type {
+  ConnectorManifestTier1,
+  ConnectorManifestTier3,
+} from '../manifest';
+import deviceInfoManifest from '../manifest/fixtures/device-info.manifest.json';
 import searchManifest from '../manifest/fixtures/search.manifest.json';
 import { executeConnectorCall } from './execute';
 
@@ -14,9 +18,16 @@ jest.mock('../permissions', () => ({
   openVault: () => ({ read: (...args: unknown[]) => mockVaultRead(...args) }),
 }));
 
-const search = searchManifest as ConnectorManifest;
+jest.mock('expo-device', () => ({
+  modelName: 'Pixel 9',
+  osName: 'Android',
+  osVersion: '15',
+}));
 
-const postManifest: ConnectorManifest = {
+const search = searchManifest as ConnectorManifestTier1;
+const deviceInfo = deviceInfoManifest as ConnectorManifestTier3;
+
+const postManifest: ConnectorManifestTier1 = {
   ...search,
   id: 'fs.sovereign.post-fixture',
   request: {
@@ -107,7 +118,7 @@ describe('executeConnectorCall', () => {
   });
 
   it('reports invalid-arguments when a required path slot is unfilled', async () => {
-    const manifest: ConnectorManifest = {
+    const manifest: ConnectorManifestTier1 = {
       ...search,
       request: {
         method: 'GET',
@@ -235,5 +246,39 @@ describe('executeConnectorCall', () => {
       reason: 'network-error',
       detail: 'offline',
     });
+  });
+});
+
+describe('executeConnectorCall — Tier 3 (task 2.6)', () => {
+  beforeEach(() => {
+    mockIsAllowed.mockReset().mockReturnValue(true);
+    (globalThis.fetch as jest.Mock) = jest.fn();
+  });
+
+  it('runs the registered native handler for a permitted capability, no HTTP involved', async () => {
+    const result = await executeConnectorCall(deviceInfo, {});
+
+    expect(result).toEqual({ ok: true, text: 'Pixel 9 Android (15)' });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('refuses to run an unpermitted Tier 3 connector, the same as Tier 1', async () => {
+    mockIsAllowed.mockReturnValue(false);
+
+    const result = await executeConnectorCall(deviceInfo, {});
+
+    expect(result).toEqual({ ok: false, reason: 'not-permitted' });
+  });
+
+  it('reports handler-error for a capability with no registered handler', async () => {
+    const unregistered: ConnectorManifestTier3 = {
+      ...deviceInfo,
+      handler: { capability: 'calendar.write' },
+      permissions: { device: { capabilities: ['calendar.write'] } },
+    };
+
+    const result = await executeConnectorCall(unregistered, {});
+
+    expect(result).toMatchObject({ ok: false, reason: 'handler-error' });
   });
 });

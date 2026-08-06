@@ -34,6 +34,8 @@ export const MANIFEST_VERSION = 1;
 const SLOT_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const CONNECTOR_ID = /^[a-z0-9]+(\.[a-z0-9-]+)+$/;
 const SEMVER = /^\d+\.\d+\.\d+$/;
+/** e.g. `calendar.write`, `device.torch` — a namespace and a capability. */
+const CAPABILITY = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/;
 
 /**
  * Where a single value comes from.
@@ -142,26 +144,75 @@ export const responseTemplate = z
   })
   .strict();
 
-export const connectorManifest = z
+const pricing = z.union([
+  z.object({ model: z.literal('free') }).strict(),
+  z.object({ model: z.literal('paid'), productId: z.string().min(1) }).strict(),
+]);
+
+const manifestCommon = {
+  manifestVersion: z.literal(MANIFEST_VERSION),
+  id: z.string().regex(CONNECTOR_ID),
+  name: z.string().min(1),
+  version: z.string().regex(SEMVER),
+  summary: z.string().min(1),
+  platforms: z.array(z.enum(['ios', 'android'])).min(1),
+  tool: toolDefinition,
+  pricing,
+};
+
+export const connectorManifestTier1 = z
   .object({
-    manifestVersion: z.literal(MANIFEST_VERSION),
-    id: z.string().regex(CONNECTOR_ID),
-    name: z.string().min(1),
-    version: z.string().regex(SEMVER),
-    summary: z.string().min(1),
+    ...manifestCommon,
     tier: z.literal(1),
-    platforms: z.array(z.enum(['ios', 'android'])).min(1),
-    tool: toolDefinition,
     permissions,
     request: requestTemplate,
     response: responseTemplate,
-    pricing: z.union([
-      z.object({ model: z.literal('free') }).strict(),
-      z
-        .object({ model: z.literal('paid'), productId: z.string().min(1) })
-        .strict(),
-    ]),
   })
   .strict();
 
+/**
+ * Tier 3 permissions (task 2.6): named OS capabilities rather than origins.
+ * Fills the same role `permissions.network.origins` does for Tier 1 — the
+ * declared access a grant is checked against and shown to the user before
+ * they decide.
+ */
+export const tier3Permissions = z
+  .object({
+    device: z
+      .object({
+        capabilities: z.array(z.string().regex(CAPABILITY)).min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+/**
+ * A reference to a registered native handler, in place of Tier 1's HTTP
+ * `request`/`response` templates. No expression language here either, for
+ * the same reason task 2.1 forbade one in Tier 1: a capability name is all a
+ * manifest gets to say, and the runtime — not the manifest — owns what that
+ * capability actually does.
+ */
+export const nativeHandlerRef = z
+  .object({
+    capability: z.string().regex(CAPABILITY),
+  })
+  .strict();
+
+export const connectorManifestTier3 = z
+  .object({
+    ...manifestCommon,
+    tier: z.literal(3),
+    permissions: tier3Permissions,
+    handler: nativeHandlerRef,
+  })
+  .strict();
+
+export const connectorManifest = z.discriminatedUnion('tier', [
+  connectorManifestTier1,
+  connectorManifestTier3,
+]);
+
+export type ConnectorManifestTier1 = z.infer<typeof connectorManifestTier1>;
+export type ConnectorManifestTier3 = z.infer<typeof connectorManifestTier3>;
 export type ConnectorManifest = z.infer<typeof connectorManifest>;

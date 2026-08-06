@@ -123,6 +123,8 @@ function executionFailureMessage(
       return `${name}'s response was too large to use.`;
     case 'malformed-response':
       return `${name}'s response wasn't in a shape this app could use.`;
+    case 'handler-error':
+      return `${name} couldn't complete that action.`;
   }
 }
 

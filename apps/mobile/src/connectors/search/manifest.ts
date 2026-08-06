@@ -1,4 +1,4 @@
-import type { ConnectorManifest } from '../manifest';
+import type { ConnectorManifestTier1 } from '../manifest';
 
 /**
  * The Search connector's manifests (task 3.1).
@@ -42,7 +42,9 @@ const SEARCH_TOOL = {
  * `https` regardless of whether the instance is on a LAN, matching how the
  * Sovereign Tasks connector (task 4.2) is expected to be reached.
  */
-export function buildSearxngManifest(instanceUrl: string): ConnectorManifest {
+export function buildSearxngManifest(
+  instanceUrl: string,
+): ConnectorManifestTier1 {
   return {
     manifestVersion: 1,
     id: CONNECTOR_ID,
@@ -83,7 +85,7 @@ export function buildSearxngManifest(instanceUrl: string): ConnectorManifest {
  * nowhere in the manifest to add the `Bearer ` prefix. The setup screen adds
  * it once, when the key is saved, not here.
  */
-export const TAVILY_MANIFEST: ConnectorManifest = {
+export const TAVILY_MANIFEST: ConnectorManifestTier1 = {
   manifestVersion: 1,
   id: CONNECTOR_ID,
   name: 'Search (Tavily)',

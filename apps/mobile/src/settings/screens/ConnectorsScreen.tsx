@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import {
+  connectorScope,
   grant,
   grantFor,
   needsRedecision,
@@ -119,10 +120,10 @@ export function ConnectorsScreen() {
             <ListItem
               key={manifest.id}
               title={manifest.name}
-              // The origins are the substance of the grant. Naming them here
+              // The scope is the substance of the grant. Naming it here
               // means the decision is made against what it actually permits,
               // rather than against the connector's description of itself.
-              subtitle={`${manifest.permissions.network.origins.join(', ')} · ${
+              subtitle={`${connectorScope(manifest).join(', ')} · ${
                 allowed ? 'tap to revoke' : 'tap to allow'
               }`}
               accessory={
