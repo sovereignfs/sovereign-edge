@@ -21,8 +21,8 @@ or "rejected" is a valid, useful outcome to record.
 | [0002](0002-react-native-framework-choice.md) | React Native framework choice: Expo vs. Community CLI | Decided |
 | [0003](0003-model-verification-hashing.md) | Model download verification: why MD5, not SHA-256 | Decided |
 | [0004](0004-connector-manifest-schema.md) | Connector manifest schema: format, validation, and the templating surface | Decided |
-| [0005](0005-calendar-connector.md) | Calendar connector: scope and platform fit | Decided (scope) |
-| [0006](0006-files-document-summarization.md) | Files/document summarization: connector or chat feature? | Decided |
+| [0005](0005-calendar-connector.md) | Calendar connector: scope and platform fit | Decided |
+| [0006](0006-files-document-summarization.md) | Files/document summarization: connector or chat feature? | Decided (architecture) |
 | [0007](0007-text-to-speech.md) | Text-to-speech: chat feature, not a connector | Decided |
 | [0008](0008-health-step-count.md) | Health connector: why "step count" isn't HealthKit | Decided (redefine scope) |
 | [0009](0009-device-connector.md) | Device connector: what's actually left after alarms drop out | Decided |

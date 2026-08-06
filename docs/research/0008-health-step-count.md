@@ -114,7 +114,14 @@ that hasn't been built.
 
 ## Next steps
 
-Blocked on the same Tier 3 scaffolding as Calendar and Device — see
-[0005](0005-calendar-connector.md#next-steps). If step-count-only is
-approved, this is smaller and lower-risk than the Calendar connector once
-that scaffolding exists.
+**Not yet scheduled**, unlike Calendar and Device: those two were
+prioritized into [ROADMAP.md](../../ROADMAP.md) Phase 2 (0.2.2, 0.2.3) with
+their own epics ([calendar-connector.md](../epics/calendar-connector.md),
+[device-connector.md](../epics/device-connector.md)); step-count was not
+picked up in that pass. It is blocked on the same task
+[2.6](../epics/connector-framework.md#-26--tier-3-connector-scaffolding)
+(Tier 3 scaffolding) either way, and — per the Decisions above — is smaller
+and lower-risk than Calendar once that lands. Whoever picks this up next
+should write its own epic (mirroring calendar-connector.md /
+device-connector.md) and give it a ROADMAP slot at that point, rather than
+assuming one already exists.

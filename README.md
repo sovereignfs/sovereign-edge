@@ -23,21 +23,32 @@ See [CONCEPT.md](CONCEPT.md) for the full concept paper.
 
 ## Current status
 
-**Early development — not a release.** No store build exists, and task 0.1.3
-(native build tooling) is blocked on an Apple team ID and a Play upload key.
+**Early development — not a release.** No store build exists yet — not
+because the build tooling is missing (task 0.3 is done: both platforms have
+declarative signing and a local/CI release pipeline), but because App Store
+Connect and Play Console listings (task 8.2) need a paid Apple Developer
+Program membership and a Google Play Console account, neither of which
+exists yet. That task is deliberately parked rather than blocking everything
+else — see its epic for what's actually missing.
 
-The offline core is complete and works on real hardware. The connector layer
-has its foundations but no connector yet, so the app today is a fully offline
-chat client and nothing reaches the network except model downloads.
+The offline core and the Search connector (Tier 1 — reaches the network,
+with explicit per-connector permission) both work on real hardware. Phase 2
+is starting: the connector layer's first **Tier 3** connectors — Calendar
+and a small Device Utilities connector, both purely on-device, no network at
+all — are next, ahead of the previously-planned Sovereign Tasks connector.
+See [ROADMAP.md](ROADMAP.md) for the exact sequence.
 
-| Area                                | State                                                                             |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| Offline chat (epic 1)               | ✅ Complete — streaming replies, model manager, writing-assist modes              |
-| Zero-network enforcement (1.5)      | ✅ Enforced in CI, not just intended — see [network audit](docs/network-audit.md) |
-| Design system, app shell (7, 8.1)   | ✅ Theme tokens, core components, navigation, settings                            |
-| Connector manifest + permissions    | ✅ Schema, validator, per-connector grants and keychain storage (2.1–2.2)         |
-| Connector routing, runtime, Search  | 📋 Next up — tasks 2.3, 2.4, 3.1                                                  |
-| Store release (8.2)                 | 📋 Blocked on signing credentials                                                 |
+| Area                                       | State                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------ |
+| Offline chat (epic 1)                      | ✅ Complete — streaming replies, model manager, writing-assist modes         |
+| Zero-network enforcement (1.5)             | ✅ Enforced in CI, not just intended — see [network audit](docs/network-audit.md) |
+| Design system, app shell (7, 8.1)          | ✅ Theme tokens, core components, navigation, settings                       |
+| Native build tooling (0.3)                 | ✅ Declarative signing (both platforms), local + CI release scripts          |
+| Connector framework + Search connector (2, 3) | ✅ Complete — manifest, permissions, routing, runtime, in-chat provenance, Tier 1 shipped |
+| Tier 3 connector scaffolding (2.6)         | 📋 Next up — required before Calendar/Device can be built                    |
+| Calendar, Device connectors (10, 11)       | 📋 Planned — Phase 2, right after 2.6                                        |
+| Sovereign Tasks connector (4)              | 📋 Planned — Phase 2, after Calendar/Device                                  |
+| Store release (8.2)                        | 📋 Parked — needs a paid Apple Developer Program + Google Play Console account |
 
 Measured on an iPhone 15 Pro (Release build, Metal active): Qwen2.5 0.5B
 generates at 86–91 tok/s with a 233 ms cold time-to-first-token, and takes
@@ -55,7 +66,8 @@ Two trust tiers, both visible to the user:
    makes a network call.
 2. **Connectors** — an explicit, permissioned layer. Each connector requests
    its own permission, separately revocable, and the UI shows which connector
-   (if any) touched the network for a given reply.
+   (if any) acted for a given reply — whether it reached the network (Tier 1)
+   or an on-device OS capability like the calendar (Tier 3).
 
 Connectors are tiered by how much trust they require — declarative manifests
 (no code, open to any developer), sandboxed transform scripts, and first-party

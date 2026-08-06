@@ -16,23 +16,48 @@ knowledge that `sovereign` exists.
 
 ## State of play
 
-Accurate as of version 0.1.14. **[ROADMAP.md](ROADMAP.md) is canonical** — if
+Accurate as of version 0.1.19. **[ROADMAP.md](ROADMAP.md) is canonical** — if
 this section disagrees with it, this section is stale.
 
 **Done.** The offline core is complete (epic 1, tasks 1.1–1.6): on-device
 inference, model catalog with download/verify/switch, streaming chat UI,
 writing-assist modes, model-choice persistence, and zero-network enforcement.
-Design system (7.1–7.2) and app shell (8.1) are done. The connector framework
-has its manifest schema and permission model (2.1–2.2).
+Design system (7.1–7.2) and app shell (8.1) are done. The Connector
+Framework's Tier 1 shape is fully built and proven end to end — manifest
+schema, permission/consent model, tool-routing, runtime host, in-chat
+provenance (2.1–2.5) — with its first real connector shipped: Search,
+including the explicit Search mode (epic 3, 3.1–3.3). Native build tooling
+(0.3) is done too: declarative signing on both platforms via `app.json` and
+a config plugin, local release scripts, and a CI release workflow that's
+written but inert until secrets exist (see _Blocked_ below — this task
+turned out **not** to need a paid account).
 
-**Next**, in order: 2.3 tool-routing, 2.4 connector runtime host, 3.1 the
-Search connector — the first thing that actually uses the connector framework
-end to end.
+**Next**, in order (Phase 2): **2.6 — Tier 3 connector scaffolding.** Task
+2.4 reserved a `case 3` extension point for "native module dispatch" but
+never built it; the Tier 1 manifest schema hard-requires an HTTP origin, so
+there's currently no way to express a connector that calls an on-device OS
+API instead of `fetch`. This blocks the next two tasks: the **Calendar
+connector** (epic 10) and **Device Utilities connector** (epic 11,
+flashlight + brightness) — both Tier 3, both prioritized ahead of the
+previously-next Sovereign Tasks connector (epic 4). See research
+[0005](docs/research/0005-calendar-connector.md),
+[0008](docs/research/0008-health-step-count.md), and
+[0009](docs/research/0009-device-connector.md) for the findings behind this
+— including why Files/PDF summarization and text-to-speech, two other
+capabilities surveyed alongside these, turned out **not** to be connectors
+at all (research [0006](docs/research/0006-files-document-summarization.md),
+[0007](docs/research/0007-text-to-speech.md)).
 
-**Blocked.** 0.1.3 (native build tooling) and 8.2 (store release) both need an
-Apple team ID and a Play upload key that do not exist yet. Do not attempt to
-create accounts, handle signing keys, or enter credentials — those are the
-developer's to do.
+**Blocked, still.** 8.2 (store release — actual App Store Connect / Play
+Console listings) needs a paid Apple Developer Program membership and a
+Google Play Console account; neither exists. **0.1.3 is no longer blocked**
+— it shipped using the free Apple Personal Team already signed into Xcode on
+the development Mac (team ID `8CJGS4873L`), sufficient for development-signed
+builds but not TestFlight/Play internal-track distribution. Do not attempt
+to enroll in a paid developer program, create App Store Connect/Play Console
+accounts, or enter payment details — those remain the developer's to do.
+Generating a local signing keystore, or building against an already-signed-in
+free team's certificates, is fine — task 0.3 already did both.
 
 **Groundwork already done for 2.3**, from
 [research 0004](docs/research/0004-connector-manifest-schema.md): `llama.rn`
@@ -62,6 +87,27 @@ connector.
   the truth.
 - **A debug build cannot answer "does this work offline"**, because it loads
   its JS from Metro over the LAN. Offline claims need a Release build.
+- **CocoaPods crashes under the "C" locale.** `pod install` fails with a
+  Ruby `Encoding::CompatibilityError` inside `unicode_normalize` if `LANG`/
+  `LC_ALL` aren't set — the traceback names `verify_podfile_exists!`, which
+  reads as a missing Podfile, not a locale problem. `export
+  LANG=en_US.UTF-8` before building; `scripts/release/build-ios.sh` sets
+  this itself so it doesn't depend on the calling shell.
+- **Don't trust research 0002's "no Android SDK/JDK, CocoaPods can't
+  install" note as still true for the current dev Mac.** Task 0.3 found
+  Java 17 (Temurin), a real Android SDK (build-tools 36), and a working
+  CocoaPods/Xcode toolchain already present. That note described a specific
+  past machine state, not a permanent constraint — check what's actually
+  installed (`java -version`, `ls ~/Library/Android/sdk`,
+  `security find-identity -v -p codesigning`) rather than assuming either
+  way.
+- **Only one Apple ID/team may be signed into Xcode at a time, and it may
+  not match `app.json`'s `appleTeamId`.** The project previously had a
+  different (paid-looking) team ID hardcoded before task 0.3; the Mac was
+  actually only signed into a free Personal Team. Check
+  `security find-identity -v -p codesigning` and Xcode's own
+  `IDEProvisioningTeamByIdentifier` prefs before assuming the team ID in
+  `app.json` is the one that will actually sign a build.
 
 ## Source of truth
 

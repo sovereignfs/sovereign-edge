@@ -248,8 +248,10 @@ manifest.
   an HTTP request per the manifest, map the HTTP response back into text/
   data for the model).
 - Reserved extension points for Tier 2 (sandboxed script execution) and
-  Tier 3 (native module dispatch), even if unimplemented until epic 5/9
-  needs them.
+  Tier 3 (native module dispatch), even if unimplemented until needed.
+  (Originally written expecting epic 5/9 to need Tier 3 first — that turned
+  out wrong. It's task 2.6, consumed by the Calendar and Device connectors,
+  epics 10 and 11.)
 
 **Dependencies:** Task 2.1, Task 2.2, Task 2.3.
 

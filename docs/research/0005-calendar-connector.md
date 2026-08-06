@@ -119,10 +119,15 @@ rather than an iOS-only bolt-on.
 
 ## Next steps
 
-Tier 3 scaffolding (schema variant, generalized grant scope, runtime
-dispatch) is a prerequisite shared by Calendar, Device, and Health/step-count
-— worth its own small task under the Connector Framework epic before any of
-the three is implemented, rather than three connectors each inventing their
-own variant. Once that exists, write a `docs/epics/calendar-connector.md`
-epic (mirroring the `search-connector.md` / `sovereign-tasks-connector.md`
-precedent) with concrete tasks and a ROADMAP slot.
+**Done:** the Tier 3 scaffolding prerequisite is now tracked as task
+[2.6](../epics/connector-framework.md#-26--tier-3-connector-scaffolding),
+and this connector has its own epic:
+[calendar-connector.md](../epics/calendar-connector.md) (task 10.1), slotted
+into [ROADMAP.md](../../ROADMAP.md) at 0.2.2 — after 2.6, ahead of the
+Sovereign Tasks connector.
+
+**Actual next step for whoever picks this up:** task 2.6 has to land first
+(nothing here is implementable before it — there is no Tier 3 manifest shape
+or runtime dispatch yet). Once 2.6 is done, task 10.1 can start; the open
+questions above (which calendar, `expo-calendar` compatibility) are what's
+left to settle during that implementation, not before it.

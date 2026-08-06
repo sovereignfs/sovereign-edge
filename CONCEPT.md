@@ -70,9 +70,11 @@ the user's device. Nothing is uploaded anywhere by default.
 the core chat function — not "trust us," but true by construction, since
 there's no network code in that path to begin with.
 
-**Explicit, scoped permission for anything that leaves the device.** Every
-connector requests its own permission, separately revocable, and the UI
-always shows which connector (if any) touched the network for a given reply.
+**Explicit, scoped permission for anything that leaves the fully-offline
+core.** Every connector requests its own permission, separately revocable,
+and the UI always shows which connector (if any) acted for a given reply —
+whether it reached the network (Tier 1) or an on-device OS capability like
+the calendar (Tier 3).
 
 **Open connector ecosystem, sized to what's actually safe.** "Anyone can
 build a plugin" doesn't mean "anyone can run arbitrary native code inside
@@ -165,10 +167,12 @@ third-party anything, no monetization yet.
    built internally to the Tier 1 connector shape even though nothing is yet
    downloadable — so opening it up later doesn't require rebuilding the
    tool-routing/permission core.
-2. **Phase 2 — full agentic layer, default connectors.** Add the Sovereign
-   Tasks connector (talks directly to the user's own self-hosted `sovereign`
-   instance) and real connector-management UI (per-connector permission
-   toggles, in-chat provenance of which connector answered).
+2. **Phase 2 — full agentic layer, default connectors.** Add the first Tier 3
+   (on-device) connectors — Calendar, and a small Device Utilities connector
+   for flashlight/brightness — plus the Sovereign Tasks connector (talks
+   directly to the user's own self-hosted `sovereign` instance) and real
+   connector-management UI (per-connector permission toggles, in-chat
+   provenance of which connector answered).
 3. **Phase 3 — open connector ecosystem.** Publish the connector SDK, a
    plugin template, first-party examples, a public registry, and an in-app
    connector store. Monetization (IAP on mobile, direct sale on desktop)

@@ -109,8 +109,12 @@ argues for taking on that asymmetry now.
 
 ## Next steps
 
-Blocked on the same Tier 3 scaffolding as Calendar and Health/step-count —
-see [0005](0005-calendar-connector.md#next-steps). Once that exists, this is
-small enough to spec directly into an epic — smaller in native surface than
-Calendar, comparable in size to the step-count feature in
-[0008](0008-health-step-count.md).
+**Done:** this connector has its own epic:
+[device-connector.md](../epics/device-connector.md) (task 11.1), slotted
+into [ROADMAP.md](../../ROADMAP.md) at 0.2.3 — right after Calendar.
+
+**Actual next step for whoever picks this up:** same blocker as Calendar —
+task [2.6](../epics/connector-framework.md#-26--tier-3-connector-scaffolding)
+(Tier 3 scaffolding) has to land first. Once it does, task 11.1 is smaller
+in native surface than Calendar and can start independently of it — the two
+don't depend on each other, only on 2.6.

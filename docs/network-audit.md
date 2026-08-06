@@ -1,6 +1,6 @@
 # Network audit
 
-**Version:** 0.1.14 · **Last updated:** 2026-08-02
+**Version:** 0.1.19 · **Last updated:** 2026-08-06
 
 Sovereign Edge claims that your conversations never leave your device. This
 document is how you check that claim yourself rather than take our word for
@@ -12,9 +12,10 @@ that was never earned. Where the guarantee stops, this document says so.
 
 ## What is actually claimed
 
-The app is not "offline". It downloads model weights over HTTPS, and a future
-connector framework will make network calls on your behalf. Claiming otherwise
-would be a lie you could disprove in a minute with a packet capture.
+The app is not "offline". It downloads model weights over HTTPS, and the
+connector framework makes network calls on your behalf when you grant a
+Tier 1 connector (Search, today) permission to. Claiming otherwise would be
+a lie you could disprove in a minute with a packet capture.
 
 The claim is narrower and checkable:
 
@@ -22,7 +23,7 @@ The claim is narrower and checkable:
 | ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `src/chat/`       | **Never**               | Conversations, prompts, and replies. This is the claim.                                                                        |
 | `src/models/`     | **User-initiated only** | _Acquiring_ a model is a download you started and can see. _Using_ one never touches the network.                              |
-| `src/connectors/` | **Per-grant only**      | Every outbound call sits behind an explicit, separately revocable permission. The manifest schema and permission store exist (tasks 2.1–2.2); no connector ships yet. |
+| `src/connectors/` | **Per-grant only**      | Every outbound call sits behind an explicit, separately revocable permission. The Search connector (Tier 1) ships and reaches the network only once granted. Tier 3 connectors (Calendar, Device — planned, epic 2 task 2.6) call on-device OS APIs instead of `fetch` and are expected to touch no network at all; re-verify that expectation against the runtime once task 2.6 ships, don't take it on faith. |
 | everything else   | **Never**               | `design-system/`, `shared/`, and `settings/` are inside the boundary by transitivity, because `chat/` imports them.            |
 
 Stated as one sentence: **no code path reachable from `src/chat/` can open a
