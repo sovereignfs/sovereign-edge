@@ -10,6 +10,14 @@ mechanism states what it does **not** cover.
 An audit that overclaims is worse than no audit, because it transfers trust
 that was never earned. Where the guarantee stops, this document says so.
 
+**Scope: `apps/mobile`**, the only app this claim has been built and verified
+against so far. All commands below assume `cd apps/mobile` first — this repo
+became a pnpm workspace partway through this audit's history, and `src/`,
+`ios/`, `android/`, and `node_modules/` below are all relative to that
+directory, not the repo root. If `apps/desktop` ever implements its own
+chat/model path, it needs this same audit written against its own mechanisms
+— nothing here covers it by extension.
+
 ## What is actually claimed
 
 The app is not "offline". It downloads model weights over HTTPS, and the
@@ -225,6 +233,7 @@ Listed because you should know where to be sceptical.
 ## Reproducing everything
 
 ```bash
+cd apps/mobile   # or run from the repo root — pnpm install resolves the whole workspace either way
 pnpm install --frozen-lockfile
 pnpm lint            # mechanisms 1 and 2
 pnpm check:offline   # mechanism 3
@@ -246,6 +255,8 @@ model weights.
 
 - [research 0001](research/0001-concept-and-connector-architecture.md) — where
   the offline guarantee is specified
-- [epic 1, task 1.5](epics/core-inference-chat.md) — threat model and the
+- [epic 1, task 1.5](epics/mobile/core-inference-chat.md) — threat model and the
   decisions behind each mechanism
-- [AGENTS.md](../AGENTS.md) — the architectural rules this enforces
+- [AGENTS.md](../AGENTS.md) — the shared hard architectural rules this
+  enforces; [apps/mobile/AGENTS.md](../apps/mobile/AGENTS.md) for this app's
+  concrete enforcement mechanism

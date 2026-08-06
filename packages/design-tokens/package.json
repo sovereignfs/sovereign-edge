@@ -1,0 +1,9 @@
+{
+  "name": "design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Colors, spacing, and typography as plain data — no components. Consumed by mobile-ui and, eventually, desktop-ui.",
+  "license": "AGPL-3.0-or-later",
+  "main": "index.ts",
+  "scripts": {}
+}

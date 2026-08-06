@@ -1,15 +1,19 @@
+---
+id: 6
+title: "Files/document summarization: connector or chat feature?"
+status: "Decided (architecture) — technical spike still needed before an epic"
+date: "August 2026"
+author: "Claude Code (session with the developer)"
+scope: shared
+summary: "Candidate capability — \"summarize this PDF\" and similar document-input requests"
+---
+
 # Research 0006 — Files/document summarization: connector or chat feature?
 
-**Status:** Decided (architecture) — technical spike still needed before an
-epic\
-**Date:** August 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Candidate capability — "summarize this PDF" and similar
-document-input requests\
 **Related:** [research 0001](0001-concept-and-connector-architecture.md)
 (the "no network code path in `chat/`" rule this doc leans on),
-[Connector Framework](../epics/connector-framework.md) (the machinery this
-capability turns out *not* to need)
+[Connector Framework](../epics/mobile/connector-framework.md) (the machinery
+this capability turns out *not* to need)
 
 ---
 

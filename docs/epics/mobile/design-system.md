@@ -1,11 +1,14 @@
+---
+epic: 7
+title: Design System & Branding
+status: "⏳ In Progress"
+scope: mobile
+---
+
 # Epic: Design System & Branding
 
 > A native RN theme adapting Sovereign's visual identity — the app is fully
 > standalone, but may look and feel like part of the same family.
-
-## Status
-
-⏳ In Progress
 
 ## Overview
 
@@ -77,5 +80,5 @@ a custom Pressable-based toggle, not more props.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)

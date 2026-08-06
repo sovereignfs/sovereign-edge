@@ -1,11 +1,14 @@
+---
+epic: 4
+title: Sovereign Tasks Connector
+status: "📋 Planned"
+scope: mobile
+---
+
 # Epic: Sovereign Tasks Connector
 
 > The default Phase 2 connector for scenario 3 — creating a task on a user's
 > own self-hosted `sovereign` instance, via a direct API call.
-
-## Status
-
-📋 Planned
 
 ## Overview
 
@@ -67,8 +70,8 @@ own instance.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
 - [Connector Framework](connector-framework.md)
 
 ## Cross-references

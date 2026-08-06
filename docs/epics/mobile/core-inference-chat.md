@@ -1,14 +1,17 @@
+---
+epic: 1
+title: Core Inference & Chat
+status: "✅ Complete — tasks 1.1 through 1.6"
+scope: mobile
+---
+
 # Epic: Core Inference & Chat
 
 > `llama.rn`/GGUF engine, model manager, and a fully offline chat and writing
 > assistant — the part of the app with no network code path at all.
 
-## Status
-
-✅ Complete — tasks 1.1 through 1.6
-
 The offline guarantee is now enforced rather than intended: see
-[docs/network-audit.md](../network-audit.md).
+[docs/network-audit.md](../../network-audit.md).
 
 ## Overview
 
@@ -51,7 +54,7 @@ upload weights to GPU memory where the CPU-only path simply memory-mapped
 them. So the ~2x generation win costs roughly seven seconds up front, which
 task 1.3's chat UI has to show honestly rather than hide behind a spinner.
 Verification also revealed a redundant digest pass; see
-[research 0003](../research/0003-model-verification-hashing.md).
+[research 0003](../../research/0003-model-verification-hashing.md).
 
 **Not established:** both available test devices have 8 GB, so every model
 rates `comfortable` and the memory heuristic remains unexercised near its
@@ -255,7 +258,7 @@ output in quotation marks, against "return only the rewritten text". Draft on
 current code review.
 
 Every other task in this epic delivers a feature. This one delivers *evidence*.
-[Research 0001](../research/0001-concept-and-connector-architecture.md#decisions)
+[Research 0001](../../research/0001-concept-and-connector-architecture.md#decisions)
 states that "the chat/model/memory layers are 100% offline by design — no
 network code path exists there at all", and CONCEPT.md sells that to users.
 Today it is true because the people who wrote the code intended it. This task
@@ -385,7 +388,7 @@ Turned up while scoping this task, and part of its audit surface:
   cannot see, and the reason the graph check exists rather than being a
   belt-and-braces extra.
 - ✅ A third party can reproduce every claim in
-  [docs/network-audit.md](../network-audit.md) from the commands it lists.
+  [docs/network-audit.md](../../network-audit.md) from the commands it lists.
 - ✅ Every Android permission is justified or removed. **A Release build
   declares exactly one: `INTERNET`.** `VIBRATE` and both legacy external
   storage permissions are removed via `android.blockedPermissions`;
@@ -433,7 +436,7 @@ measured.
   `package.json` is out of scope and says so in the audit.
 - **`llama.rn` links nothing network-capable.** Measured rather than assumed,
   since this overlaps the unresolved prebuilt-binary supply-chain question in
-  [research 0002](../research/0002-react-native-framework-choice.md). Both
+  [research 0002](../../research/0002-react-native-framework-choice.md). Both
   shipped artifacts — `ios/rnllama.xcframework` (arm64, 10,471,352 bytes) and
   `android/.../arm64-v8a/librnllama.so` (9,530,928 bytes) — have **zero
   undefined network symbols**: no `socket`, `connect`, `getaddrinfo`,
@@ -502,5 +505,5 @@ the only thing standing between that and a draft they send.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)

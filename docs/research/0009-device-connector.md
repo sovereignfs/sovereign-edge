@@ -1,11 +1,16 @@
+---
+id: 9
+title: "Device connector: what's actually left after alarms drop out"
+status: decided
+date: "August 2026"
+author: "Claude Code (session with the developer)"
+scope: mobile
+summary: "Candidate connector — originally proposed as flashlight control plus alarm set/clear"
+---
+
 # Research 0009 — Device connector: what's actually left after alarms drop out
 
-**Status:** Decided\
-**Date:** August 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Candidate connector — originally proposed as flashlight control
-plus alarm set/clear\
-**Related:** [Connector Framework](../epics/connector-framework.md),
+**Related:** [Connector Framework](../epics/mobile/connector-framework.md),
 [research 0005](0005-calendar-connector.md) (same Tier 3 classification and
 shared scaffolding prerequisite)
 
@@ -110,11 +115,11 @@ argues for taking on that asymmetry now.
 ## Next steps
 
 **Done:** this connector has its own epic:
-[device-connector.md](../epics/device-connector.md) (task 11.1), slotted
+[device-connector.md](../epics/mobile/device-connector.md) (task 11.1), slotted
 into [ROADMAP.md](../../ROADMAP.md) at 0.2.3 — right after Calendar.
 
 **Actual next step for whoever picks this up:** same blocker as Calendar —
-task [2.6](../epics/connector-framework.md#-26--tier-3-connector-scaffolding)
+task [2.6](../epics/mobile/connector-framework.md#-26--tier-3-connector-scaffolding)
 (Tier 3 scaffolding) has to land first. Once it does, task 11.1 is smaller
 in native surface than Calendar and can start independently of it — the two
 don't depend on each other, only on 2.6.

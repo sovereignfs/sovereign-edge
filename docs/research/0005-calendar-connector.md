@@ -1,12 +1,17 @@
+---
+id: 5
+title: "Calendar connector: scope and platform fit"
+status: decided
+date: "August 2026"
+author: "Claude Code (session with the developer)"
+scope: mobile
+summary: "Candidate Phase 2+ connector — let the model create, update, delete, and query calendar events, and set reminders"
+---
+
 # Research 0005 — Calendar connector: scope and platform fit
 
-**Status:** Decided\
-**Date:** August 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Candidate Phase 2+ connector — let the model create, update,
-delete, and query calendar events, and set reminders\
-**Related:** [Connector Framework](../epics/connector-framework.md) (epics
-2.1–2.5, the permission/manifest machinery this would plug into),
+**Related:** [Connector Framework](../epics/mobile/connector-framework.md)
+(epics 2.1–2.5, the permission/manifest machinery this would plug into),
 [Sovereign Tasks connector](0006-files-document-summarization.md)-adjacent in
 spirit (a second "direct action" connector), see also
 [0009](0009-device-connector.md) for the same permission-model question
@@ -47,7 +52,7 @@ iOS and Android diverge?
 - **Resolved by reading the actual implementation** (`src/connectors/manifest/schema.ts`,
   `src/connectors/runtime/execute.ts`, `src/connectors/permissions/grants.ts`):
   a Calendar connector is not a Tier 1 connector at all. Research 0001 and
-  [connector-framework.md](../epics/connector-framework.md#overview) define
+  [connector-framework.md](../epics/mobile/connector-framework.md#overview) define
   three trust tiers, and Tier 3 — "first-party native OS integration... not
   opened to third parties" — names **direct Contacts/Calendar writes**
   explicitly as its motivating example. Tier 1's manifest schema *requires*
@@ -120,9 +125,9 @@ rather than an iOS-only bolt-on.
 ## Next steps
 
 **Done:** the Tier 3 scaffolding prerequisite is now tracked as task
-[2.6](../epics/connector-framework.md#-26--tier-3-connector-scaffolding),
+[2.6](../epics/mobile/connector-framework.md#-26--tier-3-connector-scaffolding),
 and this connector has its own epic:
-[calendar-connector.md](../epics/calendar-connector.md) (task 10.1), slotted
+[calendar-connector.md](../epics/mobile/calendar-connector.md) (task 10.1), slotted
 into [ROADMAP.md](../../ROADMAP.md) at 0.2.2 — after 2.6, ahead of the
 Sovereign Tasks connector.
 

@@ -1,11 +1,14 @@
+---
+epic: 10
+title: Calendar Connector
+status: "📋 Planned"
+scope: mobile
+---
+
 # Epic: Calendar Connector
 
 > A first-party Tier 3 connector letting the model create, update, delete,
 > and query the user's own on-device calendar.
-
-## Status
-
-📋 Planned
 
 ## Overview
 
@@ -16,7 +19,7 @@ Tasks. Blocked on epic [2](connector-framework.md)'s task 2.6 (Tier 3
 scaffolding), which this epic is the first real consumer of.
 
 Full findings, options, and the reasoning behind this epic's scope live in
-[research 0005](../research/0005-calendar-connector.md) — this file states
+[research 0005](../../research/0005-calendar-connector.md) — this file states
 the decided scope as tasks, that doc keeps the *why*.
 
 ## Tasks
@@ -71,8 +74,8 @@ user's own device calendar, via `expo-calendar`.
 
 ## Related Docs
 
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
-- [research 0005](../research/0005-calendar-connector.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
+- [research 0005](../../research/0005-calendar-connector.md)
 - [Connector Framework](connector-framework.md) (task 2.6, the Tier 3
   scaffolding this epic depends on)
 

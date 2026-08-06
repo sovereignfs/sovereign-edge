@@ -1,10 +1,15 @@
+---
+id: 1
+title: "Sovereign Edge: concept, positioning, and connector architecture"
+status: decided
+date: "July 2026"
+author: "Claude Code (session with the developer)"
+scope: shared
+summary: "Whole project — positioning, inference engine, client framework, the agent/connector (plugin) architecture, monetization model, phasing"
+---
+
 # Research 0001 — Sovereign Edge: concept, positioning, and connector architecture
 
-**Status:** Decided\
-**Date:** July 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Whole project — positioning, inference engine, client framework, the
-agent/connector (plugin) architecture, monetization model, phasing\
 **Related:** none yet — first research doc for this repo. See root
 [CONCEPT.md](../../CONCEPT.md) for the resulting design and
 [ROADMAP.md](../../ROADMAP.md) for the phased task index.

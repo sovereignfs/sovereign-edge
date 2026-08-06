@@ -7,6 +7,14 @@ settings:
 importers:
 
   .:
+    devDependencies:
+      prettier:
+        specifier: ^3.5.0
+        version: 3.9.6
+
+  apps/desktop: {}
+
+  apps/mobile:
     dependencies:
       '@noble/hashes':
         specifier: ^2.2.0
@@ -90,6 +98,14 @@ importers:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
+
+  packages/core: {}
+
+  packages/design-tokens: {}
+
+  packages/desktop-ui: {}
+
+  packages/mobile-ui: {}
 
 packages:
 
@@ -6675,8 +6691,8 @@ snapshots:
       '@babel/parser': 7.29.7
       eslint: 9.39.5
       hermes-parser: 0.25.1
-      zod: 3.25.76
-      zod-validation-error: 4.0.2(zod@3.25.76)
+      zod: 4.4.3
+      zod-validation-error: 4.0.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -9325,9 +9341,9 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-validation-error@4.0.2(zod@3.25.76):
+  zod-validation-error@4.0.2(zod@4.4.3):
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
   zod@3.25.76: {}
 

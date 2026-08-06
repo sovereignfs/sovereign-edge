@@ -1,12 +1,19 @@
+---
+epic: 6
+title: Monetization
+status: "📋 Planned"
+scope: shared
+---
+
 # Epic: Monetization
 
 > Paid connectors — platform in-app purchase on mobile, direct sale on
 > desktop. The core app and baseline connectors are free forever and are
 > never gated by anything in this epic.
 
-## Status
-
-📋 Planned
+**Scope note:** spans both apps by design (mobile IAP, desktop direct sale),
+not scoped to one — see the taxonomy note in
+[docs/epics/README.md](../README.md#layout).
 
 ## Overview
 
@@ -77,6 +84,6 @@ store payment requirement.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
 - [Connector Store & SDK](connector-store-sdk.md)

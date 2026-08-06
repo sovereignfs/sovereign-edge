@@ -1,0 +1,8 @@
+{
+  "name": "desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sovereign Edge desktop app — pending epic 9.1 (shell technology spike). No shell, no dependencies, no build yet.",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {}
+}

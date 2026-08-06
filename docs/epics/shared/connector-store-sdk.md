@@ -1,18 +1,25 @@
+---
+epic: 5
+title: Connector Store & SDK
+status: "📋 Planned"
+scope: shared
+---
+
 # Epic: Connector Store & SDK
 
 > Phase 3 — opening the connector layer to third-party developers: SDK,
 > plugin template, examples, public registry, and the in-app store.
 
-## Status
-
-📋 Planned
+**Scope note:** platform-neutral by design, not implemented inside one app
+first — see the taxonomy note in
+[docs/epics/README.md](../README.md#layout).
 
 ## Overview
 
 Mirrors `sovereign`'s own plugin-development trio (`sovereign-plugin-template`
 + `sovereign-plugins-examples` + the public plugin registry), adapted for
 connectors instead of Next.js modules. This is deliberately the **last**
-phase — everything here builds on the [Connector Framework](connector-framework.md)
+phase — everything here builds on the [Connector Framework](../mobile/connector-framework.md)
 unchanged, per research 0001's "build once, widen without rework" principle.
 
 ## Tasks
@@ -147,8 +154,8 @@ research 0001, don't build this speculatively before something needs it).
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
-- [Connector Framework](connector-framework.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
+- [Connector Framework](../mobile/connector-framework.md)
 - `confluence/concepts/plugin-development.md` (the `sovereign` pattern this
   mirrors, in the workbench repo)

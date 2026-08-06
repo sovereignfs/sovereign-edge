@@ -1,11 +1,14 @@
+---
+epic: 8
+title: Mobile App Shell
+status: "⏳ In Progress"
+scope: mobile
+---
+
 # Epic: Mobile App Shell
 
 > The React Native app itself — iOS and Android, from Phase 1. Not a WebView
 > wrapper around anything; this is the actual product.
-
-## Status
-
-⏳ In Progress
 
 ## Overview
 
@@ -73,5 +76,5 @@ epic.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)

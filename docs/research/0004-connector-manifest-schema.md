@@ -1,10 +1,15 @@
+---
+id: 4
+title: "Connector manifest schema: format, validation, and the templating surface"
+status: "Decided — implemented in task 2.1"
+date: "August 2026"
+author: "Claude Code (session with the developer)"
+scope: shared
+summary: "Task 0.1.13 / epic 2.1 — the declarative shape every Tier 1 connector conforms to"
+---
+
 # Research 0004 — Connector manifest schema: format, validation, and the templating surface
 
-**Status:** Decided — implemented in task 2.1\
-**Date:** August 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Task 0.1.13 / epic [2.1](../epics/connector-framework.md) — the
-declarative shape every Tier 1 connector conforms to\
 **Related:** [0001](0001-concept-and-connector-architecture.md) (tiered
 connector model, per-connector permissions),
 [network-audit](../network-audit.md) (the boundary this framework is the

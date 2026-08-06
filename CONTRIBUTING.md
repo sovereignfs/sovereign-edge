@@ -9,6 +9,13 @@ out rather than left implicit.
 Agent-facing guidance lives in [AGENTS.md](AGENTS.md); the task lifecycle is
 in [docs/development-workflow.md](docs/development-workflow.md).
 
+This is a workspace of two apps — `apps/mobile` (shipping) and `apps/desktop`
+(pending epic 9.1) — plus internal `packages/*`. **Development setup, Running
+the app, and Running on a physical iOS device below are all about
+`apps/mobile`**, the only app that exists yet; a desktop equivalent gets added
+once epic 9.1 lands. Branching, commits, pull requests, and CI are
+workspace-wide and apply to any app or package.
+
 ## Contents
 
 - [Development setup](#development-setup)
@@ -32,7 +39,7 @@ Requirements:
 ```bash
 git clone https://github.com/sovereignfs/sovereign-edge.git
 cd sovereign-edge
-pnpm install
+pnpm install   # installs the whole workspace — apps/mobile, apps/desktop, packages/*
 ```
 
 ### Three setup gotchas that cost real time
@@ -77,9 +84,9 @@ Prefer `pnpm ios` over invoking `xcodebuild` directly. A bare
 too, which fails on Apple Silicon because Expo's prebuilt XCFrameworks ship no
 x86_64 simulator slice.
 
-**`ios/` and `android/` are generated, not committed.** `app.json` plus config
-plugins are the source of truth. Hand-edits inside those directories are lost
-at the next prebuild.
+**`apps/mobile/ios/` and `apps/mobile/android/` are generated, not
+committed.** `apps/mobile/app.json` plus config plugins are the source of
+truth. Hand-edits inside those directories are lost at the next prebuild.
 
 ### Running on a physical iOS device
 
@@ -87,6 +94,7 @@ A free Apple ID is enough — the $99 Developer Program is not needed. Builds
 signed this way expire after 7 days and must be reinstalled.
 
 ```bash
+cd apps/mobile
 xcodebuild -workspace ios/SovereignEdge.xcworkspace -scheme SovereignEdge \
   -configuration Release -destination "id=<device-udid>" \
   -derivedDataPath ios/build-device DEVELOPMENT_TEAM=<team-id> \
@@ -173,16 +181,30 @@ git switch -c feat/your-feature-name
 **Commit messages** should explain _why_, not just _what_. Keep the subject
 under 72 characters; wrap body lines at 100.
 
-**Epic task IDs** (`<epic>.<seq>` — e.g. `0.4`, `2.1`) are stable and may be
-cited in commit subjects and PR titles. **Roadmap slot versions** (e.g.
-`0.1.4`) are volatile and must not be — they shift when work is reprioritised,
-leaving stale references behind.
+**Do not put task or version numbers — epic task IDs, roadmap slots, or
+otherwise — in branch names, commit messages, PR titles, or PR descriptions.**
+Describe the work by what it changes, matching `sovereign`'s own convention
+verbatim. A slot like `0.1.4` is volatile and shifts when work is
+reprioritised, leaving a stale reference behind; an epic task ID like `2.1` is
+stable but still says nothing to a reader who doesn't already have
+`docs/epics/` open. Epic task IDs remain the right way to cross-reference
+*within* docs — dependency lists, review checklists, `ROADMAP.md`'s Epic task
+column — just not inside git/GitHub history itself.
 
-If an AI assistant helped write the code, include the co-author trailer:
+If an AI assistant helped write the code, include the co-author trailer for
+whichever one did — matching `sovereign`'s own per-assistant convention
+(`docs/multi-agent.md` there), extended here to cover every assistant this
+repo is actually used with, not just one:
 
-```
-Co-Authored-By: Claude Code <noreply@anthropic.com>
-```
+| Assistant   | Commit trailer                                        |
+| ----------- | ------------------------------------------------------- |
+| Claude Code | `Co-Authored-By: Claude Code <noreply@anthropic.com>`  |
+| Codex       | `Co-Authored-By: Codex <noreply@openai.com>`           |
+| opencode    | `Co-Authored-By: opencode <noreply@opencode.ai>`       |
+
+Use whatever trailer value the assistant's own local config actually emits if
+it differs from the table — the table is a best-effort convention, not a
+confirmed identity, same caveat `sovereign`'s own doc carries for Codex.
 
 ## Pull requests
 
@@ -194,22 +216,15 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>
 - **Mark the task ✅ in both `ROADMAP.md` and the matching
   `docs/epics/<file>.md` heading, in the same PR.** Those are the only two
   places status is tracked.
-- **Bump the version in the same PR**, to the roadmap slot the task just
-  completed. Four files must agree — `package.json`, `app.json`,
-  `src/shared/app-info.ts`, and the `Version:` header in `ROADMAP.md` — and
-  `src/shared/app-info.test.ts` locks the first three together.
-
-  Then run **`pnpm prebuild`**. `expo run:ios` and `run:android` do not
-  re-run prebuild when the native directory exists, so the bump never reaches
-  `Info.plist` or `build.gradle` on its own, and the shipped binary
-  misreports itself. This has already gone wrong twice: once leaving the
-  native version four releases stale, and once by regenerating only Android
-  and leaving iOS behind. Check both:
-
-  ```sh
-  grep versionName android/app/build.gradle
-  plutil -extract CFBundleShortVersionString raw ios/SovereignEdge/Info.plist
-  ```
+- **Bump the version in the same PR**, following `sovereign`'s per-package
+  convention: root `package.json` tracks the roadmap slot the task just
+  completed (also the `Version:` header in `ROADMAP.md`); `apps/mobile`'s own
+  release version is a separate bump within `apps/mobile/package.json`, in
+  lockstep with it today since every shipped task is still a mobile task. See
+  [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) for the mobile-specific
+  four-file agreement (`package.json`, `app.json`, `src/shared/app-info.ts`,
+  `ROADMAP.md`) and the `pnpm prebuild` step it requires — skipping it has
+  already shipped a binary that misreports its own version, twice.
 - PRs are merged with **rebase and merge** — no squash, no merge commits.
 - **Fix commit messages before the PR is merged.** Correcting them afterwards
   means rewriting `main`.
@@ -233,8 +248,15 @@ That is a deliberate exception, not the process changing:
 
 Recorded because a reader comparing the git history against this document
 would otherwise conclude one of them is wrong.
-- PR bodies from Claude Code end with:
-  `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+
+PR bodies end with a sign-off matching whichever assistant wrote them, same
+scoping as the commit trailer above:
+
+| Assistant   | PR body sign-off                                                        |
+| ----------- | -------------------------------------------------------------------------- |
+| Claude Code | `🤖 Generated with [Claude Code](https://claude.com/claude-code)`        |
+| Codex       | `🤖 Generated with [Codex](https://developers.openai.com/codex)`         |
+| opencode    | `🤖 Generated with [opencode](https://opencode.ai)`                      |
 
 ## Continuous integration
 

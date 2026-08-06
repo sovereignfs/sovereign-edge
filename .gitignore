@@ -10,13 +10,13 @@ expo-env.d.ts
 # Generated native projects — continuous native generation (CNG) is the source
 # of truth; `expo prebuild` regenerates these from app.json + config plugins.
 # See docs/research/0002-react-native-framework-choice.md.
-/ios
-/android
+/apps/mobile/ios
+/apps/mobile/android
 
 # Local native modules: their *source* is committed, their build output is not.
 # The patterns above are anchored to the repo root, so they do not cover these.
-modules/*/android/build/
-modules/*/ios/build/
+apps/mobile/modules/*/android/build/
+apps/mobile/modules/*/ios/build/
 
 # Native
 .kotlin/

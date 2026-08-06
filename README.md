@@ -19,6 +19,10 @@ once you have granted that specific connector that specific permission.
 Fully standalone. No runtime dependency on [`sovereign`](https://github.com/sovereignfs/sovereign),
 and it works with zero knowledge that `sovereign` exists.
 
+This repo is a pnpm workspace: `apps/mobile` is the shipping product below;
+`apps/desktop` is a placeholder pending epic 9.1 (shell technology spike);
+`packages/*` are internal, unpublished code shared between them.
+
 See [CONCEPT.md](CONCEPT.md) for the full concept paper.
 
 ## Current status
@@ -76,6 +80,10 @@ that split exists and what mobile app stores actually allow.
 
 ## Development
 
+Everything below is about `apps/mobile` — the only app that exists yet. See
+[apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) for the full command list and
+environment quirks; a desktop equivalent lands once epic 9.1 resolves.
+
 ### Requirements
 
 - Node 24.x (see [.node-version](.node-version)) and `pnpm` 11
@@ -101,7 +109,7 @@ that split exists and what mobile app stores actually allow.
 ```sh
 git clone https://github.com/sovereignfs/sovereign-edge.git
 cd sovereign-edge
-pnpm install
+pnpm install   # installs the whole workspace
 ```
 
 ```sh
@@ -124,15 +132,17 @@ Expo's prebuilt XCFrameworks ship no x86_64 simulator slice. If you do invoke
 it directly, pass a concrete destination:
 
 ```sh
+cd apps/mobile
 xcodebuild -workspace ios/SovereignEdge.xcworkspace -scheme SovereignEdge \
   -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build
 ```
 
 If an iOS build fails complaining about a missing workspace, check whether
-`ios/Pods` exists. `expo prebuild` can exit 0 with its internal `pod install`
-having failed, and the `.xcworkspace` is created *by* `pod install` — so the
-first visible symptom appears one step later than the actual failure.
+`apps/mobile/ios/Pods` exists. `expo prebuild` can exit 0 with its internal
+`pod install` having failed, and the `.xcworkspace` is created *by*
+`pod install` — so the first visible symptom appears one step later than the
+actual failure.
 
 ### Scripts
 
@@ -150,10 +160,11 @@ first visible symptom appears one step later than the actual failure.
 
 ### Native projects are generated, not committed
 
-`ios/` and `android/` are gitignored. [`app.json`](app.json) plus Expo config
-plugins are the source of truth, and `expo prebuild` regenerates the native
-projects from them — so hand-edits inside `ios/` or `android/` are lost on the
-next prebuild. Native configuration belongs in `app.json` or a config plugin.
+`apps/mobile/ios/` and `apps/mobile/android/` are gitignored.
+[`apps/mobile/app.json`](apps/mobile/app.json) plus Expo config plugins are
+the source of truth, and `expo prebuild` regenerates the native projects from
+them — so hand-edits inside `ios/` or `android/` are lost on the next
+prebuild. Native configuration belongs in `app.json` or a config plugin.
 
 Rationale, along with why this project excludes `expo-updates` and EAS Build,
 is in [research 0002](docs/research/0002-react-native-framework-choice.md).
@@ -162,28 +173,36 @@ is in [research 0002](docs/research/0002-react-native-framework-choice.md).
 
 ```
 sovereign-edge/
-├── src/
-│   ├── chat/           # inference engine, chat UI, writing modes  (epic 1)
-│   ├── models/         # catalog, download, verification, storage  (epic 1)
-│   ├── connectors/     # manifest schema, permissions, routing     (epic 2)
-│   ├── design-system/  # theme tokens, core components             (epic 7)
-│   ├── settings/       # navigation, settings, app shell           (epic 8)
-│   └── shared/         # cross-module utilities
+├── apps/
+│   ├── mobile/          # the shipping product — see apps/mobile/AGENTS.md
+│   │   ├── src/          # chat, models, connectors, design-system, settings
+│   │   └── ...
+│   └── desktop/          # placeholder — blocked on epic 9.1
+├── packages/             # internal, unpublished, shared between the apps
+│   ├── core/              # empty scaffold — connector manifest/permissions/
+│   │   ...                # routing, eventually extracted from apps/mobile
+│   ├── design-tokens/
+│   ├── mobile-ui/
+│   └── desktop-ui/
 ├── docs/
-│   ├── epics/          # task breakdown per work stream
-│   └── research/       # decision records
-└── scripts/ci/         # CI helper scripts
+│   ├── epics/            # task breakdown per work stream, tagged by Scope
+│   └── research/          # decision records
+└── ...
 ```
+
+See [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) for the full `src/`
+breakdown — `chat/`, `models/`, `connectors/`, `design-system/`, `settings/`,
+`shared/`, one directory per epic.
 
 `models/` is a sibling of `chat/` rather than a child, and that is deliberate:
 *acquiring* a model is a visible, user-initiated download, while *using* one
 never touches the network. Keeping them separate is what lets the rule below
 be enforced mechanically.
 
-**`chat/` must not import anything that opens a socket.** That is checked, not
-just documented — `pnpm lint` restricts imports and network globals inside
-`src/chat/`, and `pnpm check:offline` walks the import graph to catch a
-transitive route lint cannot see. See
+**Chat code must not import anything that opens a socket.** That is checked,
+not just documented — in `apps/mobile`, `pnpm lint` restricts imports and
+network globals inside `src/chat/`, and `pnpm check:offline` walks the import
+graph to catch a transitive route lint cannot see. See
 [docs/network-audit.md](docs/network-audit.md) for what each mechanism covers
 and, more importantly, what it does not.
 
@@ -208,10 +227,14 @@ Two workflows, split so the slow native jobs don't gate every PR:
 - [CONTRIBUTING.md](CONTRIBUTING.md) — setup, branching, commits, PRs, CI
 - [docs/development-workflow.md](docs/development-workflow.md) — task lifecycle
   and how these documents fit together
-- [docs/epics/](docs/epics/) — task detail per work stream
+- [docs/epics/](docs/epics/) — task detail per work stream, split into
+  `mobile/`/`desktop/`/`shared/` by each epic's own `scope` frontmatter
 - [docs/research/](docs/research/) — decision records and the reasoning behind them
-- [AGENTS.md](AGENTS.md) — agent-facing conventions and hard architectural
-  rules (`CLAUDE.md` points here)
+- [AGENTS.md](AGENTS.md) — shared agent-facing conventions and hard
+  architectural rules (`CLAUDE.md` points here)
+- [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) /
+  [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) — per-app commands,
+  native build mechanics, environment quirks
 
 ## License
 
