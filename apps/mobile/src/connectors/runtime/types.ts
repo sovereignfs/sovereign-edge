@@ -33,6 +33,9 @@ export type ExecutionResult =
         | 'response-too-large'
         /** The body wasn't valid JSON, or `response.textFrom` didn't
          * resolve to anything. */
-        | 'malformed-response';
+        | 'malformed-response'
+        /** Tier 3 only: no native handler is registered for the manifest's
+         * `handler.capability`, or the registered one threw. */
+        | 'handler-error';
       detail?: string;
     };

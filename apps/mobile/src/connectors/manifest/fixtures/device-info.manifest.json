@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "fs.sovereign.device-info",
+  "name": "Device Info",
+  "version": "1.0.0",
+  "summary": "Reads basic on-device information — model and OS.",
+  "tier": 3,
+  "platforms": ["ios", "android"],
+  "tool": {
+    "name": "device_info",
+    "description": "Reads this device's model and OS name/version.",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  "permissions": {
+    "device": {
+      "capabilities": ["device.info"]
+    }
+  },
+  "handler": {
+    "capability": "device.info"
+  },
+  "pricing": { "model": "free" }
+}

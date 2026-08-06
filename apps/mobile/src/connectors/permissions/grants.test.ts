@@ -1,6 +1,11 @@
-import type { ConnectorManifest } from '../manifest';
+import type {
+  ConnectorManifestTier1,
+  ConnectorManifestTier3,
+} from '../manifest';
+import deviceInfoManifest from '../manifest/fixtures/device-info.manifest.json';
 import searchManifest from '../manifest/fixtures/search.manifest.json';
 import {
+  connectorScope,
   deny,
   grant,
   grantFor,
@@ -51,10 +56,10 @@ jest.mock('expo-secure-store', () => ({
   },
 }));
 
-const search = searchManifest as ConnectorManifest;
+const search = searchManifest as ConnectorManifestTier1;
 
 /** A second connector, so isolation can actually be observed. */
-const tasks: ConnectorManifest = {
+const tasks: ConnectorManifestTier1 = {
   ...search,
   id: 'fs.sovereign.tasks',
   name: 'Sovereign Tasks',
@@ -84,7 +89,7 @@ describe('connector grants', () => {
   it('records consent for exactly the declared origins', () => {
     const result = grant(search);
     expect(result.state).toBe('granted');
-    expect(result.grantedOrigins).toEqual(['https://searx.example.org']);
+    expect(result.grantedScope).toEqual(['https://searx.example.org']);
     expect(isAllowed(search)).toBe(true);
   });
 
@@ -136,7 +141,7 @@ describe('connector grants', () => {
   describe('scope creep needs a fresh decision', () => {
     it('re-asks when an update adds an origin', () => {
       grant(search);
-      const widened: ConnectorManifest = {
+      const widened: ConnectorManifestTier1 = {
         ...search,
         permissions: {
           ...search.permissions,
@@ -183,5 +188,49 @@ describe('connector grants', () => {
       [search.id, 'granted'],
       [tasks.id, 'denied'],
     ]);
+  });
+
+  describe('Tier 3 grant scope (task 2.6)', () => {
+    const deviceInfo = deviceInfoManifest as ConnectorManifestTier3;
+
+    it('fills the generalized scope with declared capabilities, not origins', () => {
+      expect(connectorScope(deviceInfo)).toEqual(['device.info']);
+
+      const result = grant(deviceInfo);
+      expect(result.grantedScope).toEqual(['device.info']);
+      expect(isAllowed(deviceInfo)).toBe(true);
+    });
+
+    it('re-asks when an update adds a capability, same as Tier 1 widening an origin', () => {
+      grant(deviceInfo);
+      const widened: ConnectorManifestTier3 = {
+        ...deviceInfo,
+        permissions: {
+          device: { capabilities: ['device.info', 'device.torch'] },
+        },
+      };
+
+      expect(needsRedecision(widened)).toBe(true);
+      expect(isAllowed(widened)).toBe(false);
+    });
+
+    it('revokes without touching the credential vault, which Tier 3 has no use for', async () => {
+      grant(deviceInfo);
+
+      await revoke(deviceInfo);
+
+      expect(isAllowed(deviceInfo)).toBe(false);
+      expect(grantFor(deviceInfo.id).state).toBe('denied');
+    });
+
+    it('does not affect a Tier 1 connector grant, and vice versa', async () => {
+      grant(search);
+      grant(deviceInfo);
+
+      await revoke(deviceInfo);
+
+      expect(isAllowed(search)).toBe(true);
+      expect(isAllowed(deviceInfo)).toBe(false);
+    });
   });
 });

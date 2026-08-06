@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** 0.1.19 · **Last updated:** 2026-08-05
+**Version:** 0.2.1 · **Last updated:** 2026-08-06
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:
@@ -57,7 +57,7 @@ connector-management UI. Still first-party only.
 
 | Version | Task                                | Status | Scope  | Epic task                                                                                              |
 | ------- | ------------------------------------ | ------ | ------ | --------------------------------------------------------------------------------------------------------- |
-| 0.2.1   | Tier 3 connector scaffolding          | 📋     | Mobile | [2.6](docs/epics/mobile/connector-framework.md#-26--tier-3-connector-scaffolding)                                |
+| 0.2.1   | Tier 3 connector scaffolding          | ✅     | Mobile | [2.6](docs/epics/mobile/connector-framework.md#-26--tier-3-connector-scaffolding)                                |
 | 0.2.2   | Calendar connector                   | 📋     | Mobile | [10.1](docs/epics/mobile/calendar-connector.md#-101--calendar-connector)                                        |
 | 0.2.3   | Device Utilities connector           | 📋     | Mobile | [11.1](docs/epics/mobile/device-connector.md#-111--device-utilities-connector)                                  |
 | 0.2.4   | Sovereign Tasks connector            | 📋     | Mobile | [4.1](docs/epics/mobile/sovereign-tasks-connector.md#-41--sovereign-tasks-connector)                            |

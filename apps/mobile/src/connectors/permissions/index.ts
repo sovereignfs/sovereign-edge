@@ -1,4 +1,5 @@
 export {
+  connectorScope,
   deny,
   grant,
   grantFor,
