@@ -11,6 +11,11 @@
 # `bash <this file>` line is one shell with normal semantics.
 set -euo pipefail
 
+# Self-relative, like scripts/release/*.sh — works regardless of the caller's
+# cwd, which matters here since the emulator-runner action doesn't respect
+# this job's `defaults.run.working-directory`.
+cd "$(dirname "$0")/../.."
+
 APK=android/app/build/outputs/apk/release/app-release.apk
 PACKAGE=fs.sovereign.edge
 

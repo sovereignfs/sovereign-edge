@@ -1,10 +1,13 @@
+---
+epic: 0
+title: Infrastructure
+status: "✅ Complete — tasks 0.1 through 0.5"
+scope: mobile
+---
+
 # Epic: Infrastructure
 
 > Repo scaffold, RN project setup, CI, and build tooling for iOS/Android.
-
-## Status
-
-✅ Complete — tasks 0.1 through 0.5
 
 ## Overview
 
@@ -36,7 +39,7 @@ tooling for both platforms. No product feature lives here.
   the `Native build` workflow rather than locally — it builds Release,
   installs, launches, and asserts the process is still alive ten seconds
   later on both an iOS simulator and an Android emulator. See the decision
-  in [research 0002](../research/0002-react-native-framework-choice.md).
+  in [research 0002](../../research/0002-react-native-framework-choice.md).
 
 ---
 
@@ -89,7 +92,7 @@ tooling for both platforms. No product feature lives here.
 - `scripts/release/build-ios.sh` and `scripts/release/build-android.sh`
   produce a signed IPA and a signed AAB + APK from source
   (`expo prebuild` → archive/export, or → Gradle). No EAS Build — see
-  [research 0002](../research/0002-react-native-framework-choice.md) — so
+  [research 0002](../../research/0002-react-native-framework-choice.md) — so
   these run locally or in CI, holding the project's own keys throughout.
   `.github/workflows/release.yml` runs the same two scripts in CI
   (`workflow_dispatch` only): the iOS job imports a distribution
@@ -155,7 +158,7 @@ without bundling them into the app binary.
   retry issued `Range: bytes=41943040-` and transferred only the remaining
   92 MB rather than restarting.
 - ✅ Verification is chosen from measurement rather than assumption — see
-  [research 0003](../research/0003-model-verification-hashing.md). Originally
+  [research 0003](../../research/0003-model-verification-hashing.md). Originally
   size + native MD5 (128 MB in ~500 ms, digest matching the host exactly);
   superseded by task 0.5, which made publisher-published SHA-256 both stronger
   and faster.
@@ -199,6 +202,6 @@ managing it.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
-- [research 0003](../research/0003-model-verification-hashing.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
+- [research 0003](../../research/0003-model-verification-hashing.md)

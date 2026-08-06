@@ -57,6 +57,9 @@ jobs:
   ios:
     name: iOS — signed release build
     runs-on: macos-26
+    defaults:
+      run:
+        working-directory: apps/mobile
 
     steps:
       - uses: actions/checkout@v4
@@ -123,7 +126,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SovereignEdge-ios
-          path: dist/ios/SovereignEdge.ipa
+          # upload-artifact resolves `path` from GITHUB_WORKSPACE, not this
+          # job's `defaults.run.working-directory` (only `run:` steps get that).
+          path: apps/mobile/dist/ios/SovereignEdge.ipa
           retention-days: 14
 
       - name: Remove scratch keychain
@@ -133,6 +138,9 @@ jobs:
   android:
     name: Android — signed release build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
 
     steps:
       - uses: actions/checkout@v4
@@ -183,9 +191,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SovereignEdge-android
+          # upload-artifact resolves `path` from GITHUB_WORKSPACE, not this
+          # job's `defaults.run.working-directory` (only `run:` steps get that).
           path: |
-            dist/android/SovereignEdge.aab
-            dist/android/SovereignEdge.apk
+            apps/mobile/dist/android/SovereignEdge.aab
+            apps/mobile/dist/android/SovereignEdge.apk
           retention-days: 14
 
       - name: Remove scratch signing files

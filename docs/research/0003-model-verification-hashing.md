@@ -1,10 +1,18 @@
+---
+id: 3
+title: "Model download verification: hashing strategy"
+status: "Superseded in part — see Update: native SHA-256"
+date: "July 2026"
+author: "Claude Code (session with the developer)"
+scope: mobile
+summary: "Task 0.1.4 / epic 0.4 — how downloaded GGUF weights are verified on device"
+---
+
 # Research 0003 — Model download verification: hashing strategy
 
-**Status:** Superseded in part — see [Update: native SHA-256](#update-native-sha-256-supersedes-the-md5-default)\
-**Date:** July 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Task 0.1.4 / epic [0.4](../epics/infrastructure.md) — how downloaded
-GGUF weights are verified on device\
+See [Update: native SHA-256](#update-native-sha-256-supersedes-the-md5-default)
+for the superseding decision.
+
 **Related:** [0001](0001-concept-and-connector-architecture.md) (model assets
 never bundled), [0002](0002-react-native-framework-choice.md) (Expo chosen
 partly *because* `expo-file-system` provides resumable downloads).
@@ -129,7 +137,7 @@ there. It is now covered by an explicit regression test.
 
 ## Update: native SHA-256 supersedes the MD5 default
 
-**Date:** July 2026 · **Epic task:** [0.5](../epics/infrastructure.md#-05--native-sha-256-hashing)
+**Date:** July 2026 · **Epic task:** [0.5](../epics/mobile/infrastructure.md#-05--native-sha-256-hashing)
 
 The MD5 default was correct given what was measurable at the time, and wrong
 about the thing it did not check: **where catalog digests come from.**

@@ -1,15 +1,19 @@
+---
+id: 2
+title: "React Native framework choice: Expo vs. Community CLI"
+status: decided
+date: "July 2026"
+author: "Claude Code (session with the developer)"
+scope: mobile
+summary: "Task 0.1.1 / epic 0.1 — which React Native toolchain the repo scaffold is built on, and which parts of that toolchain's hosted services are deliberately excluded"
+---
+
 # Research 0002 — React Native framework choice: Expo vs. Community CLI
 
-**Status:** Decided\
-**Date:** July 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Task 0.1.1 / epic [0.1](../epics/infrastructure.md) — which React
-Native toolchain the repo scaffold is built on, and which parts of that
-toolchain's hosted services are deliberately excluded\
 **Related:** [0001](0001-concept-and-connector-architecture.md) decided React
 Native as the client framework but did not pick a toolchain. Affects epic
-[Infrastructure](../epics/infrastructure.md) tasks 0.1–0.4 and epic
-[Mobile App Shell](../epics/mobile-app-shell.md).
+[Infrastructure](../epics/mobile/infrastructure.md) tasks 0.1–0.4 and epic
+[Mobile App Shell](../epics/mobile/mobile-app-shell.md).
 
 ---
 
@@ -64,7 +68,7 @@ are opt-out rather than opt-in:
 - **`expo-updates` (OTA JavaScript delivery)** means the code actually running
   is not the code in the audited, store-reviewed binary. For an AGPL product
   whose entire proposition is verifiable local-only execution, a hot-swap
-  channel undercuts task [1.5 / 0.1.12](../epics/core-inference-chat.md)
+  channel undercuts task [1.5 / 0.1.12](../epics/mobile/core-inference-chat.md)
   (zero-network enforcement and audit) at the concept level, not merely at the
   packet level. It is also, unavoidably, a network callback in an app that
   claims to make none.
@@ -141,7 +145,7 @@ offline verifiability.
   (Homebrew under `/opt/homebrew` belongs to a different macOS account;
   system Ruby is 2.6, below current CocoaPods' minimum), and no Android SDK
   or JDK exists. Rather than chase a per-laptop fix, epic
-  [0.1](../epics/infrastructure.md)'s "boots on both platforms" check is
+  [0.1](../epics/mobile/infrastructure.md)'s "boots on both platforms" check is
   satisfied by GitHub Actions runners, which ship CocoaPods, a JDK, and the
   Android SDK. This makes the check reproducible instead of dependent on one
   machine's setup, and it follows from the no-EAS decision above.

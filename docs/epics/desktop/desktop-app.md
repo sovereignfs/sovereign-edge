@@ -1,11 +1,14 @@
+---
+epic: 9
+title: Desktop App
+status: "📋 Planned"
+scope: desktop
+---
+
 # Epic: Desktop App
 
 > Secondary, optional desktop client. Sequenced after the mobile MVP proves
 > the concept, not built in parallel with it.
-
-## Status
-
-📋 Planned
 
 ## Overview
 
@@ -57,5 +60,5 @@ epic.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)

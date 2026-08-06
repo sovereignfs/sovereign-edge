@@ -1,11 +1,16 @@
+---
+id: 7
+title: "Text-to-speech: chat feature, not a connector"
+status: decided
+date: "August 2026"
+author: "Claude Code (session with the developer)"
+scope: shared
+summary: "Candidate capability — read assistant chat responses aloud, fully offline"
+---
+
 # Research 0007 — Text-to-speech: chat feature, not a connector
 
-**Status:** Decided\
-**Date:** August 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Candidate capability — read assistant chat responses aloud,
-fully offline\
-**Related:** [Core Inference & Chat epic](../epics/core-inference-chat.md),
+**Related:** [Core Inference & Chat epic](../epics/mobile/core-inference-chat.md),
 [research 0006](0006-files-document-summarization.md) (the same
 connector-vs-feature question, same conclusion)
 

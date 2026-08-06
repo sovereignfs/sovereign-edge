@@ -13,23 +13,29 @@ deliberately not carried over — see [Not adopted](#not-adopted-yet).
 ## Three-layer information architecture
 
 ```
-AGENTS.md / CLAUDE.md      ← conventions and hard rules; no task pointer
+AGENTS.md (root) / CLAUDE.md   ← shared conventions and hard rules; no task pointer
     │
-    └─▶ ROADMAP.md         ← chronological index; one row per task; canonical status
+    ├─▶ apps/mobile/AGENTS.md  ← mobile-only: commands, native build mechanics,
+    │                             environment quirks, current implementation state
+    ├─▶ apps/desktop/AGENTS.md ← same, for desktop — stub until epic 9.1
+    │
+    └─▶ ROADMAP.md             ← chronological index; one row per task; canonical status
             │
-            └─▶ docs/epics/<epic>.md   ← full task detail: Goal, Deliverables,
-                                          Dependencies, Review checklist
+            └─▶ docs/epics/{mobile,desktop,shared}/<epic>.md
+                                       ← full task detail: scope/status frontmatter,
+                                          Goal, Deliverables, Dependencies, Review checklist
 ```
 
 Each layer has one job:
 
-| File                     | Job                            | Read it for                                       |
-| ------------------------ | ------------------------------ | ------------------------------------------------- |
-| `AGENTS.md`              | Conventions and hard rules     | How to work here; what must never be violated     |
-| `CLAUDE.md`              | Claude Code adapter            | Nothing — it points at `AGENTS.md`                |
-| `ROADMAP.md`             | Version-ordered task index     | Which tasks exist, their status, which epic file  |
-| `docs/epics/<file>.md`   | Full task spec                 | Goal, deliverables, review checklist              |
-| `docs/research/<n>-*.md` | Decision record                | Why a settled question was settled that way       |
+| File                        | Job                            | Read it for                                       |
+| ---------------------------- | ------------------------------- | ------------------------------------------------- |
+| `AGENTS.md` (root)           | Shared conventions and hard rules | How to work here; what must never be violated, across any app or package |
+| `apps/*/AGENTS.md`           | Per-app conventions            | Commands, native mechanics, environment quirks — never restates the root file |
+| `CLAUDE.md`                  | Claude Code adapter            | Nothing — it points at `AGENTS.md`                |
+| `ROADMAP.md`                 | Version-ordered task index     | Which tasks exist, their status, which epic file  |
+| `docs/epics/{mobile,desktop,shared}/<file>.md` | Full task spec | `scope`/`status` frontmatter, goal, deliverables, review checklist |
+| `docs/research/<n>-*.md`     | Decision record                | Why a settled question was settled that way       |
 
 There is no "next task" pointer in any of these. **The developer assigns the
 next task at session start.** A pointer in a doc goes stale the moment
@@ -46,8 +52,11 @@ task ID** (`<epic>.<seq>`).
 ### Stable IDs vs volatile slots
 
 **Epic task IDs are permanent.** Once `0.4` is assigned it never changes. Use
-epic task IDs in commit subjects, PR titles, doc cross-references, and
-dependency lists.
+epic task IDs in doc cross-references and dependency lists — `ROADMAP.md`'s
+Epic task column, review checklists, other epics' Dependencies. **Not** in
+commit subjects, PR titles, or PR descriptions — matching `sovereign`'s
+convention, work there is described by what it changes, not by a task
+number a reader may not have `docs/epics/` open to resolve.
 
 **Roadmap slot versions are volatile.** A slot like `0.1.4` reflects current
 priority ordering and shifts when work is reprioritised. Look the live slot up
@@ -85,11 +94,13 @@ none, because it looks authoritative.
    `pnpm test` — and then actually exercise the change (see below).
 2. **Update status.** Mark the task ✅ in `ROADMAP.md` *and* the matching
    `docs/epics/<file>.md` heading, in the same PR.
-3. **Bump the version** to the roadmap slot just completed, then run
-   `pnpm prebuild` so the native projects pick it up. Four files must agree —
-   `package.json`, `app.json`, `src/shared/app-info.ts`, and `ROADMAP.md`'s
-   header. See [CONTRIBUTING.md](../CONTRIBUTING.md#pull-requests) for why the
-   prebuild step is not optional.
+3. **Bump the version** — root `package.json` (and `ROADMAP.md`'s header) to
+   the roadmap slot just completed; the shipping app's own `package.json`
+   (`apps/mobile/package.json` today) to its own release version, then run
+   `pnpm prebuild` there so the native projects pick it up. See
+   [CONTRIBUTING.md](../CONTRIBUTING.md#pull-requests) and
+   [apps/mobile/AGENTS.md](../apps/mobile/AGENTS.md) for the app's four-file
+   agreement and why the prebuild step is not optional.
 4. **Record decisions.** If the task settled an open question, write or update
    the research doc and add it to `docs/research/README.md`.
 5. **Open a draft PR** with `gh pr create --draft`. Mark it ready for review
@@ -173,10 +184,21 @@ oversight:
 | `/sv-task-start` etc.         | `sovereign`-specific skills bound to its monorepo layout                                              |
 | Workstreams and legs          | A batching unit for multi-task features; this roadmap is still one task at a time                     |
 | SRS references                | There is no SRS. Research docs and epic files carry the requirement detail                            |
-| Per-package version bumps     | Single app, single `package.json`. Version tracks the roadmap slot of the last completed task         |
 | `docs-parity` test            | Enforces doc coverage of a manifest/SDK surface that does not exist yet — revisit at epic 5 (SDK)     |
 
 Revisit these when the repo outgrows the simpler model, not before.
+
+**Per-package version bumps — adopted**, since the workspace restructure
+outgrew the single-`package.json` model this table used to defer. Root
+`package.json`'s version tracks the roadmap slot of the last completed task
+(mirrors `sovereign`'s own root-version convention: `ROADMAP.md`'s header
+reads from it); each app under `apps/*` carries its own release version,
+bumped independently in that app's own `package.json` when it ships
+something. Release tags follow `sovereign`'s `<slug>-vX.Y.Z` pattern —
+`mobile-vX.Y.Z` today, `desktop-vX.Y.Z` once that app exists. The two
+versions move in lockstep for now because every completed task is still a
+mobile task; they're expected to diverge once desktop tasks are scheduled
+too.
 
 ---
 
@@ -190,5 +212,6 @@ Revisit these when the repo outgrows the simpler model, not before.
 | Which epic a roadmap task belongs to | `ROADMAP.md` → Epic task column                          |
 | Epic file for a given epic ID        | `docs/epics/README.md`                                   |
 | Why a decision was made              | `docs/research/` — index at `docs/research/README.md`    |
-| Project conventions and hard rules   | `AGENTS.md`                                              |
+| Shared conventions and hard rules    | `AGENTS.md` (root)                                       |
+| Mobile/desktop commands, quirks      | `apps/mobile/AGENTS.md` / `apps/desktop/AGENTS.md`       |
 | Setup, branching, commits, PRs, CI   | `CONTRIBUTING.md`                                        |

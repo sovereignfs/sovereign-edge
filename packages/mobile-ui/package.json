@@ -1,0 +1,9 @@
+{
+  "name": "mobile-ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "React Native (View/Text-based) component set, consuming design-tokens. Currently still inline in apps/mobile/src/design-system/components/ — not extracted yet.",
+  "license": "AGPL-3.0-or-later",
+  "main": "index.ts",
+  "scripts": {}
+}

@@ -1,12 +1,15 @@
+---
+epic: 2
+title: Connector Framework
+status: "⏳ In Progress"
+scope: mobile
+---
+
 # Epic: Connector Framework
 
 > The manifest schema, permission/consent model, tool-routing, and tiered
 > trust runtime that every connector — first-party or, eventually,
 > third-party — is built on.
-
-## Status
-
-⏳ In Progress
 
 ## Overview
 
@@ -52,7 +55,7 @@ or third-party — conforms to.
   and it passes unmodified.
 
 **Design decisions are in
-[research 0004](../research/0004-connector-manifest-schema.md).** Two shape
+[research 0004](../../research/0004-connector-manifest-schema.md).** Two shape
 everything else:
 
 - **No expression language, no string interpolation.** A request is literal
@@ -158,7 +161,7 @@ nothing reaches the network until the user decides again.
 a native module, so this needed a rebuild rather than a Metro reload. The
 rebuild silently added `USE_BIOMETRIC` and `USE_FINGERPRINT` to the Release
 manifest — invalidating
-[docs/network-audit.md](../network-audit.md)'s "exactly one permission" claim
+[docs/network-audit.md](../../network-audit.md)'s "exactly one permission" claim
 within hours of it being written. Both are blocked now, and the audit carries
 a standing instruction to re-check the merged manifest whenever a native
 dependency is added.
@@ -441,9 +444,9 @@ scaffolding, not a feature with its own product surface.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
-- [research 0005](../research/0005-calendar-connector.md) (the Tier 3
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
+- [research 0005](../../research/0005-calendar-connector.md) (the Tier 3
   classification finding that motivated task 2.6)
 
 ## Cross-references

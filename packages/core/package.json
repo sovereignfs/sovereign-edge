@@ -1,0 +1,9 @@
+{
+  "name": "core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Platform-agnostic business logic shared between apps/mobile and apps/desktop: connector manifest schema/validator, permission state machine, tool-routing decision logic, and the platform-adapter interfaces (engine, secure storage, native handlers) each app implements.",
+  "license": "AGPL-3.0-or-later",
+  "main": "index.ts",
+  "scripts": {}
+}

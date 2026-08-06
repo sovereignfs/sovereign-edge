@@ -1,12 +1,15 @@
+---
+epic: 3
+title: Search Connector
+status: "✅ Done"
+scope: mobile
+---
+
 # Epic: Search Connector
 
 > The Search connector — the first real, non-test consumer of the
 > [Connector Framework](connector-framework.md), and the one connector that
 > ships in the Phase 1 MVP.
-
-## Status
-
-✅ Done
 
 ## Overview
 
@@ -228,6 +231,6 @@ ever observed resolving to `answered` rather than `tool-call` or `blocked`.
 
 ## Related Docs
 
-- [CONCEPT.md](../../CONCEPT.md)
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
 - [Connector Framework](connector-framework.md)

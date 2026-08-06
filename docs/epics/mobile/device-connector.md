@@ -1,11 +1,14 @@
+---
+epic: 11
+title: Device Connector
+status: "📋 Planned"
+scope: mobile
+---
+
 # Epic: Device Connector
 
 > A first-party Tier 3 connector for simple, low-sensitivity on-device
 > hardware toggles — flashlight and screen brightness.
-
-## Status
-
-📋 Planned
 
 ## Overview
 
@@ -15,7 +18,7 @@ API surface and found neither achievable as a silent, programmatic action —
 iOS exposes no alarm API to third-party apps at all, and Android's
 `AlarmClock` intents only hand off to whichever clock app is installed, with
 no way to enumerate or delete existing alarms. Alarms are dropped from scope
-entirely; see [research 0009](../research/0009-device-connector.md) for the
+entirely; see [research 0009](../../research/0009-device-connector.md) for the
 full findings.
 
 Like [Calendar](calendar-connector.md), this is a **Tier 3** connector —
@@ -60,8 +63,8 @@ doesn't meaningfully exist to build against on either platform.
 
 ## Related Docs
 
-- [research 0001](../research/0001-concept-and-connector-architecture.md)
-- [research 0009](../research/0009-device-connector.md)
+- [research 0001](../../research/0001-concept-and-connector-architecture.md)
+- [research 0009](../../research/0009-device-connector.md)
 - [Connector Framework](connector-framework.md) (task 2.6, the Tier 3
   scaffolding this epic depends on)
 

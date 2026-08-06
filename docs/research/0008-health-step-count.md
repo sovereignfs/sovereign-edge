@@ -1,17 +1,21 @@
+---
+id: 8
+title: "Health connector: why \"step count\" isn't HealthKit"
+status: "Decided (redefine scope) — parked pending a paid Apple Developer account for anything beyond step count"
+date: "August 2026"
+author: "Claude Code (session with the developer)"
+scope: mobile
+summary: "Candidate connector — health data, proposed to start from step count"
+---
+
 # Research 0008 — Health connector: why "step count" isn't HealthKit
 
-**Status:** Decided (redefine scope) — parked pending a paid Apple Developer
-account for anything beyond step count\
-**Date:** August 2026\
-**Author:** Claude Code (session with the developer)\
-**Scope:** Candidate connector — health data, proposed to start from step
-count\
 **Related:** [research 0002](0002-react-native-framework-choice.md) (the
 "no EAS, project holds its own keys" decision — unrelated mechanism, same
 kind of paid-account dependency), task 0.3 / epic
-[Infrastructure](../epics/infrastructure.md) (established that this project
-currently has only a free Apple Personal Team, no paid Developer Program
-membership)
+[Infrastructure](../epics/mobile/infrastructure.md) (established that this
+project currently has only a free Apple Personal Team, no paid Developer
+Program membership)
 
 ---
 
@@ -116,10 +120,10 @@ that hasn't been built.
 
 **Not yet scheduled**, unlike Calendar and Device: those two were
 prioritized into [ROADMAP.md](../../ROADMAP.md) Phase 2 (0.2.2, 0.2.3) with
-their own epics ([calendar-connector.md](../epics/calendar-connector.md),
-[device-connector.md](../epics/device-connector.md)); step-count was not
+their own epics ([calendar-connector.md](../epics/mobile/calendar-connector.md),
+[device-connector.md](../epics/mobile/device-connector.md)); step-count was not
 picked up in that pass. It is blocked on the same task
-[2.6](../epics/connector-framework.md#-26--tier-3-connector-scaffolding)
+[2.6](../epics/mobile/connector-framework.md#-26--tier-3-connector-scaffolding)
 (Tier 3 scaffolding) either way, and — per the Decisions above — is smaller
 and lower-risk than Calendar once that lands. Whoever picks this up next
 should write its own epic (mirroring calendar-connector.md /
