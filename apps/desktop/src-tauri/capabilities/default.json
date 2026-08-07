@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window's baseline capability (task 12.1). Grants only `core:default` — the permission set Tauri itself needs to create and manage a window, nothing app-specific. No command any connector or feature adds is capability-gated here; each one gets its own named permission when it's added, the same per-capability, denied-unless-explicit shape task 2.6 established on mobile (see research 0010's security-model finding).",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

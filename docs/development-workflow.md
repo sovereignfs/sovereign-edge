@@ -17,7 +17,8 @@ AGENTS.md (root) / CLAUDE.md   ← shared conventions and hard rules; no task po
     │
     ├─▶ apps/mobile/AGENTS.md  ← mobile-only: commands, native build mechanics,
     │                             environment quirks, current implementation state
-    ├─▶ apps/desktop/AGENTS.md ← same, for desktop — stub until epic 9.1
+    ├─▶ apps/desktop/AGENTS.md ← same, for desktop — real since task 12.1
+    │                             (Tauri scaffold); most of epic 12 still stub
     │
     └─▶ ROADMAP.md             ← chronological index; one row per task; canonical status
             │

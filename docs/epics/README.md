@@ -45,9 +45,10 @@ file lives in; only the path changes.
 
 ## Desktop
 
-| ID  | Epic                                    | Status     | Summary                                                                |
-| --- | ------------------------------------------ | ---------- | --------------------------------------------------------------------------- |
-| 9   | [Desktop App](desktop/desktop-app.md)      | 📋 Planned | Secondary, optional desktop client — shell technology not yet decided |
+| ID  | Epic                                       | Status      | Summary                                                                     |
+| --- | -------------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
+| 9   | [Desktop Shell](desktop/shell.md)           | ✅ Complete | Shell technology decision — Tauri v2, over Electron and a React Native shell |
+| 12  | [Desktop Core Port](desktop/core-port.md)   | ⏳ In Progress | Secondary, optional desktop client on Tauri — scaffold done (12.1), inference/connector framework/chat UI not started (12.2–12.7) |
 
 ## Shared
 

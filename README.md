@@ -20,7 +20,8 @@ Fully standalone. No runtime dependency on [`sovereign`](https://github.com/sove
 and it works with zero knowledge that `sovereign` exists.
 
 This repo is a pnpm workspace: `apps/mobile` is the shipping product below;
-`apps/desktop` is a placeholder pending epic 9.1 (shell technology spike);
+`apps/desktop` is a placeholder — shell technology decided (Tauri v2, see
+[research 0010](docs/research/0010-desktop-shell-technology.md)), no code yet;
 `packages/*` are internal, unpublished code shared between them.
 
 See [CONCEPT.md](CONCEPT.md) for the full concept paper.
@@ -82,7 +83,9 @@ that split exists and what mobile app stores actually allow.
 
 Everything below is about `apps/mobile` — the only app that exists yet. See
 [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) for the full command list and
-environment quirks; a desktop equivalent lands once epic 9.1 resolves.
+environment quirks; a desktop equivalent lands once epic 12 (the desktop
+port — task 12.1's scaffold is done, the rest has not started) gets further
+along.
 
 ### Requirements
 
@@ -177,7 +180,7 @@ sovereign-edge/
 │   ├── mobile/          # the shipping product — see apps/mobile/AGENTS.md
 │   │   ├── src/          # chat, models, connectors, design-system, settings
 │   │   └── ...
-│   └── desktop/          # placeholder — blocked on epic 9.1
+│   └── desktop/          # Tauri v2 scaffold only (task 12.1) — see apps/desktop/AGENTS.md
 ├── packages/             # internal, unpublished, shared between the apps
 │   ├── core/              # empty scaffold — connector manifest/permissions/
 │   │   ...                # routing, eventually extracted from apps/mobile

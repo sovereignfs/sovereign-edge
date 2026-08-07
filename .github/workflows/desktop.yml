@@ -1,0 +1,106 @@
+name: Desktop build
+
+# The boot gate for epic 12 (Desktop Core Port), task 12.1 — proves the
+# scaffold actually compiles, lints clean, and launches on macOS, Windows,
+# and Linux, the same role native.yml plays for mobile. Deliberately not on
+# every PR: a full Rust compile is slow, and ci.yml (lint/typecheck/format
+# for the frontend, via the shared root scripts) already catches the cheap
+# failures for both apps.
+#
+# Debug build, not Release: this task has no distributable artifact to
+# produce yet — bundling, signing, and notarization are later tasks' job
+# (research 0010 left auto-update/signing as an open question). The review
+# checklist only asks to "build and launch," which a debug build proves just
+# as well and faster.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+    working-directory: apps/desktop
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+          - os: windows-latest
+            name: Windows
+          - os: ubuntu-latest
+            name: Linux
+    name: ${{ matrix.name }} — build and launch
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      # Tauri's own documented Ubuntu requirement — webkit2gtk 4.1
+      # specifically (not 4.0: Tauri v2 moved to soup3). xvfb is not a build
+      # dependency; it is what makes the launch-smoke step below possible on
+      # a display-less runner.
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xvfb
+
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Rust format check
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build (debug)
+        run: pnpm tauri build --debug --no-bundle
+
+      # macOS and Windows runners provide a real (if headless) display
+      # session already; Linux does not, hence xvfb-run here specifically —
+      # see the Tauri CI docs this mirrors.
+      - name: Launch and confirm still running
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            xvfb-run --auto-servernum node scripts/ci/launch-smoke.js
+          else
+            node scripts/ci/launch-smoke.js
+          fi

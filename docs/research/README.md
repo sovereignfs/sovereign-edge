@@ -34,3 +34,4 @@ so don't expect these to migrate the way an epic's scope can.
 | [0007](0007-text-to-speech.md)                     | Text-to-speech: chat feature, not a connector                             | Decided                    | Shared  |
 | [0008](0008-health-step-count.md)                  | Health connector: why "step count" isn't HealthKit                        | Decided (redefine scope)   | Mobile  |
 | [0009](0009-device-connector.md)                   | Device connector: what's actually left after alarms drop out              | Decided                    | Mobile  |
+| [0010](0010-desktop-shell-technology.md)           | Desktop shell technology: Tauri vs. Electron vs. React Native desktop     | Decided                    | Desktop |

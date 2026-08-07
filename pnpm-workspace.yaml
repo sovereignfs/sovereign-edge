@@ -1,7 +1,7 @@
-# Workspace member globs. `apps/*` are shippable products (mobile today,
-# desktop once epic 9.1 picks a shell); `packages/*` are internal, unpublished
-# libraries shared between them — nothing here is meant to be installed from
-# outside this repo.
+# Workspace member globs. `apps/*` are shippable products (mobile today;
+# desktop is Tauri v2, epic 9, but only has scaffolding so far — epic 12);
+# `packages/*` are internal, unpublished libraries shared between them —
+# nothing here is meant to be installed from outside this repo.
 packages:
   - 'apps/*'
   - 'packages/*'
@@ -19,3 +19,6 @@ packages:
 allowBuilds:
   llama.rn: true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - vite@8.2.1

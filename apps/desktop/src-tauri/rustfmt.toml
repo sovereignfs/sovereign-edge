@@ -1,0 +1,5 @@
+# Task 12.1 — this repo's first Rust surface. Defaults only, pinned rather
+# than left to whatever `rustfmt` version a contributor's machine happens to
+# have, matching the same "Prettier is the formatting source of truth"
+# stance the TS side takes (see the root .prettierrc.json).
+edition = "2021"

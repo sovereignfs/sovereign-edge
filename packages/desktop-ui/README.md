@@ -1,15 +1,16 @@
 # `packages/desktop-ui`
 
-Empty scaffold — not populated yet, and may turn out unnecessary.
+Empty scaffold — not populated yet, but epic 9 (Desktop Shell, see
+`docs/epics/desktop/shell.md`) has resolved this package's fate: **needed**.
+Desktop is Tauri v2 (a React DOM frontend), not
+`react-native-macos`/`-windows` — see
+[research 0010](../../docs/research/0010-desktop-shell-technology.md) — so
+this package is not dead weight. It needs its own component set matching
+`apps/mobile/src/design-system`'s (`ThemeProvider`, `Button`, `ChatBubble`,
+`ListItem`, `TextField`, `Toggle`), built against `packages/design-tokens`
+for React DOM rather than React Native primitives.
 
-Whether this package is needed at all is decided by epic 9.1 (desktop shell
-technology spike, see `docs/epics/desktop/desktop-app.md`):
-
-- If desktop uses `react-native-macos`/`react-native-windows`, it can likely
-  consume `packages/mobile-ui` directly (same RN primitives) and this
-  package never needs real content.
-- If desktop uses Tauri or Electron with a web frontend (React DOM or
-  similar), it needs its own component set built against
-  `packages/design-tokens`, and this is where that lives.
-
-Do not populate this ahead of the 9.1 decision — it may be dead weight.
+Still not populated ahead of epic 12 (Desktop Core Port — see
+`docs/epics/desktop/core-port.md`) reaching task 12.6, its own initial
+component-set task — that's what gives this package real consumers to build
+against, not this doc.

@@ -177,8 +177,9 @@ left as open research questions:
 
 ## Open questions
 
-- **Desktop shell technology** (Tauri vs. Electron vs. something else) — not
-  decided; revisit once the mobile MVP has shipped.
+- ~~**Desktop shell technology** (Tauri vs. Electron vs. something else) —
+  not decided; revisit once the mobile MVP has shipped.~~ Resolved: Tauri v2,
+  see [research 0010](0010-desktop-shell-technology.md).
 - **Tier 2 sandboxed-script runtime** (an embedded Hermes isolate vs. QuickJS
   vs. WASM) — needs a spike once a real Tier 2 connector use case exists;
   none of the Phase 1/2 default connectors currently need more than Tier 1

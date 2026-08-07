@@ -10,11 +10,12 @@ Agent-facing guidance lives in [AGENTS.md](AGENTS.md); the task lifecycle is
 in [docs/development-workflow.md](docs/development-workflow.md).
 
 This is a workspace of two apps — `apps/mobile` (shipping) and `apps/desktop`
-(pending epic 9.1) — plus internal `packages/*`. **Development setup, Running
-the app, and Running on a physical iOS device below are all about
-`apps/mobile`**, the only app that exists yet; a desktop equivalent gets added
-once epic 9.1 lands. Branching, commits, pull requests, and CI are
-workspace-wide and apply to any app or package.
+(shell technology decided — Tauri v2 — no code yet) — plus internal
+`packages/*`. **Development setup, Running the app, and Running on a
+physical iOS device below are all about `apps/mobile`**, the only app that
+exists yet; a desktop equivalent gets added once epic 12 (the desktop
+port) lands. Branching, commits, pull requests, and CI are workspace-wide
+and apply to any app or package.
 
 ## Contents
 
