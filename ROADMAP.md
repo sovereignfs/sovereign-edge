@@ -85,13 +85,32 @@ store, and turn on monetization.
 
 ## Desktop
 
-Secondary, optional. Out of scope until Phase 1 mobile ships. Shell
-technology not yet decided — see [research 0001](docs/research/0001-concept-and-connector-architecture.md#open-questions).
+Secondary, optional. Still sequenced after mobile — epic 12 (Desktop Core
+Port) has not started, and picking it up next vs. finishing mobile's own
+remaining Phase 1 item (0.1.20) first is an open scheduling call, not
+decided here. Shell technology **is** now decided — task 9.1 was
+deliberately pulled forward as a scoping/planning pass, on the developer's
+explicit instruction, ahead of 0.1.20 closing out Phase 1: see
+[research 0010](docs/research/0010-desktop-shell-technology.md) (Tauri v2,
+over Electron and a React Native desktop shell). Epic 9 (Desktop Shell) held
+only that decision and is now closed; epic 12 (Desktop Core Port) holds the
+rest of the desktop work, broken into 7 tasks (12.1–12.7) sized to match
+mobile's own epic granularity — see [core-port.md](docs/epics/desktop/core-port.md).
 
 ### Non-prioritised tasks
 
+Desktop app code — no version slot assigned yet; `apps/desktop/package.json`
+stays at `0.0.0` until epic 12 ships something, per this repo's own
+per-app versioning convention.
+
 | Version | Task                                                | Status | Scope   | Epic task                                                                             |
 | ------- | ------------------------------------------------------ | ------ | ------- | ------------------------------------------------------------------------------------------ |
-| —       | Desktop shell technology spike                        | 📋     | Desktop | [9.1](docs/epics/desktop/desktop-app.md#-91--desktop-shell-technology-spike)                     |
-| —       | Desktop port of core inference and connector framework | 📋     | Desktop | [9.2](docs/epics/desktop/desktop-app.md#-92--desktop-port-of-core-inference-and-connector-framework) |
+| —       | Desktop shell technology spike                        | ✅     | Desktop | [9.1](docs/epics/desktop/shell.md#-91--desktop-shell-technology-spike)                     |
+| —       | Tauri app scaffold and build tooling                  | ✅     | Desktop | [12.1](docs/epics/desktop/core-port.md#-121--tauri-app-scaffold-and-build-tooling)                   |
+| —       | Rust `llama.cpp` `EngineAdapter` and model manager    | 📋     | Desktop | [12.2](docs/epics/desktop/core-port.md#-122--rust-llamacpp-engineadapter-and-model-manager)          |
+| —       | `SecureStorageAdapter` over the OS credential store   | 📋     | Desktop | [12.3](docs/epics/desktop/core-port.md#-123--securestorageadapter-over-the-os-credential-store)      |
+| —       | Connector framework port (Tier 1)                     | 📋     | Desktop | [12.4](docs/epics/desktop/core-port.md#-124--connector-framework-port-tier-1)                        |
+| —       | Tier 3 native handler registry (Tauri)                | 📋     | Desktop | [12.5](docs/epics/desktop/core-port.md#-125--tier-3-native-handler-registry-tauri)                   |
+| —       | `packages/desktop-ui` initial component set           | 📋     | Desktop | [12.6](docs/epics/desktop/core-port.md#-126--packagesdesktop-ui-initial-component-set)               |
+| —       | Minimal offline chat UI                               | 📋     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

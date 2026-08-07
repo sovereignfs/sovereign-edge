@@ -28,6 +28,12 @@ apps/mobile/modules/*/ios/build/
 *.mobileprovision
 release.keystore.properties
 
+# Rust/Tauri build output (task 12.1) — Cargo.toml, src/*.rs, tauri.conf.json,
+# and capabilities/*.json are checked-in source; only cargo's own build
+# artifacts and Tauri's generated capability schemas are not.
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
 # Metro
 .metro-health-check*
 
