@@ -1,0 +1,192 @@
+---
+epic: 14
+title: Desktop Distribution & Signing
+status: "📋 Not Started"
+scope: desktop
+---
+
+# Epic: Desktop Distribution & Signing
+
+> How the app actually reaches and updates on a user's machine — real
+> installable artifacts, code-signed and notarized, that can update
+> themselves. The desktop equivalent of
+> [Mobile App Shell](../mobile/mobile-app-shell.md)'s task 8.2 (store
+> release setup) in role, but not in shape: desktop has no app store to
+> submit to or piggyback update delivery on.
+
+## Overview
+
+[Desktop App Shell](app-shell.md) (epic 13) deliberately deferred this:
+"store/distribution release setup (code signing, notarization, an
+installer or update mechanism)... Desktop currently ships only as a local
+debug binary (`cargo build`, `scripts/ci/launch-smoke.js`); nothing about
+*how the app reaches a user's machine* is decided yet, and deciding it
+isn't this epic's job. A future epic once there's a reason to build it,
+same call core-port.md made about this epic before it existed." Epics 12
+and 13 are both done now — a real, working desktop app with nothing to
+actually hand a user. That's the reason.
+
+**This is a genuine blank slate, not a decision to un-make.**
+[research 0010](../../research/0010-desktop-shell-technology.md) (the
+doc that chose Tauri v2) flagged the question explicitly but didn't answer
+it: "Tauri has a first-party updater plugin, but this product's own
+model — direct sale, no store review gate — means the update mechanism and
+code-signing/notarization requirements need their own pass before task
+12.1 (build tooling) or any later release-packaging task ships anything."
+Nothing since has chosen an updater plugin, a bundler target set, or a
+signing approach — `tauri.conf.json`'s `bundle` block is still Tauri's
+bare default (`"targets": "all"`, icons only, no `updater` key, no
+platform-specific signing config), and no crate or CI secret for signing
+exists anywhere in the repo.
+
+**Why "direct sale, no store review gate" changes the shape of this work,
+not just its name:** mobile's task 8.2 is entirely about App Store
+Connect/Play Console listings and privacy disclosures — Apple and Google
+own the signing, distribution, and update mechanism once a build is
+submitted. Desktop has none of that. Every piece mobile gets for free from
+the platform — a trusted signature, a distribution channel, an update
+check — is this epic's own job to build.
+
+**Deliberately out of scope:**
+
+- **Paid-connector purchase flow** ([Monetization](../shared/monetization.md)
+  epic 6, task 6.3, "Desktop direct-sale flow"). That epic's "direct sale"
+  means *selling a connector entitlement inside the running app*; this
+  epic's concern is *how the app binary itself reaches and updates on a
+  user's machine*. Genuinely orthogonal — 6.3 depends on the app existing
+  and running, not on anything this epic decides.
+- **Windows/Linux code-signing certificates and hands-on verification.**
+  This environment is macOS-only, the same gap every desktop task since
+  12.1 has carried for build/launch checks. Where a task's review checklist
+  needs a signed Windows or Linux artifact verified by hand, that's flagged
+  as an honest gap, not faked — mirroring `CONTRIBUTING.md`'s own
+  admission that "no code signing certificates are available" for mobile's
+  CI today.
+- **A polished "update available" UI.** Proving the update mechanism works
+  needs *some* visible signal (at minimum, a log line or a version string
+  changing after relaunch) — a real settings-screen notification treatment
+  is future work, not required by this epic's own review checklists.
+
+## Tasks
+
+#### 📋 14.1 — Real installer artifacts per platform
+
+**Goal:** Something a user can actually download and run — not
+`cargo build`'s debug binary — for at least macOS, the platform this can be
+verified on directly.
+
+**Deliverables:**
+
+- `tauri.conf.json`'s `bundle.targets` set explicitly per platform (macOS
+  `.app`/`.dmg`; Windows NSIS `.exe` or `.msi`; Linux `.deb`/`.AppImage`),
+  replacing the current bare `"all"` default with a deliberate choice —
+  this task's own implementation call, not decided here.
+- A real, unsigned release build producing at least a macOS artifact.
+
+**Dependencies:** None (epics 12, 13 done).
+
+**Review checklist:**
+
+- The produced macOS artifact actually installs (drag-to-Applications or
+  equivalent) and launches on this machine from a location outside the
+  build directory — proving it's a real relocatable bundle, not an
+  artifact of running from `target/`.
+
+---
+
+#### 📋 14.2 — Code signing and notarization
+
+**Goal:** A build macOS Gatekeeper accepts without a "can't be opened
+because Apple cannot check it for malicious software" warning — the
+baseline trust signal mobile gets for free from App Store review.
+
+**Deliverables:**
+
+- `tauri.conf.json`'s macOS signing config
+  (`bundle.macOS.signingIdentity`, entitlements as needed) wired to a real
+  Apple Developer ID certificate, and the notarization step (`xcrun
+  notarytool` or Tauri's own notarization support) run against a real
+  build.
+- Windows/Linux signing config at least scaffolded (same shape task 12.5's
+  `capabilities/default.json` used: named, not wildcarded) even where the
+  actual certificate isn't available to test with here — a real, honest gap
+  flagged rather than skipped silently.
+
+**Dependencies:** Task 14.1.
+
+**Review checklist:**
+
+- A freshly built, signed, notarized macOS artifact opens with a plain
+  double-click on this machine with no Gatekeeper warning — verified for
+  real, the same "run it and look" bar every desktop task has held to
+  since 12.2's `engine_smoke.rs`.
+
+---
+
+#### 📋 14.3 — Update mechanism
+
+**Goal:** The app can check for and install its own updates — research
+0010's own flagged consequence of shipping outside an app store.
+
+**Deliverables:**
+
+- `tauri-plugin-updater` integrated, with a real signing keypair for
+  update artifacts (distinct from the code-signing certificate in 14.2 —
+  Tauri's updater has its own Ed25519 signature scheme).
+- An update-manifest hosting decision (where the "is there a new version"
+  JSON and signed artifacts actually live) — this task's own implementation
+  call; a static file host is the obvious minimum, nothing more elaborate
+  invented speculatively here.
+
+**Dependencies:** Task 14.2 (an update artifact should be signed the same
+way a fresh install is).
+
+**Review checklist:**
+
+- A real, on-device round trip: install an old version, publish a newer
+  signed update, launch the old build, and watch it detect, download, and
+  apply the update — the actual version string changing after relaunch is
+  the proof, not a log line claiming success.
+
+---
+
+#### 📋 14.4 — Release pipeline
+
+**Goal:** A repeatable, automated way to go from a version bump to a
+signed, distributable release — not a sequence of manual steps run once
+and forgotten.
+
+**Deliverables:**
+
+- A CI workflow producing signed artifacts (14.1–14.3) from a tagged
+  commit or version bump, mirroring whatever convention mobile's own CI
+  already establishes for its release builds.
+- Desktop's version fields (`apps/desktop/package.json`,
+  `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` — all still `0.0.0`
+  since task 12.1's scaffold) actually get bumped as part of a release,
+  closing the gap `ROADMAP.md` has flagged since epic 12 started
+  ("stays at `0.0.0` until [desktop] ships something").
+
+**Dependencies:** Tasks 14.1, 14.2, 14.3.
+
+**Review checklist:**
+
+- Running the pipeline against a tagged commit produces a downloadable,
+  signed artifact set whose version matches the tag, without a manual
+  signing step run by hand.
+
+## Related Docs
+
+- [CONCEPT.md](../../../CONCEPT.md)
+- [research 0010](../../research/0010-desktop-shell-technology.md) — the
+  doc that flagged this epic's own open question and left it for this
+  epic to close
+- [Desktop App Shell](app-shell.md) (epic 13) — the epic this one was
+  deferred out of
+- [Desktop Core Port](core-port.md) (epic 12) — the app this epic
+  distributes
+- [Mobile App Shell](../mobile/mobile-app-shell.md) (epic 8), task 8.2 —
+  the mobile equivalent this one mirrors in role, not in shape
+- [Monetization](../shared/monetization.md) (epic 6), task 6.3 — a
+  distinct, non-overlapping concern (paid-connector purchase, not app
+  distribution) that happens to share "desktop direct sale" language

@@ -31,12 +31,15 @@ for what each task delivered.
 
 ## Before writing more code here
 
-Epics 12 and 13 are both closed. Nothing desktop-specific is currently
-scoped — check `ROADMAP.md` for what's next (mobile's own remaining Phase 1
-item, 0.1.20, or a new desktop epic once there's a reason for one; a real
-distribution/signing/update pipeline was explicitly deferred out of epic 13,
-per its own "deliberately out of scope" note). `packages/mobile-ui` stays
-irrelevant to any future desktop work either way: Tauri renders a web
+Epics 12 and 13 are both closed. Epic 14 (Desktop Distribution & Signing —
+real signed/notarized installer artifacts and a self-update mechanism) is
+scoped but not started; see
+[docs/epics/desktop/distribution.md](../../docs/epics/desktop/distribution.md).
+Check `ROADMAP.md` before starting anything here: whether epic 14 continues
+next, mobile's own remaining Phase 1 item (0.1.20), or something else is
+actually scheduled is an open call, not decided by this file.
+`packages/mobile-ui` stays irrelevant to any future desktop work either
+way: Tauri renders a web
 frontend, not React Native primitives.
 
 ## State of play

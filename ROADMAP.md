@@ -102,13 +102,20 @@ tool-calling, and a minimal offline chat UI exercising all of it. Epic 13
 (Desktop App Shell) is also **all done**: real navigation, a model manager
 screen, a connectors/permissions screen, and general settings, extracted
 from what task 12.7's chat screen used to do inline; see
-[app-shell.md](docs/epics/desktop/app-shell.md).
+[app-shell.md](docs/epics/desktop/app-shell.md). Epic 14 (Desktop
+Distribution & Signing) is now scoped — real signed/notarized installer
+artifacts and a self-update mechanism, since desktop ships with no app
+store to piggyback signing/distribution/updates on (research 0010's own
+flagged, previously-unanswered question) — but not started and not yet
+scheduled into a phase; see
+[distribution.md](docs/epics/desktop/distribution.md).
 
 ### Non-prioritised tasks
 
 Desktop app code — no version slot assigned yet; `apps/desktop/package.json`
-stays at `0.0.0` until epic 12 ships something, per this repo's own
-per-app versioning convention.
+stays at `0.0.0` until it actually ships a release (epic 14's own job to
+define what that means), per this repo's own per-app versioning
+convention.
 
 | Version | Task                                                | Status | Scope   | Epic task                                                                             |
 | ------- | ------------------------------------------------------ | ------ | ------- | ------------------------------------------------------------------------------------------ |
@@ -126,4 +133,8 @@ per-app versioning convention.
 | —       | Connectors & permissions screen                       | ✅     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |
 | —       | General settings screen                               | ✅     | Desktop | [13.4](docs/epics/desktop/app-shell.md#-134--general-settings-screen)                                |
 | —       | Chat screen consolidation                             | ✅     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
+| —       | Real installer artifacts per platform                 | 📋     | Desktop | [14.1](docs/epics/desktop/distribution.md#-141--real-installer-artifacts-per-platform)               |
+| —       | Code signing and notarization                         | 📋     | Desktop | [14.2](docs/epics/desktop/distribution.md#-142--code-signing-and-notarization)                       |
+| —       | Update mechanism                                      | 📋     | Desktop | [14.3](docs/epics/desktop/distribution.md#-143--update-mechanism)                                    |
+| —       | Release pipeline                                      | 📋     | Desktop | [14.4](docs/epics/desktop/distribution.md#-144--release-pipeline)                                    |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |
