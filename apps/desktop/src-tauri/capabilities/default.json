@@ -16,6 +16,8 @@
     "allow-generate",
     "allow-cancel-generation",
     "allow-device-info",
-    "allow-generate-chat"
+    "allow-generate-chat",
+    "allow-connector-status",
+    "allow-set-search-connector-granted"
   ]
 }

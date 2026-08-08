@@ -11,25 +11,24 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 A Tauri window with real on-device inference (task 12.2), per-connector
 credential storage (task 12.3), a working Tier 1 (HTTP) connector runtime
 (task 12.4), a Tier 3 native handler registry (task 12.5, `device_info`),
-a real `desktop-ui` component set (task 12.6), and grammar-constrained
+a real `desktop-ui` component set (task 12.6), grammar-constrained
 tool-calling wired through routing/orchestration into a `generate_chat`
-command (task 12.7a) behind it — but `src/App.tsx` is still just a
-component gallery proving the pieces render, not the real chat UI. Tasks
-12.1–12.6 and 12.7a are done; see
+command (task 12.7a), and a real chat screen consuming all of it (task
+12.7) — `src/App.tsx` → `src/chat/ChatScreen.tsx`. Epic 12 (Desktop Core
+Port) is done: all of tasks 12.1–12.7 and 12.7a; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
-for the remaining task (12.7) and what it depends on.
+for what each task actually delivered.
 
 ## Before writing more code here
 
-1. Task 12.7 (minimal offline chat UI) is next, and depends on 12.2, 12.4,
-   12.6, and 12.7a (all done). This is still "one task at a time, sequenced"
-   per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
-   mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
-   before starting.
-2. `src/App.tsx`'s current contents (a component gallery, task 12.6's own
-   verification artifact) are meant to be replaced by 12.7's real chat
-   screen, not extended — `packages/mobile-ui` stays irrelevant here either
-   way: Tauri renders a web frontend, not React Native primitives.
+Epic 12 is closed. The next desktop work is a real app shell (navigation,
+settings, per-connector permission UI) — deliberately out of this epic's
+scope per `core-port.md`'s own note, its own future epic once there's a
+reason to build it, not started. Check `ROADMAP.md` before starting
+anything here: whether that shell work, mobile's own remaining Phase 1 item
+(0.1.20), or something else is actually scheduled next is an open call, not
+decided by this file. `packages/mobile-ui` stays irrelevant here either
+way: Tauri renders a web frontend, not React Native primitives.
 
 ## State of play
 
@@ -38,9 +37,8 @@ for the remaining task (12.7) and what it depends on.
   `apps/mobile/src/models/` closely (`packages/core` still hasn't been
   extracted). `lib.rs` registers Tauri commands
   (`list_models`/`install_model`/`load_model`/`generate`/etc.) over them,
-  plus a best-effort startup bootstrap that loads the last-used model. No
-  frontend consumes these yet — `src/App.tsx` still renders task 12.6's
-  component gallery, not a real chat screen; that's task 12.7's job.
+  plus a best-effort startup bootstrap that loads the last-used model.
+  Consumed by the real chat screen since task 12.7 — see below.
 - **Verified on macOS only.** `cargo fmt --check` and
   `cargo clippy --all-targets -- -D warnings` are clean.
   `src-tauri/tests/engine_smoke.rs` (`#[ignore]`d — downloads a real ~490MB
@@ -157,6 +155,29 @@ for the remaining task (12.7) and what it depends on.
   0.5B model forced to call a granted Search-connector fixture against a
   local test server — real grammar-constrained JSON, real HTTP dispatch,
   real folded final answer tagged `connector: Some("Search")`.
+- **Real chat screen (12.7).** `src/chat/ChatScreen.tsx` replaces task
+  12.6's component gallery — model list (install/load dispatch, mirroring
+  `ModelsScreen.tsx`), message list via `ChatBubble`, streaming via the
+  `generate-token` event, and a `Toggle` next to the Search connector's
+  `ListItem` as the only consent lever (no Settings → Connectors screen
+  exists yet, out of this epic's scope) — bound to two new commands,
+  `connector_status`/`set_search_connector_granted`, added because the
+  checklist needed a way to actually grant the connector, not
+  speculatively. `src/lib/tauri.ts` is a thin typed `invoke`/`listen`
+  wrapper layer; every field's casing was checked against the actual Rust
+  `serde` attributes (`generate_chat`'s request struct is snake_case on the
+  wire, unlike the camelCase `ManagedModel`) rather than assumed uniform.
+  Verified: `tsc --noEmit`/`eslint`/`prettier --check` clean; real Vite dev
+  server viewed in a real browser (correct dark theme, correct initial
+  state, zero console errors, no crash from `invoke()` rejecting outside a
+  real Tauri runtime); the real debug binary launched and stayed running
+  (`scripts/ci/launch-smoke.js`) with all 14 commands ACL-consistent. The
+  underlying behavior the checklist cares about (offline generation, a
+  granted connector answering and getting tagged) was already proven
+  on-device by 12.7a's own test against the exact code this screen calls.
+  **Honest gap:** no tool here can drive the actual native window, so
+  clicking "Send" and watching a reply arrive wasn't done by hand — flagged,
+  not claimed, the same gap every desktop task since 12.5 has hit.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
@@ -194,7 +215,7 @@ every future task here too.
 
 ```
 apps/desktop/
-├── src/            # React DOM frontend — placeholder until task 12.7
+├── src/            # React DOM frontend — chat/ChatScreen.tsx, lib/tauri.ts
 ├── src-tauri/       # Rust: Cargo.toml, lib.rs/main.rs, tauri.conf.json,
 │                     # capabilities/, icons/
 ├── scripts/ci/      # launch-smoke.js — desktop.yml's own launch check

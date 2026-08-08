@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — tasks 12.1–12.6, 12.7a done"
+status: "✅ Done — tasks 12.1–12.7, 12.7a all done"
 scope: desktop
 ---
 
@@ -556,7 +556,7 @@ regress the plain (no-tools) generation path.
 
 ---
 
-#### 📋 12.7 — Minimal offline chat UI
+#### ✅ 12.7 — Minimal offline chat UI
 
 **Goal:** Enough UI to exercise tasks 12.2–12.5 and 12.7a end to end and
 verify them the way this repo's own convention requires — a real behavior
@@ -577,6 +577,63 @@ inside its own Core Inference & Chat epic rather than inside App Shell.
 - A fully offline conversation works end to end on-device with no connector
   installed, and a granted Tier 1 connector answers and is visibly marked as
   having done so — the desktop equivalent of task 2.5's own review bar.
+
+**Implementation:** `apps/desktop/src/chat/ChatScreen.tsx`, mirroring
+`apps/mobile/src/chat/screens/ChatScreen.tsx`'s `send()` (streaming via
+per-token events, final text/connector taken from the resolved result rather
+than trusted from the accumulated stream — mobile's own test for a reply
+that streamed zero tokens) and `apps/mobile/src/models/screens/
+ModelsScreen.tsx`'s install-then-load dispatch — folded into one screen
+rather than two, since desktop has no navigation/settings shell yet
+(`core-port.md`'s own "deliberately out of scope" note) to put a separate
+Models screen behind. `apps/desktop/src/lib/tauri.ts` is a thin, typed
+`invoke`/`listen` wrapper layer, with every field's casing checked against
+its actual Rust `serde` attributes rather than assumed uniform (`generate_
+chat`'s own request struct is snake_case on the wire, unlike the camelCase
+`ManagedModel`/`GenerateChatResponse` — getting this wrong fails silently,
+as an absent optional field, not a deserialize error).
+
+**New Tauri commands, added because the checklist needs them, not
+speculatively:** `connector_status` and `set_search_connector_granted` —
+desktop has no Settings → Connectors screen (out of scope for this epic),
+so the chat screen's own `Toggle` next to the Search connector's `ListItem`
+is the only lever a user has over consent, backed directly by
+`connectors::permissions::grant`/`revoke`. `CommandError` gained a `Vault`
+variant (`secure_storage::VaultError` didn't derive `Serialize` — nothing
+had crossed the IPC boundary needing it before `revoke`'s own error type).
+
+**Verified:**
+
+- `pnpm --filter desktop exec tsc --noEmit` / `eslint .` clean;
+  `pnpm exec prettier --check` clean. `cargo fmt --check` / `cargo clippy
+  --all-targets -- -D warnings` / `cargo test --lib` (62 tests) clean after
+  the two new commands.
+- Real Vite dev server viewed in a real browser: correct dark-theme
+  rendering, correct initial state (`"Loading models…"`, disabled composer,
+  `"Choose a model first"` placeholder), zero console errors, and no crash
+  from `invoke()` rejecting outside a real Tauri runtime (this pane has no
+  Tauri backend to talk to, so this exercises rendering and graceful
+  degradation, not the commands themselves).
+- The real debug binary (`cargo build`, then `scripts/ci/launch-smoke.js`)
+  launched and stayed running past the check window with all 14 commands
+  registered and ACL-gated — proves `build.rs`'s `COMMANDS` list and
+  `capabilities/default.json` stayed consistent (a mismatch is a build- or
+  setup-time failure, per task 12.5's own established pattern), not just
+  that the frontend compiled.
+- The underlying behavior this screen's checklist cares about —
+  offline generation, and a granted connector answering and getting
+  tagged — was already proven for real, on-device, against the exact
+  `generate_chat`/`generate_with_connectors` code path this screen calls,
+  by task 12.7a's own `tests/tool_calling_smoke.rs`.
+- **Honest gap:** this environment has no way to drive the actual native
+  Tauri window (no simulator/browser-automation tool reaches a real
+  WebView2/WebKit app window here, the same limitation every desktop task
+  since 12.5 has flagged), so clicking "Send" in the real, running app and
+  watching a reply arrive was not performed by hand. The verification above
+  is the strongest chain available without that: real rendering, a real
+  running binary with correct IPC wiring, and the real on-device generation
+  path already proven by 12.7a — not a substitute for actually watching it
+  happen, and flagged as such rather than claimed.
 
 ## Related Docs
 

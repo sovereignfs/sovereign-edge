@@ -29,6 +29,8 @@ const COMMANDS: &[&str] = &[
     "cancel_generation",
     "device_info",
     "generate_chat",
+    "connector_status",
+    "set_search_connector_granted",
 ];
 
 fn main() {

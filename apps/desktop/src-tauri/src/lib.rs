@@ -45,6 +45,11 @@ enum CommandError {
     Model(models::ModelError),
     Inference(engine::InferenceError),
     Connector(connectors::runtime::ExecutionFailure),
+    /// `secure_storage::VaultError` doesn't derive `Serialize` (nothing
+    /// crossed the IPC boundary needing it before `set_search_connector_
+    /// granted`, task 12.7's own addition) — carried as its message rather
+    /// than adding a parallel manual `Serialize` impl for one command.
+    Vault(String),
 }
 
 impl From<models::ModelError> for CommandError {
@@ -62,6 +67,12 @@ impl From<engine::InferenceError> for CommandError {
 impl From<connectors::runtime::ExecutionFailure> for CommandError {
     fn from(e: connectors::runtime::ExecutionFailure) -> Self {
         CommandError::Connector(e)
+    }
+}
+
+impl From<secure_storage::VaultError> for CommandError {
+    fn from(e: secure_storage::VaultError) -> Self {
+        CommandError::Vault(e.to_string())
     }
 }
 
@@ -288,6 +299,23 @@ fn default_connector_mode() -> ConnectorMode {
     ConnectorMode::Auto
 }
 
+/// The one connector this app currently knows about — see
+/// `generate_chat`'s own doc comment for why the embedded fixture stands
+/// in for a real connector-install flow. Shared by `generate_chat`,
+/// `connector_status`, and `set_search_connector_granted` so there is one
+/// parse+validate site, not three copies to drift apart.
+fn search_connector_manifest() -> connectors::manifest::ConnectorManifest {
+    let manifest_json: serde_json::Value =
+        serde_json::from_str(connectors::manifest::fixtures::SEARCH_MANIFEST_JSON)
+            .expect("the embedded search fixture is valid JSON");
+    match connectors::manifest::validate_manifest(&manifest_json) {
+        connectors::manifest::ValidationResult::Valid(manifest) => *manifest,
+        connectors::manifest::ValidationResult::Invalid(issues) => {
+            panic!("the embedded search fixture failed validation: {issues:?}")
+        }
+    }
+}
+
 #[derive(serde::Deserialize)]
 struct GenerateChatRequest {
     messages: Vec<engine::ChatMessage>,
@@ -355,16 +383,7 @@ fn generate_chat(
                     connector: None,
                 })
         } else {
-            let manifest_json: serde_json::Value =
-                serde_json::from_str(connectors::manifest::fixtures::SEARCH_MANIFEST_JSON)
-                    .expect("the embedded search fixture is valid JSON");
-            let manifest = match connectors::manifest::validate_manifest(&manifest_json) {
-                connectors::manifest::ValidationResult::Valid(manifest) => *manifest,
-                connectors::manifest::ValidationResult::Invalid(issues) => {
-                    panic!("the embedded search fixture failed validation: {issues:?}")
-                }
-            };
-            let manifests = [manifest];
+            let manifests = [search_connector_manifest()];
             let tool_choice = match request.connector_mode {
                 ConnectorMode::Required => engine::ToolChoice::Required,
                 _ => engine::ToolChoice::Auto,
@@ -396,6 +415,49 @@ fn generate_chat(
     Ok(GenerateChatResponse {
         text: result.text,
         connector: result.connector,
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConnectorStatus {
+    id: String,
+    name: String,
+    granted: bool,
+}
+
+/// The chat UI's only lever over connector consent (task 12.7): there is
+/// no separate Settings → Connectors screen on desktop yet (out of this
+/// epic's scope, per `core-port.md`'s own "deliberately out of scope"
+/// note), so this reports whether the one connector this app knows about
+/// is granted, backed by the same `connectors::permissions` state machine
+/// a future real settings screen would use.
+#[tauri::command]
+fn connector_status(state: tauri::State<AppState>) -> ConnectorStatus {
+    let manifest = search_connector_manifest();
+    let granted = connectors::permissions::is_allowed(&state.connectors_dir, &manifest);
+    ConnectorStatus {
+        id: manifest.id().to_string(),
+        name: manifest.name().to_string(),
+        granted,
+    }
+}
+
+#[tauri::command]
+fn set_search_connector_granted(
+    state: tauri::State<AppState>,
+    granted: bool,
+) -> Result<ConnectorStatus, CommandError> {
+    let manifest = search_connector_manifest();
+    if granted {
+        connectors::permissions::grant(&state.connectors_dir, &manifest);
+    } else {
+        connectors::permissions::revoke(&state.connectors_dir, &manifest)?;
+    }
+    Ok(ConnectorStatus {
+        id: manifest.id().to_string(),
+        name: manifest.name().to_string(),
+        granted,
     })
 }
 
@@ -488,6 +550,8 @@ pub fn run() {
             cancel_generation,
             device_info,
             generate_chat,
+            connector_status,
+            set_search_connector_granted,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");
