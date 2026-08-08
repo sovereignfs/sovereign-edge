@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "📋 Not Started"
+status: "⏳ In Progress — task 13.1 done"
 scope: desktop
 ---
 
@@ -59,7 +59,7 @@ same call core-port.md made about this epic before it existed.
 
 ## Tasks
 
-#### 📋 13.1 — Navigation shell scaffold
+#### ✅ 13.1 — Navigation shell scaffold
 
 **Goal:** The chrome and route structure every other screen in this epic
 plugs into — mirrors mobile task 8.1's own framing ("the screens and
@@ -96,6 +96,37 @@ extracts navigation out of).
   Verified in a real browser via the Vite dev server (same honest-gap
   caveat every desktop UI task since 12.5 has carried: this environment
   cannot drive the actual native Tauri window).
+
+**Decided: `useState`, no routing library, a left sidebar.**
+`apps/desktop/src/shell/AppShell.tsx` holds a plain `Destination` union
+(`'chat' | 'models' | 'connectors' | 'settings'`) in component state and
+switches between the four screen components directly — four flat
+destinations with no deep-linking need didn't justify a router dependency.
+`ModelsScreen`/`ConnectorsScreen`/`SettingsScreen` ship as real, honest
+empty states (mirroring mobile task 8.1's own Connectors screen shipping
+empty until its data existed) rather than placeholders that reference task
+numbers in their copy.
+
+**A real, on-device-only bug this task's own review checklist caught:**
+the three new placeholder screens rendered in the browser's default black
+serif font, unreadably dark-on-dark — `ChatScreen.tsx` sets
+`color`/`fontFamily` on its own root element, but nothing did that for the
+shell as a whole, and CSS `color`/`font-family` only inherit from an
+ancestor that actually sets them, not from `ThemeProvider`'s CSS custom
+properties existing somewhere in the tree. Fixed by setting
+`background`/`color`/`fontFamily` on `AppShell`'s own root element, so
+every screen inherits it — a real defect a `tsc`/`eslint` pass could not
+have caught, only visible by actually looking at the rendered page.
+
+**Verified:** `pnpm --filter desktop exec tsc --noEmit` / `eslint .` /
+`prettier --check` clean. Real Vite dev server viewed in a real browser:
+all four destinations reachable via `ref`-targeted clicks (not raw screen
+coordinates — a first attempt at clicking by pixel position landed on the
+wrong nav item, a tool-usage mismatch between screenshot and viewport
+scaling, not an app bug), correct `aria-current="page"` on the active item,
+a `nav[aria-label="Main"]` landmark, correct light/dark theming after the
+fix above, zero console errors, and Chat still the default destination
+with its own behavior unchanged.
 
 ---
 

@@ -1,10 +1,10 @@
 import { ThemeProvider } from 'desktop-ui';
-import { ChatScreen } from './chat/ChatScreen';
+import { AppShell } from './shell/AppShell';
 
 export function App() {
   return (
     <ThemeProvider>
-      <ChatScreen />
+      <AppShell />
     </ThemeProvider>
   );
 }

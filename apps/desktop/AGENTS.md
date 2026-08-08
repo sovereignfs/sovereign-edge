@@ -13,20 +13,25 @@ credential storage (task 12.3), a working Tier 1 (HTTP) connector runtime
 (task 12.4), a Tier 3 native handler registry (task 12.5, `device_info`),
 a real `desktop-ui` component set (task 12.6), grammar-constrained
 tool-calling wired through routing/orchestration into a `generate_chat`
-command (task 12.7a), and a real chat screen consuming all of it (task
-12.7) — `src/App.tsx` → `src/chat/ChatScreen.tsx`. Epic 12 (Desktop Core
-Port) is done: all of tasks 12.1–12.7 and 12.7a; see
-[docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
-for what each task actually delivered.
+command (task 12.7a), a chat screen consuming all of it (task 12.7), and —
+since task 13.1 — real navigation chrome (`src/shell/AppShell.tsx`) with
+four destinations: Chat (`src/chat/ChatScreen.tsx`, unchanged), and honest
+empty-state Models/Connectors/Settings screens (`src/models/`,
+`src/connectors/`, `src/settings/`) waiting on tasks 13.2–13.4. Epic 12
+(Desktop Core Port) is done; see
+[docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md).
+Epic 13 (Desktop App Shell) is in progress; see
+[docs/epics/desktop/app-shell.md](../../docs/epics/desktop/app-shell.md)
+for what each task delivers.
 
 ## Before writing more code here
 
-Epic 12 is closed. The next desktop work is a real app shell (navigation,
-settings, per-connector permission UI) — deliberately out of this epic's
-scope per `core-port.md`'s own note, its own future epic once there's a
-reason to build it, not started. Check `ROADMAP.md` before starting
-anything here: whether that shell work, mobile's own remaining Phase 1 item
-(0.1.20), or something else is actually scheduled next is an open call, not
+Epic 12 is closed. Epic 13 (App Shell) is in progress — task 13.1
+(navigation scaffold) is done; 13.2 (model manager), 13.3 (connectors/
+permissions), 13.4 (settings), and 13.5 (chat consolidation) are next, in
+that dependency order. Check `ROADMAP.md` before starting anything here:
+whether epic 13 continues next, mobile's own remaining Phase 1 item
+(0.1.20), or something else is actually scheduled is an open call, not
 decided by this file. `packages/mobile-ui` stays irrelevant here either
 way: Tauri renders a web frontend, not React Native primitives.
 
@@ -178,6 +183,20 @@ way: Tauri renders a web frontend, not React Native primitives.
   **Honest gap:** no tool here can drive the actual native window, so
   clicking "Send" and watching a reply arrive wasn't done by hand — flagged,
   not claimed, the same gap every desktop task since 12.5 has hit.
+- **Navigation shell scaffold (13.1).** `src/shell/AppShell.tsx` — plain
+  `useState` destination switch, no routing-library dependency (four flat
+  destinations, no deep-linking need). Chat unchanged behind its own
+  destination; Models/Connectors/Settings ship as real, honest empty
+  states, not placeholders that reference task numbers in their copy.
+  **Real bug this task's review caught:** the new screens rendered in the
+  browser's default black serif font — `ChatScreen.tsx` sets `color`/
+  `fontFamily` on its own root, but `color`/`font-family` only inherit
+  from an ancestor that actually sets them, not from `ThemeProvider`'s CSS
+  custom properties existing somewhere in the tree; nothing set them for
+  the shell as a whole. Fixed on `AppShell`'s own root element. Verified
+  in a real browser: all four destinations reachable via `ref`-targeted
+  clicks, correct `aria-current`, correct theming after the fix, zero
+  console errors.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
@@ -215,7 +234,8 @@ every future task here too.
 
 ```
 apps/desktop/
-├── src/            # React DOM frontend — chat/ChatScreen.tsx, lib/tauri.ts
+├── src/            # React DOM frontend — shell/AppShell.tsx (nav), chat/,
+│                     # models/, connectors/, settings/ (screens), lib/tauri.ts
 ├── src-tauri/       # Rust: Cargo.toml, lib.rs/main.rs, tauri.conf.json,
 │                     # capabilities/, icons/
 ├── scripts/ci/      # launch-smoke.js — desktop.yml's own launch check
