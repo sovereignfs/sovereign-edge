@@ -13,29 +13,30 @@ credential storage (task 12.3), a working Tier 1 (HTTP) connector runtime
 (task 12.4), a Tier 3 native handler registry (task 12.5, `device_info`),
 a real `desktop-ui` component set (task 12.6), grammar-constrained
 tool-calling wired through routing/orchestration into a `generate_chat`
-command (task 12.7a), a chat screen consuming all of it (task 12.7), and —
-since task 13.1 — real navigation chrome (`src/shell/AppShell.tsx`) with
-four destinations: Chat (`src/chat/ChatScreen.tsx`, unchanged), a real
-Models screen (`src/models/ModelsScreen.tsx`, task 13.2 — install/
-activate/remove with real download progress), a real Connectors screen
+command (task 12.7a), and a full navigation shell (`src/shell/AppShell.tsx`,
+task 13.1) with four real destinations: Chat (`src/chat/ChatScreen.tsx`,
+task 12.7 then consolidated in 13.5 to just chat — message send/stream/
+connector-tagging, a compact model/connector indicator linking out), a real
+Models screen (`src/models/ModelsScreen.tsx`, task 13.2 — install/activate/
+remove with real download progress), a real Connectors screen
 (`src/connectors/ConnectorsScreen.tsx`, task 13.3 — a real grant/revoke
 list, one row today), and a real Settings screen
-(`src/settings/SettingsScreen.tsx`, task 13.4 — live theme preference,
-app version). Epic 12 (Desktop Core Port) is done; see
-[docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md).
-Epic 13 (Desktop App Shell) is in progress; see
+(`src/settings/SettingsScreen.tsx`, task 13.4 — live theme preference, app
+version). Epics 12 (Desktop Core Port) and 13 (Desktop App Shell) are both
+done; see
+[docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
+and
 [docs/epics/desktop/app-shell.md](../../docs/epics/desktop/app-shell.md)
-for what each task delivers.
+for what each task delivered.
 
 ## Before writing more code here
 
-Epic 12 is closed. Epic 13 (App Shell) is in progress — tasks 13.1
-(navigation scaffold), 13.2 (model manager), 13.3 (connectors/
-permissions), and 13.4 (settings) are done; only 13.5 (chat consolidation)
-is left. Check `ROADMAP.md` before starting anything here: whether epic 13
-continues next, mobile's own remaining Phase 1 item (0.1.20), or something
-else is actually scheduled is an open call, not decided by this file.
-`packages/mobile-ui` stays irrelevant here either way: Tauri renders a web
+Epics 12 and 13 are both closed. Nothing desktop-specific is currently
+scoped — check `ROADMAP.md` for what's next (mobile's own remaining Phase 1
+item, 0.1.20, or a new desktop epic once there's a reason for one; a real
+distribution/signing/update pipeline was explicitly deferred out of epic 13,
+per its own "deliberately out of scope" note). `packages/mobile-ui` stays
+irrelevant to any future desktop work either way: Tauri renders a web
 frontend, not React Native primitives.
 
 ## State of play
@@ -236,6 +237,27 @@ frontend, not React Native primitives.
   App version via `@tauri-apps/api/app`'s `getVersion()`, which needed a
   new capability, `core:app:allow-version` — confirmed against the real
   generated `gen/schemas/desktop-schema.json`, not guessed.
+- **Chat screen consolidation (13.5), closing epic 13.**
+  `src/chat/ChatScreen.tsx` lost its inline model-picker list and connector
+  `Toggle` — those live only in `ModelsScreen.tsx`/`ConnectorsScreen.tsx`
+  now — replaced by two compact `Button`s that link out
+  (`onNavigate: (destination: 'models' | 'connectors') => void`, a prop
+  narrower than `AppShell`'s own `Destination` union, so Chat structurally
+  can't navigate anywhere it shouldn't). Connector consent became
+  read-only from Chat's side: `connectorGranted` is only ever read from
+  `connectorStatus()` now, never written locally, so there's exactly one
+  place that mutates consent (`ConnectorsScreen.tsx`), not two that could
+  disagree. No behavior change to message send/stream/connector-tagging.
+  Verified: `tsc`/`eslint`/`prettier` clean; real Vite dev server in a
+  real browser — both indicator buttons correctly navigate to
+  Models/Connectors and back via the sidebar, zero console errors; the
+  real debug binary still builds and launches. **Honest gap:** the full
+  install → grant → send → see-it-answered-and-tagged round trip through
+  the actual native window wasn't walked by hand — every piece of it was
+  already proven for real elsewhere (12.7a's on-device test for
+  generation/routing, 13.2/13.3's own verification for install/remove and
+  grant/revoke); what's unverified is the navigation glue, not the
+  underlying operations.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.

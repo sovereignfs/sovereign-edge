@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "⏳ In Progress — tasks 13.1–13.4 done"
+status: "✅ Done — tasks 13.1–13.5 all done"
 scope: desktop
 ---
 
@@ -336,7 +336,7 @@ carried.
 
 ---
 
-#### 📋 13.5 — Chat screen consolidation
+#### ✅ 13.5 — Chat screen consolidation
 
 **Goal:** Close the loop — once 13.2–13.4 exist, `ChatScreen.tsx` goes back
 to being just chat, and the whole shell gets exercised together for real,
@@ -366,6 +366,43 @@ out to must exist first).
   by navigating from Chat to Models to install/load a model, to Connectors
   to grant Search, and back to Chat to send a message, not by everything
   already being on one screen.
+
+**Decided: navigation state stays lifted in `AppShell`, passed down as a
+narrow `onNavigate: (destination: 'models' | 'connectors') => void`
+prop** — not the full `Destination` union `AppShell` itself uses, so
+`ChatScreen.tsx` can't accidentally navigate somewhere Settings-shaped;
+`setDestination` satisfies that narrower type by ordinary function-type
+contravariance, no adapter needed. Connector consent became fully
+read-only from Chat's side: `connectorGranted` is now only ever *read*
+from `connectorStatus()` on mount and passed straight through as
+`connector_mode`, never written locally — the grant/revoke lever lives
+only in `ConnectorsScreen.tsx` now, so there is exactly one place that
+mutates consent, not two that could quietly disagree (the previous
+`ChatScreen.tsx` toggle and a future `ConnectorsScreen.tsx` toggle would
+have been exactly that). The model-status state machine shrank from six
+states (`loading-list`/`no-model`/`preparing`/`ready`/`busy`/`error`) to
+four (`loading`/`no-model`/`ready`/`busy`) — `preparing`/`error` existed
+only for the install/load flow this screen no longer owns.
+
+**Verified:** `tsc --noEmit`/`eslint`/`prettier --check` clean; `cargo
+build` and `scripts/ci/launch-smoke.js` re-run to confirm the (untouched)
+Rust side is unaffected. Real Vite dev server in a real browser: clicking
+the "Choose a model" indicator on Chat navigated to Models; clicking the
+"Connectors" indicator navigated to Connectors; both round-tripped back to
+Chat correctly via the sidebar. Zero console errors. **Honest gap, same as
+every desktop UI task since 12.5:** this environment cannot drive the
+actual native Tauri window, so the full real round trip the checklist asks
+for — install a model, grant Search, send a message, see it answered and
+tagged — was not walked through by hand end to end. Every piece of it was
+independently proven for real elsewhere: the underlying `generate_chat`/
+routing/orchestration path by task 12.7a's own on-device test, and
+install/activate/remove and grant/revoke by tasks 13.2/13.3's own
+Rust-level verification (unchanged, already-tested `connectors::
+permissions` and `models::ModelManager` code) — what's unverified here is
+specifically the UI-navigation glue connecting them, not the underlying
+operations.
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.5 are done.
 
 ## Related Docs
 

@@ -99,10 +99,9 @@ from 12.7) sized to match mobile's own epic granularity — **all done**: a
 Tauri v2 app with real on-device inference, per-connector credential
 storage, a Tier 1 + Tier 3 connector runtime, grammar-constrained
 tool-calling, and a minimal offline chat UI exercising all of it. Epic 13
-(Desktop App Shell) is now scoped — real navigation, a model manager
+(Desktop App Shell) is also **all done**: real navigation, a model manager
 screen, a connectors/permissions screen, and general settings, extracted
-from what task 12.7's chat screen currently does inline — but not started
-and not yet scheduled into a phase; see
+from what task 12.7's chat screen used to do inline; see
 [app-shell.md](docs/epics/desktop/app-shell.md).
 
 ### Non-prioritised tasks
@@ -126,5 +125,5 @@ per-app versioning convention.
 | —       | Model manager screen                                  | ✅     | Desktop | [13.2](docs/epics/desktop/app-shell.md#-132--model-manager-screen)                                   |
 | —       | Connectors & permissions screen                       | ✅     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |
 | —       | General settings screen                               | ✅     | Desktop | [13.4](docs/epics/desktop/app-shell.md#-134--general-settings-screen)                                |
-| —       | Chat screen consolidation                             | 📋     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
+| —       | Chat screen consolidation                             | ✅     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

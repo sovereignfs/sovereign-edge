@@ -1,42 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Button,
-  ChatBubble,
-  ListItem,
-  TextField,
-  Toggle,
-  useTheme,
-} from 'desktop-ui';
+import { Button, ChatBubble, TextField, useTheme } from 'desktop-ui';
 import {
   activeModelId,
   cancelGeneration,
   connectorStatus,
   generateChat,
-  installModel,
   listModels,
-  loadModel,
   onGenerateToken,
-  setSearchConnectorGranted,
   type ChatMessage,
-  type ConnectorStatus,
-  type ManagedModel,
 } from '../lib/tauri';
 
 /**
- * Task 12.7's own scope, per `core-port.md`: "a single chat screen — model
- * selection, message input/output, and the same in-chat connector-
- * provenance marker mobile's task 2.5 established." Mirrors the shape of
- * `apps/mobile/src/chat/screens/ChatScreen.tsx`'s `send()` (streaming via
- * `on_token`, overwrite-from-final-result rather than trust the
- * accumulated stream, connector tag from the result not guessed at) and
- * `apps/mobile/src/models/screens/ModelsScreen.tsx`'s install/load
- * dispatch — folded into one screen rather than two, since desktop has no
- * navigation/settings shell yet (out of this epic's scope) to put a
- * separate Models screen behind.
+ * Task 13.5's own scope: close the loop epic 13 opened in task 12.7.
+ * Model selection and connector consent now live in their own real
+ * screens (tasks 13.2, 13.3) — this screen goes back to being just chat,
+ * mirroring how mobile's own `ChatScreen.tsx` stays chat-only and defers
+ * model/connector management to its own screens entirely. What's left
+ * here is exactly task 12.7's original `send()` (streaming via `on_token`,
+ * overwrite-from-final-result rather than trust the accumulated stream,
+ * connector tag from the result not guessed at) plus a compact model/
+ * connector indicator that links out instead of managing state inline.
+ *
+ * Connector consent is read-only from here now, not a local toggle: this
+ * screen just reflects whatever `Connectors` last decided
+ * (`connectorStatus()` on mount) and passes that straight through as
+ * `connector_mode` — the actual grant/revoke lever moved to
+ * `ConnectorsScreen.tsx` entirely, so there is exactly one place that
+ * mutates consent, not two that could disagree.
  */
 
-type ModelStatus =
-  'loading-list' | 'no-model' | 'preparing' | 'ready' | 'busy' | 'error';
+type Status = 'loading' | 'no-model' | 'ready' | 'busy';
 
 type DisplayMessage = {
   id: string;
@@ -52,21 +45,16 @@ function newId(): string {
   return `m${nextId}`;
 }
 
-function modelSubtitle(model: ManagedModel): string {
-  const size = `${(model.sizeBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-  return `${model.parameters} · ${size} · ${model.fit.note}`;
-}
-
-export function ChatScreen() {
+export function ChatScreen({
+  onNavigate,
+}: {
+  onNavigate: (destination: 'models' | 'connectors') => void;
+}) {
   const theme = useTheme();
-  const [status, setStatus] = useState<ModelStatus>('loading-list');
-  const [models, setModels] = useState<ManagedModel[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [pendingModelId, setPendingModelId] = useState<string | null>(null);
-  const [modelError, setModelError] = useState<string | null>(null);
-
-  const [connector, setConnector] = useState<ConnectorStatus | null>(null);
-  const [connectorEnabled, setConnectorEnabled] = useState(false);
+  const [status, setStatus] = useState<Status>('loading');
+  const [activeModelName, setActiveModelName] = useState<string | null>(null);
+  const [connectorName, setConnectorName] = useState<string | null>(null);
+  const [connectorGranted, setConnectorGranted] = useState(false);
 
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -75,17 +63,16 @@ export function ChatScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [list, active, connectorState] = await Promise.all([
+      const [models, active, connector] = await Promise.all([
         listModels(),
         activeModelId(),
         connectorStatus().catch(() => null),
       ]);
       if (cancelled) return;
-      setModels(list);
-      setActiveId(active);
-      if (connectorState) {
-        setConnector(connectorState);
-        setConnectorEnabled(connectorState.granted);
+      setActiveModelName(models.find((m) => m.id === active)?.name ?? null);
+      if (connector) {
+        setConnectorName(connector.name);
+        setConnectorGranted(connector.granted);
       }
       setStatus(active ? 'ready' : 'no-model');
     })();
@@ -97,42 +84,6 @@ export function ChatScreen() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
-
-  async function selectModel(model: ManagedModel) {
-    if (status === 'preparing' || status === 'busy') return;
-    setModelError(null);
-    setPendingModelId(model.id);
-    setStatus('preparing');
-    try {
-      if (!model.installed) {
-        await installModel(model.id);
-        setModels((prev) =>
-          prev.map((m) => (m.id === model.id ? { ...m, installed: true } : m)),
-        );
-      }
-      await loadModel(model.id);
-      setActiveId(model.id);
-      setStatus('ready');
-    } catch (cause) {
-      setModelError(cause instanceof Error ? cause.message : String(cause));
-      setStatus('error');
-    } finally {
-      setPendingModelId(null);
-    }
-  }
-
-  async function toggleConnector(next: boolean) {
-    setConnectorEnabled(next);
-    try {
-      const result = await setSearchConnectorGranted(next);
-      setConnector(result);
-    } catch {
-      // Best-effort: the Toggle already reflects `next`; a failed write
-      // just means the next send() reflects the previous grant state
-      // instead, discovered from `generate_chat`'s own reply rather than
-      // silently pretending the write succeeded.
-    }
-  }
 
   async function send() {
     const text = draft.trim();
@@ -165,7 +116,7 @@ export function ChatScreen() {
     try {
       const result = await generateChat({
         messages: history,
-        connector_mode: connectorEnabled ? 'auto' : 'off',
+        connector_mode: connectorGranted ? 'auto' : 'off',
       });
       setMessages((prev) =>
         prev.map((m) =>
@@ -231,63 +182,30 @@ export function ChatScreen() {
             margin: 0,
           }}
         >
-          On-device — nothing you type here leaves this machine unless the
-          Search connector below is on and used.
+          On-device — nothing you type here leaves this machine unless a
+          connector is granted and used.
         </p>
 
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.space[1],
-          }}
-        >
-          {status === 'loading-list' ? (
-            <p style={{ fontSize: theme.fontSize.sm }}>Loading models…</p>
-          ) : (
-            models.map((model) => (
-              <ListItem
-                key={model.id}
-                title={model.name}
-                subtitle={
-                  model.id === activeId
-                    ? `${modelSubtitle(model)} · Active`
-                    : modelSubtitle(model)
-                }
-                onClick={() => selectModel(model)}
-                disabled={status === 'preparing' && pendingModelId !== model.id}
-              />
-            ))
-          )}
-          {modelError ? (
-            <p
-              style={{
-                color: theme.colors.errorText,
-                fontSize: theme.fontSize.sm,
-              }}
-            >
-              {modelError}
-            </p>
-          ) : null}
-        </div>
-
-        {connector ? (
-          <ListItem
-            title={connector.name}
-            subtitle={
-              connectorEnabled
-                ? 'Answers may use the network for this connector.'
-                : 'Off — every reply comes from the local model only.'
+        <div style={{ display: 'flex', gap: theme.space[2] }}>
+          <Button
+            label={
+              activeModelName ? `Model: ${activeModelName}` : 'Choose a model'
             }
-            accessory={
-              <Toggle
-                value={connectorEnabled}
-                onValueChange={toggleConnector}
-                aria-label={connector.name}
-              />
-            }
+            variant="ghost"
+            size="sm"
+            onClick={() => onNavigate('models')}
           />
-        ) : null}
+          <Button
+            label={
+              connectorName
+                ? `${connectorName}: ${connectorGranted ? 'On' : 'Off'}`
+                : 'Connectors'
+            }
+            variant="ghost"
+            size="sm"
+            onClick={() => onNavigate('connectors')}
+          />
+        </div>
       </header>
 
       <div
@@ -307,8 +225,8 @@ export function ChatScreen() {
           >
             {status === 'no-model'
               ? 'Choose a model above to start.'
-              : status === 'preparing'
-                ? 'Preparing the model…'
+              : status === 'loading'
+                ? 'Loading…'
                 : 'Say something.'}
           </p>
         ) : (

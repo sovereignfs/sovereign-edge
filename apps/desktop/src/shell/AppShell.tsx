@@ -86,7 +86,9 @@ export function AppShell() {
       </nav>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        {destination === 'chat' ? <ChatScreen /> : null}
+        {destination === 'chat' ? (
+          <ChatScreen onNavigate={setDestination} />
+        ) : null}
         {destination === 'models' ? <ModelsScreen /> : null}
         {destination === 'connectors' ? <ConnectorsScreen /> : null}
         {destination === 'settings' ? <SettingsScreen /> : null}
