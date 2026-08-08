@@ -1,4 +1,4 @@
-//! Fixture manifests shared with mobile (task 12.4).
+//! Fixture manifests shared with mobile (tasks 12.4, 12.5).
 //!
 //! `include_str!` of the literal file under `apps/mobile/`, not a copy —
 //! this is what makes "zero changes to the manifest itself" (the review
@@ -8,3 +8,9 @@
 
 pub const SEARCH_MANIFEST_JSON: &str =
     include_str!("../../../../../mobile/src/connectors/manifest/fixtures/search.manifest.json");
+
+/// Tier 3's own proof-of-life fixture — see `runtime::native_handlers`'s
+/// own doc comment for why `device.info` exists.
+pub const DEVICE_INFO_MANIFEST_JSON: &str = include_str!(
+    "../../../../../mobile/src/connectors/manifest/fixtures/device-info.manifest.json"
+);

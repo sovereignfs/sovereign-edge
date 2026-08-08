@@ -110,7 +110,7 @@ per-app versioning convention.
 | —       | Rust `llama.cpp` `EngineAdapter` and model manager    | ✅     | Desktop | [12.2](docs/epics/desktop/core-port.md#-122--rust-llamacpp-engineadapter-and-model-manager)          |
 | —       | `SecureStorageAdapter` over the OS credential store   | ✅     | Desktop | [12.3](docs/epics/desktop/core-port.md#-123--securestorageadapter-over-the-os-credential-store)      |
 | —       | Connector framework port (Tier 1)                     | ✅     | Desktop | [12.4](docs/epics/desktop/core-port.md#-124--connector-framework-port-tier-1)                        |
-| —       | Tier 3 native handler registry (Tauri)                | 📋     | Desktop | [12.5](docs/epics/desktop/core-port.md#-125--tier-3-native-handler-registry-tauri)                   |
+| —       | Tier 3 native handler registry (Tauri)                | ✅     | Desktop | [12.5](docs/epics/desktop/core-port.md#-125--tier-3-native-handler-registry-tauri)                   |
 | —       | `packages/desktop-ui` initial component set           | 📋     | Desktop | [12.6](docs/epics/desktop/core-port.md#-126--packagesdesktop-ui-initial-component-set)               |
 | —       | Minimal offline chat UI                               | 📋     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

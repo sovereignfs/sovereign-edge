@@ -341,8 +341,8 @@ async fn dispatch(
 }
 
 /// Executes a validated tool call against a connector's manifest.
-/// Dispatches on tier — Tier 1's HTTP request/response mapping here; Tier 3
-/// (native handler registry) is task 12.5's job, not yet implemented.
+/// Dispatches on tier — Tier 1's HTTP request/response mapping, Tier 3's
+/// native handler registry lookup (task 12.5), mirroring `executeConnectorCall`.
 pub async fn execute_connector_call(
     client: &reqwest::Client,
     manifest: &ConnectorManifest,
@@ -353,9 +353,45 @@ pub async fn execute_connector_call(
         ConnectorManifest::Tier1(tier1) => {
             dispatch(client, manifest, tier1, args, grants_dir).await
         }
-        ConnectorManifest::Tier3(_) => ExecutionResult::Err(ExecutionFailure::with_detail(
+        ConnectorManifest::Tier3(tier3) => dispatch_tier3(manifest, tier3, args, grants_dir),
+    }
+}
+
+/// Mirrors `executeTier3`: gate on the grant, look up the registered
+/// handler by `handler.capability`, normalize `args`, call it. Sync (no
+/// `.await` inside) since `native_handlers`'s own handlers are all
+/// synchronous — kept as a separate function anyway so `execute_connector_call`
+/// reads the same tier-1/tier-3 shape mobile's own `executeConnectorCall`
+/// does.
+fn dispatch_tier3(
+    manifest: &ConnectorManifest,
+    tier3: &crate::connectors::manifest::ConnectorManifestTier3,
+    args: &serde_json::Value,
+    grants_dir: &Path,
+) -> ExecutionResult {
+    if !permissions::is_allowed(grants_dir, manifest) {
+        return ExecutionResult::Err(ExecutionFailure::new(FailureReason::NotPermitted));
+    }
+
+    let Some(handler) = crate::connectors::runtime::native_handler_for(&tier3.handler.capability)
+    else {
+        return ExecutionResult::Err(ExecutionFailure::with_detail(
             FailureReason::HandlerError,
-            "Tier 3 native-handler dispatch is not implemented yet (task 12.5).",
+            format!(
+                "No native handler registered for capability \"{}\".",
+                tier3.handler.capability
+            ),
+        ));
+    };
+
+    let empty = serde_json::Map::new();
+    let arg_record = args.as_object().unwrap_or(&empty);
+
+    match handler(arg_record) {
+        Ok(text) => ExecutionResult::Ok { text },
+        Err(message) => ExecutionResult::Err(ExecutionFailure::with_detail(
+            FailureReason::HandlerError,
+            message,
         )),
     }
 }
@@ -374,11 +410,17 @@ pub fn client() -> reqwest::Client {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connectors::manifest::fixtures::SEARCH_MANIFEST_JSON;
+    use crate::connectors::manifest::fixtures::{DEVICE_INFO_MANIFEST_JSON, SEARCH_MANIFEST_JSON};
+    use crate::connectors::manifest::ConnectorManifestTier3;
     use crate::connectors::permissions;
 
     fn search_manifest() -> ConnectorManifestTier1 {
         serde_json::from_str(SEARCH_MANIFEST_JSON).expect("fixture parses as a Tier 1 manifest")
+    }
+
+    fn device_info_manifest() -> ConnectorManifestTier3 {
+        serde_json::from_str(DEVICE_INFO_MANIFEST_JSON)
+            .expect("fixture parses as a Tier 3 manifest")
     }
 
     fn credentials(pairs: &[(&str, &str)]) -> HashMap<String, String> {
@@ -669,5 +711,82 @@ mod tests {
         static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         format!("{:x}-{n:x}", std::process::id())
+    }
+
+    // --- Tier 3 dispatch (task 12.5) ---
+
+    #[tokio::test]
+    async fn device_info_returns_real_text_when_granted() {
+        let manifest = ConnectorManifest::Tier3(device_info_manifest());
+        let grants_dir = tempfile_dir();
+        permissions::grant(&grants_dir, &manifest);
+
+        let result =
+            execute_connector_call(&client(), &manifest, &serde_json::json!({}), &grants_dir).await;
+
+        match result {
+            ExecutionResult::Ok { text } => assert!(
+                !text.trim().is_empty(),
+                "expected non-empty device info text"
+            ),
+            other => panic!("expected a successful device.info call, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn tier3_refuses_an_unpermitted_connector_without_touching_the_handler() {
+        let manifest = ConnectorManifest::Tier3(device_info_manifest());
+        let grants_dir = tempfile_dir();
+        // Deliberately never granted.
+
+        let result =
+            execute_connector_call(&client(), &manifest, &serde_json::json!({}), &grants_dir).await;
+
+        match result {
+            ExecutionResult::Err(f) => assert_eq!(f.reason, FailureReason::NotPermitted),
+            other => panic!("expected not-permitted, got {other:?}"),
+        }
+    }
+
+    // Mirrors task 12.5's own review checklist wording exactly: "revoking a
+    // Tier 3 connector's grant blocks its Tauri command from running" — not
+    // just "never granted", but granted-then-revoked.
+    #[tokio::test]
+    async fn revoking_a_tier3_grant_blocks_the_native_handler() {
+        let manifest = ConnectorManifest::Tier3(device_info_manifest());
+        let grants_dir = tempfile_dir();
+        permissions::grant(&grants_dir, &manifest);
+        assert!(matches!(
+            execute_connector_call(&client(), &manifest, &serde_json::json!({}), &grants_dir).await,
+            ExecutionResult::Ok { .. }
+        ));
+
+        permissions::revoke(&grants_dir, &manifest)
+            .expect("revoke should succeed (Tier 3 has no vault credentials to clear)");
+
+        let result =
+            execute_connector_call(&client(), &manifest, &serde_json::json!({}), &grants_dir).await;
+        match result {
+            ExecutionResult::Err(f) => assert_eq!(f.reason, FailureReason::NotPermitted),
+            other => panic!("expected not-permitted after revoke, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn reports_handler_error_for_an_unregistered_capability() {
+        let mut manifest_tier3 = device_info_manifest();
+        manifest_tier3.handler.capability = "calendar.write".to_string();
+        manifest_tier3.permissions.device.capabilities = vec!["calendar.write".to_string()];
+        let manifest = ConnectorManifest::Tier3(manifest_tier3);
+        let grants_dir = tempfile_dir();
+        permissions::grant(&grants_dir, &manifest);
+
+        let result =
+            execute_connector_call(&client(), &manifest, &serde_json::json!({}), &grants_dir).await;
+
+        match result {
+            ExecutionResult::Err(f) => assert_eq!(f.reason, FailureReason::HandlerError),
+            other => panic!("expected handler-error, got {other:?}"),
+        }
     }
 }

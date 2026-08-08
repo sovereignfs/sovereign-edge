@@ -1,8 +1,10 @@
-//! Task 12.2 adds the desktop `EngineAdapter`/model manager and the minimal
-//! set of Tauri commands that make them reachable from the running app
-//! (still no UI — that's task 12.7's job; see `docs/epics/desktop/core-port.md`).
-//! Tier 3 native handlers (task 12.5) and every other command this app ever
-//! exposes get added here too, each gated by its own capability.
+//! Task 12.2 adds the desktop `EngineAdapter`/model manager, task 12.4 the
+//! Tier 1 connector runtime, and task 12.5 the Tier 3 native handler
+//! registry (`device_info`) — still no UI consuming any of it; that's task
+//! 12.7's job. Every command this app exposes is registered here, each
+//! listed in `build.rs`'s `AppManifest::commands` and gated by its own
+//! named permission in `capabilities/default.json` (task 12.5 closed the
+//! gap where that gating wasn't actually wired up yet).
 
 // `pub` so `tests/engine_smoke.rs`/`tests/vault_smoke.rs`/
 // `tests/connector_dispatch.rs` (external crates, per Cargo's
@@ -28,16 +30,21 @@ struct AppState {
     /// The in-flight generation's cancel switch, if any — `cancel_generation`
     /// trips it; `generate` clears it when done.
     cancel: Mutex<Option<CancellationToken>>,
+    /// Where `connectors/grants.json` lives — resolved once in `run()`'s
+    /// setup, the same convention `models_dir` already follows.
+    connectors_dir: PathBuf,
+    connector_http_client: reqwest::Client,
 }
 
-/// Unifies the two error families a command can surface (model-management
-/// vs. inference) behind one `Serialize`-able type, since a Tauri command
-/// has exactly one error type.
+/// Unifies the three error families a command can surface (model-management,
+/// inference, connector dispatch) behind one `Serialize`-able type, since a
+/// Tauri command has exactly one error type.
 #[derive(Debug, serde::Serialize)]
 #[serde(tag = "kind", content = "error")]
 enum CommandError {
     Model(models::ModelError),
     Inference(engine::InferenceError),
+    Connector(connectors::runtime::ExecutionFailure),
 }
 
 impl From<models::ModelError> for CommandError {
@@ -49,6 +56,12 @@ impl From<models::ModelError> for CommandError {
 impl From<engine::InferenceError> for CommandError {
     fn from(e: engine::InferenceError) -> Self {
         CommandError::Inference(e)
+    }
+}
+
+impl From<connectors::runtime::ExecutionFailure> for CommandError {
+    fn from(e: connectors::runtime::ExecutionFailure) -> Self {
+        CommandError::Connector(e)
     }
 }
 
@@ -222,6 +235,41 @@ fn cancel_generation(state: tauri::State<AppState>) {
     }
 }
 
+/// Task 12.5's proof-of-life Tier 3 connector — see
+/// `connectors::runtime::native_handlers`'s own doc comment for why
+/// `device.info` exists. Gated twice, "belt-and-braces" per
+/// `core-port.md`'s own deliverable text: `execute_connector_call` checks
+/// `connectors::permissions::is_allowed` internally (the same in-app grant
+/// this command shares with any future internal caller), and this command's
+/// own entry in `capabilities/default.json` — enforced by `build.rs`'s
+/// `AppManifest::commands` — is Tauri's independent IPC-level gate.
+#[tauri::command]
+async fn device_info(state: tauri::State<'_, AppState>) -> Result<String, CommandError> {
+    let manifest_json: serde_json::Value =
+        serde_json::from_str(connectors::manifest::fixtures::DEVICE_INFO_MANIFEST_JSON)
+            .expect("the embedded device-info fixture is valid JSON");
+    let manifest: connectors::manifest::ConnectorManifest =
+        match connectors::manifest::validate_manifest(&manifest_json) {
+            connectors::manifest::ValidationResult::Valid(manifest) => *manifest,
+            connectors::manifest::ValidationResult::Invalid(issues) => {
+                panic!("the embedded device-info fixture failed validation: {issues:?}")
+            }
+        };
+
+    let result = connectors::runtime::execute_connector_call(
+        &state.connector_http_client,
+        &manifest,
+        &serde_json::json!({}),
+        &state.connectors_dir,
+    )
+    .await;
+
+    match result {
+        connectors::runtime::ExecutionResult::Ok { text } => Ok(text),
+        connectors::runtime::ExecutionResult::Err(failure) => Err(failure.into()),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -232,6 +280,8 @@ pub fn run() {
                 .expect("could not resolve the app data directory");
             let models_dir = models::models_directory(&app_data_dir)
                 .expect("could not create the models directory");
+            let connectors_dir = connectors::permissions::grants_directory(&app_data_dir)
+                .expect("could not create the connectors directory");
 
             let engine = Arc::new(Mutex::new(
                 engine::EngineAdapter::new().expect("could not initialize the inference backend"),
@@ -242,6 +292,8 @@ pub fn run() {
                 manager: Mutex::new(manager),
                 engine,
                 cancel: Mutex::new(None),
+                connectors_dir,
+                connector_http_client: connectors::runtime::client(),
             });
 
             // Best-effort startup bootstrap, mirroring mobile's
@@ -305,6 +357,7 @@ pub fn run() {
             engine_info,
             generate,
             cancel_generation,
+            device_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");

@@ -9,18 +9,18 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 ## What this is
 
 A Tauri window with real on-device inference (task 12.2), per-connector
-credential storage (task 12.3), and a working Tier 1 (HTTP) connector
-runtime (task 12.4) behind it, but still a placeholder React DOM frontend —
-no chat UI, nothing wired to a model or a connector from the UI yet. Tasks
-12.1–12.4 are done; see
-[docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md) for
-the remaining tasks (12.5–12.7) and what each depends on.
+credential storage (task 12.3), a working Tier 1 (HTTP) connector runtime
+(task 12.4), and a Tier 3 native handler registry (task 12.5, `device_info`)
+behind it, but still a placeholder React DOM frontend — no chat UI, nothing
+wired to a model or a connector from the UI yet. Tasks 12.1–12.5 are done;
+see [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
+for the remaining tasks (12.6–12.7) and what each depends on.
 
 ## Before writing more code here
 
-1. Task 12.5 (Tier 3 native handler registry) is next, and depends on 12.1
-   and 12.4 (both done). This is still "one task at a time, sequenced" per
-   the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
+1. Task 12.6 (`packages/desktop-ui` initial component set) is next, and
+   depends on 12.1 (done). This is still "one task at a time, sequenced"
+   per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
    mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
    before starting.
 2. `packages/desktop-ui` needs real content before task 12.7 (minimal chat
@@ -49,11 +49,15 @@ the remaining tasks (12.5–12.7) and what each depends on.
   mobile's regex-based OOM/bad-file classification isn't portable as-is;
   `engine/adapter.rs` substitutes a preflight RAM-budget check instead —
   see that file's own doc comment before changing load-error handling.
-- **Tauri's ACL does not yet gate this app's own commands** — v2 only
-  capability-gates plugin-provided commands by default, and the `build.rs`
-  opt-in to gate app commands too isn't wired up. Flagged in
-  `capabilities/default.json`; closing this is task 12.5's job, not
-  something to bolt on ad hoc later.
+- **Tauri's ACL now gates every app command (12.5).** `build.rs` calls
+  `tauri_build::try_build` with `Attributes::new().app_manifest(AppManifest::new()
+  .commands(&[...]))` listing every registered command; `capabilities/default.json`
+  grants each one an individual `allow-<command>` permission (kebab-case —
+  `install_model` → `allow-install-model` — confirmed by an actual build
+  failure before this was written correctly, not assumed). Keep both lists
+  in sync with `tauri::generate_handler!`'s own list in `lib.rs` when adding
+  a command; a mismatch either leaves a command unrestricted (missing from
+  `build.rs`) or fails the build outright (listed but ungranted).
 - **Per-connector credential isolation (12.3).**
   `src-tauri/src/secure_storage/vault.rs` mirrors
   `apps/mobile/src/connectors/permissions/vault.ts`'s `ConnectorVault`: the
@@ -79,10 +83,7 @@ the remaining tasks (12.5–12.7) and what each depends on.
   is Tier 1 HTTP dispatch, split into pure `build_request`/`map_response`
   functions plus an async `dispatch` (unlike mobile's single
   `fetch`-mocked function) specifically so request construction from the
-  real fixture is directly assertable with no server involved. Tier 3
-  dispatch returns a clear "not implemented, task 12.5" failure rather than
-  a silent no-op. No new Tauri commands, no new Cargo dependencies — same
-  call 12.3 made.
+  real fixture is directly assertable with no server involved.
   `cargo test --lib` (41 tests, mock-backed) and
   `src-tauri/tests/connector_dispatch.rs` (**not** `#[ignore]`d — a real
   local TCP server, no external network needed) both pass; the latter
@@ -90,6 +91,23 @@ the remaining tasks (12.5–12.7) and what each depends on.
   `search.manifest.json`'s own origin is RFC 2606's non-resolving example
   domain and can't be dialed for real without rewriting the fixture under
   test.
+- **Tier 3 native handler registry (12.5).** `connectors/runtime/
+  native_handlers.rs` mirrors `nativeHandlers.ts`'s capability→handler map;
+  `device.info` reads hostname/OS name/version via `sysinfo` (mobile's own
+  `modelName`/`osName`/`osVersion` has no desktop equivalent). Tier 3
+  dispatch in `execute_connector_call` (stubbed in 12.4, implemented here)
+  mirrors `executeTier3` exactly. One new command, `device_info`, wraps
+  `execute_connector_call` directly — no separate gating logic to drift
+  from the internal path. `cargo test --lib` (45 tests) includes real,
+  unmocked Tier 3 coverage, including
+  `revoking_a_tier3_grant_blocks_the_native_handler` — granted → succeeds,
+  `revoke()`'d → blocked, matching the review checklist's own wording.
+  Real debug binary built and launched (`scripts/ci/launch-smoke.js`) after
+  wiring the new ACL mechanism. **Gap flagged, not faked:** this
+  environment has no way to drive a native window's devtools, so the
+  literal "invoke from the WebView console" step wasn't performed by hand —
+  the unmocked Rust test plus the real build/launch check exercise the same
+  code path instead.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
@@ -101,11 +119,11 @@ the remaining tasks (12.5–12.7) and what each depends on.
   Only `src-tauri/target/` (Cargo's build output) and `src-tauri/gen/`
   (Tauri's generated capability schemas) are gitignored.
 - **Capabilities are default-deny** (research 0010's own security-model
-  finding). `capabilities/default.json` grants only `core:default` — the
-  bare minimum Tauri itself needs to create a window. Every command this app
-  adds (Tier 3 native handlers, task 12.5; anything else) needs its own
-  named permission referenced from a capability file — never broadened here
-  as a shortcut.
+  finding), and — since task 12.5 — actually enforced for this app's own
+  commands, not just plugin ones. `capabilities/default.json` grants
+  `core:default` plus one `allow-<command>` permission per command this app
+  registers; every new command needs both a `build.rs` `COMMANDS` entry and
+  a capability permission — never broadened to a wildcard as a shortcut.
 - The Rust package name is `sovereign-edge-desktop` (binary) /
   `sovereign_edge_desktop_lib` (lib target, per Tauri's own mobile-entry-point
   convention) — distinct from the npm package name (`desktop`) and from
