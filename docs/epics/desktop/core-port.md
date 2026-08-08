@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — tasks 12.1–12.3 done"
+status: "⏳ In Progress — tasks 12.1–12.4 done"
 scope: desktop
 ---
 
@@ -242,7 +242,7 @@ pass/fail): `test isolates_and_destroys_credentials_in_the_real_keychain
 
 ---
 
-#### 📋 12.4 — Connector framework port (Tier 1)
+#### ✅ 12.4 — Connector framework port (Tier 1)
 
 **Goal:** The manifest schema, permission model, and Tier 1 (HTTP) runtime
 dispatch work on desktop unchanged — this epic's own review checklist from
@@ -265,6 +265,55 @@ before the breakdown.
 - The Search connector's existing manifest (`apps/mobile/src/connectors/search/manifest.ts`)
   executes a real request/response round trip on desktop with zero changes
   to the manifest itself — this epic's original, defining review bar.
+
+`apps/desktop/src-tauri/src/connectors/` (new, `pub mod`, mirroring
+`apps/mobile/src/connectors/`'s own directory split): `manifest/` (serde
+structs with `#[serde(deny_unknown_fields)]` mirroring Zod's `.strict()`;
+`ValueSource`/`PathPart` as `#[serde(untagged)]` enums; `ConnectorManifest`
+parsed by peeking `tier` rather than serde's own tagging, since Zod's
+`discriminatedUnion('tier', ...)` uses a numeric field serde's internal
+tagging can't match directly), `permissions/grants.rs` (the state machine,
+taking `grants_dir: &Path` explicitly rather than mobile's implicit global
+path — mirrors `models::store`'s own pattern — and calling task 12.3's
+`secure_storage::open_vault` on `revoke()`, exactly like mobile calls
+`openVault` internally), `runtime/execute.rs` (split into pure
+`build_request`/`map_response` functions plus an async `dispatch`, unlike
+mobile's single `fetch`-mocked function — this is what let the real
+`search.manifest.json` fixture's request construction be asserted
+byte-for-byte with no server involved). `manifest/fixtures.rs` embeds the
+literal mobile fixture via `include_str!`, not a copy, so "zero changes to
+the manifest itself" is a build-time guarantee rather than a promise to
+keep two files in sync by hand. No new Tauri commands and no new Cargo
+dependencies — same call 12.3 made (nothing on mobile calls this from UI
+code either; `reqwest`+`serde_json` already covered everything needed).
+
+**Known, inherited quirk, ported not fixed** (`core-port.md` says reuse
+unchanged): `execute.ts`'s credential-key prefetch only scans
+`request.headers`/`request.body`, never `request.query` — a `credential`
+`ValueSource` inside `query` (structurally legal, though the validator
+rejects it and no fixture uses one) would always resolve
+`missing-credential` regardless of vault contents. Documented in
+`runtime/execute.rs`'s own doc comment, not silently corrected.
+
+**Verified on macOS, not on Windows or Linux — flagged rather than
+assumed,** the same gap 12.1–12.3 recorded. `cargo fmt --check` and
+`cargo clippy --all-targets -- -D warnings` ran clean. Three test tiers:
+(1) `cargo test --lib` — 41 tests, porting `validate.test.ts`'s cross-field
+cases (including the real `search.manifest.json` fixture validating
+unchanged), `execute.test.ts`'s request-building/response-mapping cases
+against that same real fixture, and `grants.test.ts`'s isolation/revoke
+cases, all mock-backed for speed; (2)
+`apps/desktop/src-tauri/tests/connector_dispatch.rs` — **not** `#[ignore]`d
+— a real `tokio::net::TcpListener` on `127.0.0.1` serving one fixed HTTP
+response, dispatched through the real `execute_connector_call` end to end
+(real TCP, real HTTP, real JSON mapping) on a scratch manifest, since
+`search.manifest.json`'s own origin (`https://searx.example.org`) is RFC
+2606's reserved, non-resolving example domain and cannot be dialed for
+real without rewriting the fixture under test: `test
+dispatches_a_real_request_over_real_tcp_and_maps_the_response ... ok`;
+(3) `tests/vault_smoke.rs` re-verified still green (task 12.3's own test,
+unaffected by this task's changes to `secure_storage`, which only added a
+test-only in-memory keyring backend shared by every module's tests).
 
 ---
 

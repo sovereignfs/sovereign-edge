@@ -141,18 +141,109 @@ pub fn open_vault(connector_id: &str) -> Result<ConnectorVault, VaultError> {
     })
 }
 
+/// A `keyring` backend for tests, persistent across separate `Entry`/
+/// `open_vault()` calls for the same (service, username) — unlike
+/// `keyring::mock`, whose own documented model is "no persistence other
+/// than in the entry itself" (each `Entry::new()` starts empty). That's
+/// fine for code that reuses one `Entry`/`ConnectorVault`, but real
+/// call sites — `grants::revoke()` opens its own fresh vault just to call
+/// `clear()` — construct a new one per call, exactly like a real OS
+/// keychain backend (which persists by identity, not by object) but unlike
+/// `keyring::mock`. `pub(crate)`, not `#[cfg(test)] mod`-nested, so every
+/// test module in this crate's single unit-test binary can share the same
+/// process-global mock rather than racing two different mock strategies
+/// against `keyring`'s one process-wide default builder.
+#[cfg(test)]
+pub(crate) fn use_test_keyring_backend() {
+    use keyring::credential::{
+        Credential, CredentialApi, CredentialBuilderApi, CredentialPersistence,
+    };
+    use std::any::Any;
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+
+    type CredentialKey = (String, String);
+    type CredentialStore = Mutex<HashMap<CredentialKey, Vec<u8>>>;
+
+    #[derive(Debug)]
+    struct TestCredential {
+        key: CredentialKey,
+    }
+
+    fn store() -> &'static CredentialStore {
+        static STORE: OnceLock<CredentialStore> = OnceLock::new();
+        STORE.get_or_init(|| Mutex::new(HashMap::new()))
+    }
+
+    impl CredentialApi for TestCredential {
+        fn set_secret(&self, secret: &[u8]) -> keyring::Result<()> {
+            store()
+                .lock()
+                .expect("test keyring store poisoned")
+                .insert(self.key.clone(), secret.to_vec());
+            Ok(())
+        }
+        fn get_secret(&self) -> keyring::Result<Vec<u8>> {
+            store()
+                .lock()
+                .expect("test keyring store poisoned")
+                .get(&self.key)
+                .cloned()
+                .ok_or(keyring::Error::NoEntry)
+        }
+        fn delete_credential(&self) -> keyring::Result<()> {
+            let mut store = store().lock().expect("test keyring store poisoned");
+            if store.remove(&self.key).is_some() {
+                Ok(())
+            } else {
+                Err(keyring::Error::NoEntry)
+            }
+        }
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    struct TestCredentialBuilder;
+    impl CredentialBuilderApi for TestCredentialBuilder {
+        fn build(
+            &self,
+            _target: Option<&str>,
+            service: &str,
+            user: &str,
+        ) -> keyring::Result<Box<Credential>> {
+            Ok(Box::new(TestCredential {
+                key: (service.to_string(), user.to_string()),
+            }))
+        }
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+        fn persistence(&self) -> CredentialPersistence {
+            CredentialPersistence::ProcessOnly
+        }
+    }
+
+    keyring::set_default_credential_builder(Box::new(TestCredentialBuilder));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Routes every `keyring::Entry` in this test binary through an
-    /// in-memory mock rather than the real OS keychain — `keyring::mock` is
-    /// always compiled in (no feature gate), and setting it is a
-    /// process-global op, safe here because this test binary never also
-    /// runs against a real backend (that's `tests/vault_smoke.rs`'s job, a
-    /// separate binary/process per Cargo's integration-test convention).
     fn use_mock_backend() {
-        keyring::set_default_credential_builder(keyring::mock::default_credential_builder());
+        use_test_keyring_backend();
+    }
+
+    /// `use_test_keyring_backend`'s store is process-global (see its own
+    /// doc comment), shared with every test in this binary that touches a
+    /// vault — a literal connector id could collide with an unrelated test
+    /// running in parallel. Tests that only exercise validation (never
+    /// write) can still use a fixed literal id safely.
+    fn unique_id(prefix: &str) -> String {
+        static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        format!("{prefix}.{n}")
     }
 
     #[test]
@@ -185,14 +276,14 @@ mod tests {
     #[test]
     fn reads_null_for_a_credential_never_stored() {
         use_mock_backend();
-        let vault = open_vault("fs.sovereign.search").unwrap();
+        let vault = open_vault(&unique_id("fs.sovereign.search")).unwrap();
         assert_eq!(vault.read("apiToken").unwrap(), None);
     }
 
     #[test]
     fn round_trips_a_credential() {
         use_mock_backend();
-        let vault = open_vault("fs.sovereign.search").unwrap();
+        let vault = open_vault(&unique_id("fs.sovereign.search")).unwrap();
         vault.write("apiToken", "search-secret").unwrap();
         assert_eq!(
             vault.read("apiToken").unwrap(),
@@ -208,8 +299,8 @@ mod tests {
     #[test]
     fn does_not_touch_another_connectors_stored_credentials() {
         use_mock_backend();
-        let search = open_vault("fs.sovereign.search").unwrap();
-        let tasks = open_vault("fs.sovereign.tasks").unwrap();
+        let search = open_vault(&unique_id("fs.sovereign.search")).unwrap();
+        let tasks = open_vault(&unique_id("fs.sovereign.tasks")).unwrap();
 
         search.write("apiToken", "search-secret").unwrap();
         tasks.write("apiToken", "tasks-secret").unwrap();
@@ -230,7 +321,7 @@ mod tests {
     #[test]
     fn clear_destroys_the_credential() {
         use_mock_backend();
-        let vault = open_vault("fs.sovereign.search").unwrap();
+        let vault = open_vault(&unique_id("fs.sovereign.search")).unwrap();
         vault.write("apiToken", "secret").unwrap();
 
         vault.clear(&["apiToken".to_string()]).unwrap();

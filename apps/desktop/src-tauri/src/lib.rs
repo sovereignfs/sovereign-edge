@@ -4,11 +4,13 @@
 //! Tier 3 native handlers (task 12.5) and every other command this app ever
 //! exposes get added here too, each gated by its own capability.
 
-// `pub` so `tests/engine_smoke.rs`/`tests/vault_smoke.rs` (external crates,
-// per Cargo's integration-test convention) can exercise the real
-// `EngineAdapter`/`ModelManager`/`ConnectorVault` directly — task 12.2's and
-// 12.3's own review bars are a real GGUF model generating a reply and a real
-// OS-keychain round trip, not just `cargo check` passing.
+// `pub` so `tests/engine_smoke.rs`/`tests/vault_smoke.rs`/
+// `tests/connector_dispatch.rs` (external crates, per Cargo's
+// integration-test convention) can exercise the real
+// `EngineAdapter`/`ModelManager`/`ConnectorVault`/connector dispatch
+// directly — task 12.2's, 12.3's, and 12.4's own review bars are real
+// on-device/network behavior, not just `cargo check` passing.
+pub mod connectors;
 pub mod engine;
 pub mod models;
 pub mod secure_storage;

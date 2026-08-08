@@ -8,17 +8,19 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 
 ## What this is
 
-A Tauri window with real on-device inference (task 12.2) and per-connector
-credential storage (task 12.3) behind it, but still a placeholder React DOM
-frontend — no chat UI, no connectors yet. Tasks 12.1–12.3 are done; see
+A Tauri window with real on-device inference (task 12.2), per-connector
+credential storage (task 12.3), and a working Tier 1 (HTTP) connector
+runtime (task 12.4) behind it, but still a placeholder React DOM frontend —
+no chat UI, nothing wired to a model or a connector from the UI yet. Tasks
+12.1–12.4 are done; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md) for
-the remaining tasks (12.4–12.7) and what each depends on.
+the remaining tasks (12.5–12.7) and what each depends on.
 
 ## Before writing more code here
 
-1. Task 12.4 (Connector framework port, Tier 1) is next, and depends on both
-   12.2 and 12.3 (both done). This is still "one task at a time, sequenced"
-   per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
+1. Task 12.5 (Tier 3 native handler registry) is next, and depends on 12.1
+   and 12.4 (both done). This is still "one task at a time, sequenced" per
+   the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
    mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
    before starting.
 2. `packages/desktop-ui` needs real content before task 12.7 (minimal chat
@@ -67,6 +69,27 @@ the remaining tasks (12.4–12.7) and what each depends on.
   `src-tauri/tests/vault_smoke.rs` (`#[ignore]`d, real Keychain) both pass;
   the real-keychain run confirmed isolation between two connectors sharing
   one credential key and that `clear()` actually destroys a credential.
+- **Connector framework, Tier 1 (12.4).** `src-tauri/src/connectors/`
+  mirrors `apps/mobile/src/connectors/`'s `manifest/`/`permissions/`/
+  `runtime/` split. `manifest/fixtures.rs` embeds the literal mobile
+  `search.manifest.json` via `include_str!` (not a copy), so its own tests
+  (and any future one) can assert against the exact fixture with no risk of
+  drift. `permissions/grants.rs` is the grant/consent state machine,
+  calling 12.3's `secure_storage::open_vault` on revoke; `runtime/execute.rs`
+  is Tier 1 HTTP dispatch, split into pure `build_request`/`map_response`
+  functions plus an async `dispatch` (unlike mobile's single
+  `fetch`-mocked function) specifically so request construction from the
+  real fixture is directly assertable with no server involved. Tier 3
+  dispatch returns a clear "not implemented, task 12.5" failure rather than
+  a silent no-op. No new Tauri commands, no new Cargo dependencies — same
+  call 12.3 made.
+  `cargo test --lib` (41 tests, mock-backed) and
+  `src-tauri/tests/connector_dispatch.rs` (**not** `#[ignore]`d — a real
+  local TCP server, no external network needed) both pass; the latter
+  proved a real request/response round trip end to end, since
+  `search.manifest.json`'s own origin is RFC 2606's non-resolving example
+  domain and can't be dialed for real without rewriting the fixture under
+  test.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
