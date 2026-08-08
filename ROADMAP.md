@@ -94,7 +94,8 @@ explicit instruction, ahead of 0.1.20 closing out Phase 1: see
 [research 0010](docs/research/0010-desktop-shell-technology.md) (Tauri v2,
 over Electron and a React Native desktop shell). Epic 9 (Desktop Shell) held
 only that decision and is now closed; epic 12 (Desktop Core Port) holds the
-rest of the desktop work, broken into 7 tasks (12.1–12.7) sized to match
+rest of the desktop work, broken into 8 tasks (12.1–12.7, plus 12.7a split
+out from 12.7) sized to match
 mobile's own epic granularity — see [core-port.md](docs/epics/desktop/core-port.md).
 
 ### Non-prioritised tasks
@@ -112,5 +113,6 @@ per-app versioning convention.
 | —       | Connector framework port (Tier 1)                     | ✅     | Desktop | [12.4](docs/epics/desktop/core-port.md#-124--connector-framework-port-tier-1)                        |
 | —       | Tier 3 native handler registry (Tauri)                | ✅     | Desktop | [12.5](docs/epics/desktop/core-port.md#-125--tier-3-native-handler-registry-tauri)                   |
 | —       | `packages/desktop-ui` initial component set           | ✅     | Desktop | [12.6](docs/epics/desktop/core-port.md#-126--packagesdesktop-ui-initial-component-set)               |
+| —       | Grammar-constrained tool-calling in the Rust engine   | ✅     | Desktop | [12.7a](docs/epics/desktop/core-port.md#-127a--grammar-constrained-tool-calling-in-the-rust-engine)  |
 | —       | Minimal offline chat UI                               | 📋     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

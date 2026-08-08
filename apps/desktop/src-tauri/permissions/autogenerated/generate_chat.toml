@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-generate-chat"
+description = "Enables the generate_chat command without any pre-configured scope."
+commands.allow = ["generate_chat"]
+
+[[permission]]
+identifier = "deny-generate-chat"
+description = "Denies the generate_chat command without any pre-configured scope."
+commands.deny = ["generate_chat"]

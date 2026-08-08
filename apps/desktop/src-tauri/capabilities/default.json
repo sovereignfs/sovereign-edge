@@ -15,6 +15,7 @@
     "allow-engine-info",
     "allow-generate",
     "allow-cancel-generation",
-    "allow-device-info"
+    "allow-device-info",
+    "allow-generate-chat"
   ]
 }

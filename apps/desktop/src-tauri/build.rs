@@ -28,6 +28,7 @@ const COMMANDS: &[&str] = &[
     "generate",
     "cancel_generation",
     "device_info",
+    "generate_chat",
 ];
 
 fn main() {

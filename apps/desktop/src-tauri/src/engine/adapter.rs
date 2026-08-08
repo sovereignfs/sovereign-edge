@@ -6,9 +6,10 @@
 //! wrapper this is plain synchronous Rust. Callers on Tauri's async runtime
 //! should invoke these via `tokio::task::spawn_blocking` (see `lib.rs`).
 
+use super::grammar::{self, ToolSchema};
 use super::types::{
     EngineInfo, GenerateOptions, GenerateResult, InferenceError, InferenceErrorCode, LoadOptions,
-    StopReason,
+    StopReason, ToolCall,
 };
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::context::LlamaContext;
@@ -136,7 +137,13 @@ impl EngineAdapter {
             gpu,
             reason_no_gpu,
             context_size: options.context_size,
-            tool_capable: false,
+            // Unlike mobile (`chatTemplates.jinja.defaultCaps.tools`, a fact
+            // about whether *this model's* chat template declares tool
+            // support), tool-calling here is a GBNF grammar this engine
+            // itself constructs and enforces (see `engine::grammar`) — it
+            // works regardless of the model's own template, so this is
+            // unconditionally `true` once any model is loaded.
+            tool_capable: true,
         };
         self.loaded = Some(loaded);
         self.info = Some(info.clone());
@@ -234,6 +241,20 @@ fn generate_inner(
             ));
         }
 
+        // Each `generate()` call is a fresh, independent completion, not a
+        // continuation of whatever a previous call left in this context's
+        // KV cache. Without this, a second call on the same loaded model
+        // (e.g. `connectors::routing::route_message`'s tool-decision call
+        // followed by `connectors::orchestration`'s own final-answer call,
+        // both against one `EngineAdapter`) starts its prompt batch back
+        // at position 0 while the cache still holds entries up through
+        // the first call's last position — llama.cpp rejects that as
+        // non-consecutive sequence positions and decoding fails outright.
+        // Missed by every earlier task because nothing before task 12.7a
+        // ever called `generate()` twice on one loaded context; found by
+        // this task's own on-device test, not a unit test.
+        ctx.clear_kv_cache();
+
         let mut batch = LlamaBatch::new(tokens.len().max(1), 1);
         let last_index = (tokens.len() - 1) as i32;
         for (i, token) in (0_i32..).zip(tokens.iter().copied()) {
@@ -250,10 +271,33 @@ fn generate_inner(
             .duration_since(UNIX_EPOCH)
             .map(|d| d.subsec_nanos())
             .unwrap_or(1234);
-        let mut sampler = LlamaSampler::chain_simple([
-            LlamaSampler::temp(options.temperature),
-            LlamaSampler::dist(seed),
-        ]);
+
+        let mut sampler = if options.tools.is_empty() {
+            LlamaSampler::chain_simple([
+                LlamaSampler::temp(options.temperature),
+                LlamaSampler::dist(seed),
+            ])
+        } else {
+            let tool_schemas: Vec<ToolSchema> = options
+                .tools
+                .iter()
+                .map(|t| ToolSchema {
+                    name: t.name.clone(),
+                    parameters: t.parameters.clone(),
+                })
+                .collect();
+            let grammar_str = grammar::build_decision_grammar(&tool_schemas, options.tool_choice)
+                .map_err(|cause| {
+                fail(format!("Could not build the tool-call grammar: {cause}"))
+            })?;
+            let grammar_sampler = LlamaSampler::grammar(model, &grammar_str, "root")
+                .map_err(|cause| fail(format!("Could not load the tool-call grammar: {cause}")))?;
+            LlamaSampler::chain_simple([
+                grammar_sampler,
+                LlamaSampler::temp(options.temperature),
+                LlamaSampler::dist(seed),
+            ])
+        };
 
         let mut decoder = encoding_rs::UTF_8.new_decoder();
         let mut text = String::new();
@@ -268,8 +312,21 @@ fn generate_inner(
                 break StopReason::Aborted;
             }
 
+            // `LlamaSampler::sample` already accepts the token it returns
+            // internally (llama.cpp's own `llama_sampler_sample` is
+            // documented as "sample AND accept") — an extra manual
+            // `sampler.accept(token)` here used to double-advance every
+            // stateful sampler in the chain. Harmless for the old
+            // stateless temp/dist-only chain (nothing to see) but fatal
+            // once a grammar sampler joined it: the grammar's internal
+            // parse position ran two tokens ahead of what was actually
+            // generated, eventually walking past the end of a satisfied
+            // rule into an empty parse state and crashing
+            // (`GGML_ASSERT(!stacks.empty())`) on the following sample
+            // call — found by task 12.7a's own on-device test, not by any
+            // unit test (a fake engine has no `llama_sampler` to get this
+            // wrong against).
             let token = sampler.sample(ctx, batch.n_tokens() - 1);
-            sampler.accept(token);
 
             if model.is_eog_token(token) {
                 break StopReason::Eos;
@@ -324,13 +381,61 @@ fn generate_inner(
             _ => None,
         };
 
+        // A cancelled generation may hold a partial, ungrammatical JSON
+        // fragment — that's a real abort, not a decision-parsing bug, so
+        // it skips the parse rather than surfacing a confusing error.
+        let (text, tool_calls) = if options.tools.is_empty() || stop_reason == StopReason::Aborted {
+            (text, Vec::new())
+        } else {
+            match serde_json::from_str::<DecisionEnvelope>(&text) {
+                Ok(DecisionEnvelope::Answer { answer }) => (answer, Vec::new()),
+                Ok(DecisionEnvelope::ToolCall { tool_call }) => (
+                    String::new(),
+                    vec![ToolCall {
+                        name: tool_call.name,
+                        arguments: tool_call.arguments.to_string(),
+                    }],
+                ),
+                // The grammar constrains every *token* to be grammatically
+                // valid, so this should be unreachable in practice — kept
+                // as a checked `Err` rather than an `unwrap`, the same
+                // "checked, not assumed" discipline mobile's own
+                // `route.ts` applies to its (grammar-guaranteed) tool-call
+                // argument parse.
+                Err(cause) => {
+                    return Err(fail(format!(
+                    "The grammar-constrained decision output did not parse: {cause} (raw: {text})"
+                )))
+                }
+            }
+        };
+
         Ok(GenerateResult {
             text,
             stop_reason,
             tokens_generated,
             time_to_first_token_ms,
             tokens_per_second,
-            tool_calls: Vec::new(),
+            tool_calls,
         })
     })
+}
+
+/// The fixed decision envelope `engine::grammar::build_decision_grammar`
+/// constrains output to. `#[serde(untagged)]` picks the matching variant
+/// by which key is present — safe here specifically because the grammar
+/// guarantees the JSON is one of exactly these two shapes; an untagged
+/// enum used against untrusted, ungrammar-constrained JSON would be a much
+/// weaker guarantee.
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum DecisionEnvelope {
+    ToolCall { tool_call: DecisionToolCall },
+    Answer { answer: String },
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct DecisionToolCall {
+    name: String,
+    arguments: serde_json::Value,
 }

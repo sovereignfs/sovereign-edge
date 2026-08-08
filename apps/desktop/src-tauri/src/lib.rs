@@ -213,6 +213,7 @@ fn generate(
         max_tokens: request.max_tokens.unwrap_or(512),
         temperature: request.temperature.unwrap_or(0.7),
         stop: request.stop.unwrap_or_default(),
+        ..Default::default()
     };
 
     let result = {
@@ -268,6 +269,134 @@ async fn device_info(state: tauri::State<'_, AppState>) -> Result<String, Comman
         connectors::runtime::ExecutionResult::Ok { text } => Ok(text),
         connectors::runtime::ExecutionResult::Err(failure) => Err(failure.into()),
     }
+}
+
+/// `off` / `auto` / `required`, mirroring mobile's `connectorMode` — the
+/// same three-way knob `ChatScreen.send` computes per message (plain chat
+/// vs. a writing-assist mode vs. Search mode), except desktop's task 12.7
+/// chat UI (not built yet) will pass this explicitly rather than deriving
+/// it from a mode system that doesn't exist here yet.
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum ConnectorMode {
+    Off,
+    Auto,
+    Required,
+}
+
+fn default_connector_mode() -> ConnectorMode {
+    ConnectorMode::Auto
+}
+
+#[derive(serde::Deserialize)]
+struct GenerateChatRequest {
+    messages: Vec<engine::ChatMessage>,
+    #[serde(default)]
+    max_tokens: Option<u32>,
+    #[serde(default)]
+    temperature: Option<f32>,
+    #[serde(default = "default_connector_mode")]
+    connector_mode: ConnectorMode,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GenerateChatResponse {
+    text: String,
+    connector: Option<String>,
+}
+
+/// Task 12.7a's own command: the connector-aware counterpart to `generate`.
+/// `off` skips tool-calling entirely (the existing plain-generation path,
+/// wrapped in the same `{text, connector: null}` shape); `auto`/`required`
+/// route through `connectors::orchestration::generate_with_connectors`
+/// against the embedded Search fixture — desktop has no real
+/// connector-install flow yet (Phase 3 on mobile), so, like mobile's own
+/// `ModelSessionProvider.installedConnectors()` before that flow existed,
+/// this is the one connector this app currently knows about, offered
+/// regardless of its grant state (`is_allowed` inside routing/execution is
+/// what actually gates it).
+#[tauri::command]
+fn generate_chat(
+    app: tauri::AppHandle,
+    state: tauri::State<AppState>,
+    request: GenerateChatRequest,
+) -> Result<GenerateChatResponse, CommandError> {
+    let cancel = CancellationToken::new();
+    *state.cancel.lock().expect("cancel mutex poisoned") = Some(cancel.clone());
+
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    let token_app = app.clone();
+    let forwarder = std::thread::spawn(move || {
+        for token in rx {
+            let _ = token_app.emit("generate-token", &token);
+        }
+    });
+
+    let max_tokens = request.max_tokens.unwrap_or(512);
+    let temperature = request.temperature.unwrap_or(0.7);
+
+    let result: Result<connectors::orchestration::ChatGenerateResult, engine::InferenceError> =
+        if matches!(request.connector_mode, ConnectorMode::Off) {
+            let mut engine = state.engine.lock().expect("engine mutex poisoned");
+            engine
+                .generate(
+                    engine::GenerateOptions {
+                        messages: request.messages,
+                        max_tokens,
+                        temperature,
+                        ..Default::default()
+                    },
+                    Some(tx),
+                    Some(cancel),
+                )
+                .map(|r| connectors::orchestration::ChatGenerateResult {
+                    text: r.text,
+                    connector: None,
+                })
+        } else {
+            let manifest_json: serde_json::Value =
+                serde_json::from_str(connectors::manifest::fixtures::SEARCH_MANIFEST_JSON)
+                    .expect("the embedded search fixture is valid JSON");
+            let manifest = match connectors::manifest::validate_manifest(&manifest_json) {
+                connectors::manifest::ValidationResult::Valid(manifest) => *manifest,
+                connectors::manifest::ValidationResult::Invalid(issues) => {
+                    panic!("the embedded search fixture failed validation: {issues:?}")
+                }
+            };
+            let manifests = [manifest];
+            let tool_choice = match request.connector_mode {
+                ConnectorMode::Required => engine::ToolChoice::Required,
+                _ => engine::ToolChoice::Auto,
+            };
+
+            let mut engine = state.engine.lock().expect("engine mutex poisoned");
+            connectors::orchestration::generate_with_connectors(
+                &mut *engine,
+                &state.connector_http_client,
+                &state.connectors_dir,
+                &manifests,
+                request.messages,
+                connectors::orchestration::GenerateWithConnectorsOptions {
+                    temperature,
+                    max_tokens,
+                    tool_choice,
+                    on_token: Some(tx),
+                    cancel: Some(cancel),
+                },
+            )
+        };
+
+    *state.cancel.lock().expect("cancel mutex poisoned") = None;
+    // Dropping the sender (above, when `tx` goes out of scope) closes the
+    // channel so the forwarder thread's `for token in rx` loop ends.
+    let _ = forwarder.join();
+
+    let result = result?;
+    Ok(GenerateChatResponse {
+        text: result.text,
+        connector: result.connector,
+    })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -358,6 +487,7 @@ pub fn run() {
             generate,
             cancel_generation,
             device_info,
+            generate_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");

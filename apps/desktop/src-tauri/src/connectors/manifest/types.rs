@@ -230,6 +230,28 @@ impl ConnectorManifest {
         }
     }
 
+    /// The tool as the model sees it — needed by `connectors::routing`
+    /// (task 12.7a) to build the `engine::ToolDefinition` list offered to
+    /// a generation call, mirroring `route.ts` reading `manifest.tool`.
+    pub fn tool(&self) -> &ToolDefinition {
+        match self {
+            Self::Tier1(m) => &m.tool,
+            Self::Tier3(m) => &m.tool,
+        }
+    }
+
+    /// The connector's own display name (e.g. "Search") — distinct from
+    /// `tool().name`, the function name the model calls (e.g. "search").
+    /// `connectors::orchestration` (task 12.7a) tags a reply with this,
+    /// mirroring `connectorOrchestration.ts` returning `connector:
+    /// manifest.name`, not `manifest.tool.name`.
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Tier1(m) => &m.name,
+            Self::Tier3(m) => &m.name,
+        }
+    }
+
     /// Tier-agnostic granted scope: Tier 1 → declared origins, Tier 3 →
     /// declared capabilities. Mirrors `grants.ts`'s `connectorScope`.
     pub fn scope(&self) -> Vec<String> {

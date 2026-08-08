@@ -56,12 +56,42 @@ impl Default for LoadOptions {
     }
 }
 
+/// A tool the model may call, in the shape `engine::grammar` and
+/// `connectors::routing` both need. Mirrors mobile's `ToolDefinition`
+/// (`chat/inference/types.ts`) minus the OpenAI `type: 'function'`
+/// envelope — nothing here needs it, since this engine's tool-calling
+/// protocol (see `engine::grammar`'s doc comment) isn't OpenAI's wire
+/// format to begin with.
+#[derive(Debug, Clone, Serialize)]
+pub struct ToolDefinition {
+    pub name: String,
+    pub description: String,
+    /// JSON Schema. See `engine::grammar`'s doc comment for the subset
+    /// `build_decision_grammar` actually supports.
+    pub parameters: serde_json::Value,
+}
+
+/// Whether the model must call one of the offered tools or may answer
+/// directly. Mirrors mobile's `toolChoice: string` (`'auto' | 'required'`
+/// in practice), typed here instead of left as a bare string since this
+/// engine only ever recognizes these two values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToolChoice {
+    Auto,
+    Required,
+}
+
 pub struct GenerateOptions {
     pub messages: Vec<ChatMessage>,
     pub max_tokens: u32,
     pub temperature: f32,
     /// Sequences that end generation early.
     pub stop: Vec<String>,
+    /// Tools the model may call. Empty means plain, unconstrained
+    /// generation — the same code path this engine has always had.
+    pub tools: Vec<ToolDefinition>,
+    /// Only consulted when `tools` is non-empty.
+    pub tool_choice: ToolChoice,
 }
 
 impl Default for GenerateOptions {
@@ -71,6 +101,8 @@ impl Default for GenerateOptions {
             max_tokens: 512,
             temperature: 0.7,
             stop: Vec::new(),
+            tools: Vec::new(),
+            tool_choice: ToolChoice::Auto,
         }
     }
 }

@@ -11,17 +11,19 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 A Tauri window with real on-device inference (task 12.2), per-connector
 credential storage (task 12.3), a working Tier 1 (HTTP) connector runtime
 (task 12.4), a Tier 3 native handler registry (task 12.5, `device_info`),
-and a real `desktop-ui` component set (task 12.6) behind it — but `src/
-App.tsx` is still just a component gallery proving the pieces render, not
-the real chat UI. Tasks 12.1–12.6 are done; see
+a real `desktop-ui` component set (task 12.6), and grammar-constrained
+tool-calling wired through routing/orchestration into a `generate_chat`
+command (task 12.7a) behind it — but `src/App.tsx` is still just a
+component gallery proving the pieces render, not the real chat UI. Tasks
+12.1–12.6 and 12.7a are done; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
 for the remaining task (12.7) and what it depends on.
 
 ## Before writing more code here
 
 1. Task 12.7 (minimal offline chat UI) is next, and depends on 12.2, 12.4,
-   and 12.6 (all done). This is still "one task at a time, sequenced" per
-   the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
+   12.6, and 12.7a (all done). This is still "one task at a time, sequenced"
+   per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
    mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
    before starting.
 2. `src/App.tsx`'s current contents (a component gallery, task 12.6's own
@@ -37,8 +39,8 @@ for the remaining task (12.7) and what it depends on.
   extracted). `lib.rs` registers Tauri commands
   (`list_models`/`install_model`/`load_model`/`generate`/etc.) over them,
   plus a best-effort startup bootstrap that loads the last-used model. No
-  frontend consumes these yet — `src/App.tsx` still renders a static
-  placeholder; that's task 12.7's job.
+  frontend consumes these yet — `src/App.tsx` still renders task 12.6's
+  component gallery, not a real chat screen; that's task 12.7's job.
 - **Verified on macOS only.** `cargo fmt --check` and
   `cargo clippy --all-targets -- -D warnings` are clean.
   `src-tauri/tests/engine_smoke.rs` (`#[ignore]`d — downloads a real ~490MB
@@ -128,6 +130,33 @@ for the remaining task (12.7) and what it depends on.
   text, accessibility tree, zero console errors) — not the three actual
   Tauri WebView engines the review checklist names, which this environment
   can't launch or screenshot; flagged as a gap, not claimed.
+- **Grammar-constrained tool-calling (12.7a).** `engine::grammar` converts
+  a flat JSON-Schema subset into a GBNF grammar for a fixed decision
+  envelope (`{"answer": "..."}` / `{"tool_call": {...}}`) — a deliberate
+  protocol difference from mobile's native chat-template tool syntax,
+  since `llama-cpp-2` exposes no jinja/tool-template machinery the way
+  `llama.rn` does. `EngineInfo.tool_capable` is therefore unconditionally
+  `true` (this mechanism is model-agnostic), unlike mobile's
+  template-dependent flag. `connectors::routing::route_message` and
+  `connectors::orchestration::generate_with_connectors` port `route.ts`/
+  `connectorOrchestration.ts`, tested against a canned `FakeEngine`
+  (`GenerativeEngine` trait, the same testability seam
+  `models::LoadedModelHandle` established) — no model weights needed for
+  the 11 routing/orchestration unit tests. A new `generate_chat` command
+  exposes `off`/`auto`/`required` connector modes over IPC, ahead of 12.7's
+  UI existing to call it. **Two real bugs, found only by the on-device
+  test, not any unit test:** `generate_inner` was double-accepting every
+  sampled token (harmless for the old stateless chain, fatal once a
+  stateful grammar sampler joined it — crashed llama.cpp's own grammar
+  code after ~2 tokens); and `EngineAdapter::generate()` never cleared the
+  context's KV cache between calls, so a second call on one loaded model
+  (routing's decision call, then orchestration's final-answer call) failed
+  outright on non-consecutive sequence positions. Both fixed; both
+  pre-existed this task, just never exercised by anything that called
+  `generate()` twice on one context before. Verified with a real Qwen2.5
+  0.5B model forced to call a granted Search-connector fixture against a
+  local test server — real grammar-constrained JSON, real HTTP dispatch,
+  real folded final answer tagged `connector: Some("Search")`.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.

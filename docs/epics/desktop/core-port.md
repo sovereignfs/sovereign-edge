@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — tasks 12.1–12.6 done"
+status: "⏳ In Progress — tasks 12.1–12.6, 12.7a done"
 scope: desktop
 ---
 
@@ -456,20 +456,121 @@ cross-engine parity specifically — flagged rather than claimed.
 
 ---
 
+#### ✅ 12.7a — Grammar-constrained tool-calling in the Rust engine
+
+**Goal:** Give the desktop `EngineAdapter` real tool-calling, so task 12.7's
+review checklist ("a granted Tier 1 connector answers and is visibly marked
+as having done so") is something the engine can actually do, not something
+the chat UI would have to fake. Split out of task 12.7 rather than folded
+into it: mobile's tool-calling rides entirely on `llama.rn`'s own
+jinja/chat-template machinery (`chatTemplates.jinja.defaultCaps.tools`,
+OpenAI-shaped `tools`/`tool_choice`/`tool_calls` passed straight through to
+`context.completion`), and `llama-cpp-2` — task 12.2's own crate choice —
+exposes none of that, only low-level GBNF grammar-sampler primitives
+(`LlamaSampler::grammar`) with no JSON-Schema→GBNF converter and no
+chat-template tool-capability introspection. Building both was real,
+separable engine work, not "wire up a UI."
+
+**Deliverables:**
+
+- `engine::grammar`: a JSON-Schema-subset → GBNF converter and a fixed
+  decision-envelope grammar (`{"answer": "..."}` /
+  `{"tool_call": {"name": "...", "arguments": {...}}}`), built fresh per
+  call from the tools offered.
+- `engine::adapter`: wires the grammar into the sampler chain when
+  `GenerateOptions.tools` is non-empty and parses the constrained output
+  back into `GenerateResult.tool_calls`.
+- `connectors::routing` (`route_message`, mirroring
+  `connectors/routing/route.ts`) and `connectors::orchestration`
+  (`generate_with_connectors`, mirroring `settings/connectorOrchestration.ts`)
+  — the routing-decision and connector-execution-with-fallback logic task
+  12.7's chat UI will call into.
+- A `generate_chat` Tauri command (`off`/`auto`/`required` connector modes)
+  exposing all of the above through IPC, ahead of task 12.7's UI existing to
+  call it.
+
+**Dependencies:** Tasks 12.2, 12.4.
+
+**Review checklist:**
+
+- A real on-device model, given a granted Tier 1 connector and forced tool
+  use, actually emits a grammar-constrained tool call — executed for real
+  against a local test server — and the reply comes back tagged with the
+  connector's name. Proven by a real model, not a mock or a fake engine.
+
+**Deliberate protocol difference from mobile:** rather than reproduce
+llama.cpp's native `<tool_call>`/chat-template tool syntax, this ships its
+own fixed JSON decision envelope, constrained by a GBNF grammar this module
+builds per call. This makes tool-calling here **model-agnostic** — it works
+for any instruction-following model, not only ones whose GGUF chat template
+happens to declare tool support — so `EngineInfo.tool_capable` is
+unconditionally `true` once a model is loaded, unlike mobile's
+template-dependent flag. Mobile's fourth `RoutingDecision` case,
+`unsupported` (reached when the model's template can't tool-call), is
+consequently unreachable here and isn't in the Rust `RoutingDecision` enum
+at all. **Scope limit, checked not assumed:** the grammar builder supports
+only flat JSON-Schema objects with `string`/`number`/`integer`/`boolean`
+properties; an unsupported schema shape fails loudly
+(`GrammarError`) rather than building a grammar that can't represent it.
+
+**Two real, on-device-only bugs this task's own review checklist caught —
+neither visible to any unit test, both pre-existing in code earlier tasks
+shipped:**
+
+1. `generate_inner` called `sampler.accept(token)` manually *after*
+   `sampler.sample()`, which already accepts internally
+   (`llama_sampler_sample` is documented as "sample and accept"). Harmless
+   for the old stateless temp/dist-only chain, but a real double-accept
+   once a stateful grammar sampler joined it — the grammar's parse position
+   ran two tokens ahead of what was actually generated, eventually walking
+   past a satisfied rule into an empty parse state and crashing
+   (`GGML_ASSERT(!stacks.empty())`, in llama.cpp's own grammar code) on the
+   next sample call. Fixed by removing the redundant manual `accept`.
+2. `EngineAdapter::generate()` never cleared the context's KV cache between
+   calls, so a second call on the same loaded model (routing's
+   tool-decision call followed by orchestration's final-answer call, both
+   against one context) started its prompt batch at position 0 while the
+   cache still held entries through the first call's last position —
+   llama.cpp rejects that as non-consecutive sequence positions and decode
+   fails outright. Fixed with `ctx.clear_kv_cache()` at the start of every
+   `generate()` call. Invisible before this task because nothing before it
+   ever called `generate()` twice on one loaded context.
+
+**Verified — real model, real grammar, real network, not mocks:** `cargo
+fmt --check` / `cargo clippy --all-targets -- -D warnings` clean. Full
+`cargo test` (62 unit tests, no `--ignored`) covers the grammar builder,
+routing decisions (unknown tool / not-permitted / malformed-arguments /
+granted paths, against a canned `FakeEngine` implementing a new
+`GenerativeEngine` trait — the same testability seam
+`models::LoadedModelHandle` already established), and orchestration
+(required-with-nothing-offered short-circuit, blocked-decision fallback,
+execution-failure fallback, and a successful tool-call round trip against a
+real local TCP server). `cargo test --test tool_calling_smoke -- --ignored
+--nocapture` on-device (macOS): a real Qwen2.5 0.5B model, forced to call
+the Search tool against a granted connector fixture pointed at a local test
+server, produced a real grammar-constrained `tool_call` JSON, executed it
+for real, and returned a final answer tagged `connector: Some("Search")` —
+this is what caught both bugs above. `cargo test --test engine_smoke --
+--ignored --nocapture` re-run afterward to confirm the KV-cache fix didn't
+regress the plain (no-tools) generation path.
+
+---
+
 #### 📋 12.7 — Minimal offline chat UI
 
-**Goal:** Enough UI to exercise tasks 12.2–12.5 end to end and verify them
-the way this repo's own convention requires — a real behavior check, not a
-green test suite — mirroring the role mobile's task 1.3 played inside its
-own Core Inference & Chat epic rather than inside App Shell.
+**Goal:** Enough UI to exercise tasks 12.2–12.5 and 12.7a end to end and
+verify them the way this repo's own convention requires — a real behavior
+check, not a green test suite — mirroring the role mobile's task 1.3 played
+inside its own Core Inference & Chat epic rather than inside App Shell.
 
 **Deliverables:**
 
 - A single chat screen: model selection, message input/output, and the same
   in-chat connector-provenance marker mobile's task 2.5 established
-  (`connector?: string` on the reply).
+  (`connector?: string` on the reply), calling task 12.7a's `generate_chat`
+  command rather than reimplementing routing/orchestration in the UI layer.
 
-**Dependencies:** Tasks 12.2, 12.4, 12.6.
+**Dependencies:** Tasks 12.2, 12.4, 12.6, 12.7a.
 
 **Review checklist:**
 

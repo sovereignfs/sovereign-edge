@@ -78,6 +78,7 @@ async fn loads_and_generates_a_reply_on_device() {
                     max_tokens: 32,
                     temperature: 0.7,
                     stop: Vec::new(),
+                    ..Default::default()
                 },
                 None,
                 None,

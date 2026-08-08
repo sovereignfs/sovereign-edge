@@ -2,5 +2,7 @@
 //! `apps/mobile/src/connectors/`.
 
 pub mod manifest;
+pub mod orchestration;
 pub mod permissions;
+pub mod routing;
 pub mod runtime;

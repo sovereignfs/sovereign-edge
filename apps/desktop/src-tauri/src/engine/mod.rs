@@ -1,6 +1,7 @@
 //! On-device inference (task 12.2), mirroring `apps/mobile/src/chat/inference/`.
 
 pub mod adapter;
+pub mod grammar;
 pub mod types;
 
 pub use adapter::EngineAdapter;
@@ -11,5 +12,5 @@ pub use adapter::EngineAdapter;
 #[allow(unused_imports)]
 pub use types::{
     ChatMessage, EngineInfo, GenerateOptions, GenerateResult, InferenceError, InferenceErrorCode,
-    LoadOptions, Role, StopReason, ToolCall,
+    LoadOptions, Role, StopReason, ToolCall, ToolChoice, ToolDefinition,
 };
