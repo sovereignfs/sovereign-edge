@@ -4,12 +4,14 @@
 //! Tier 3 native handlers (task 12.5) and every other command this app ever
 //! exposes get added here too, each gated by its own capability.
 
-// `pub` so `tests/engine_smoke.rs` (an external crate, per Cargo's
-// integration-test convention) can exercise the real `EngineAdapter` and
-// `ModelManager` directly — task 12.2's own review bar is a real GGUF model
-// loading and generating a reply, not just `cargo check` passing.
+// `pub` so `tests/engine_smoke.rs`/`tests/vault_smoke.rs` (external crates,
+// per Cargo's integration-test convention) can exercise the real
+// `EngineAdapter`/`ModelManager`/`ConnectorVault` directly — task 12.2's and
+// 12.3's own review bars are a real GGUF model generating a reply and a real
+// OS-keychain round trip, not just `cargo check` passing.
 pub mod engine;
 pub mod models;
+pub mod secure_storage;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

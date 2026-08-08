@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — tasks 12.1–12.2 done"
+status: "⏳ In Progress — tasks 12.1–12.3 done"
 scope: desktop
 ---
 
@@ -176,7 +176,7 @@ actual reply on-device with Metal GPU offload active:
 
 ---
 
-#### 📋 12.3 — `SecureStorageAdapter` over the OS credential store
+#### ✅ 12.3 — `SecureStorageAdapter` over the OS credential store
 
 **Goal:** Per-connector credential isolation on desktop, mirroring what
 `apps/mobile/src/connectors/permissions/vault.ts` already guarantees on
@@ -199,6 +199,46 @@ mobile.
   runs for mobile, ported rather than redesigned.
 - Revoking a connector destroys its stored credential, matching
   `permissions/grants.ts`'s `revoke()` behavior exactly.
+
+**Decided: `keyring` v3.6.3** (not the newer v4 `keyring-core` redesign —
+v3's `Entry::new`/`set_password`/`get_password`/`delete_credential` API is
+the long-stable one, and its MSRV, 1.75, is already below this crate's own
+floor). Target-gated Cargo features per OS, mirroring 12.2's `llama-cpp-2`
+split: `apple-native` (macOS), `windows-native` (Windows),
+`sync-secret-service` (Linux) — the same three backends research 0010 named.
+
+**Not a separate Tauri plugin crate**, despite `core-port.md`'s own "Tauri
+plugin" phrasing above: mobile's `openVault` is never called from UI code
+either — its only caller is `connectors/runtime/execute.ts`, internal
+Rust-side business logic (task 12.4's connector runtime), never IPC from the
+WebView. A plain Rust module (`apps/desktop/src-tauri/src/secure_storage/`)
+needs no command/capability surface, so the formal plugin machinery would be
+unused ceremony. Documented as a deliberate scope call in-code, the same way
+12.2 flagged its own deviations.
+
+`secure_storage/vault.rs` ports `vault.ts`'s `ConnectorVault`/`openVault`
+directly: same `SAFE_SEGMENT`-equivalent charset check, same
+single-namespace-plus-composite-key isolation shape (`keyring` "service" =
+a fixed `sovereign.connector` constant, "username" =
+`<connectorId>.<credentialKey>`), same `Ok(None)`-on-missing /
+no-throw-on-missing-key-delete semantics as `SecureStore`. **Note:**
+`grants.ts`'s own port — the grant/consent state machine whose `revoke()`
+calls this vault's `clear()` — is task 12.4's deliverable, not this one;
+12.3 delivers the vault primitive only, per `core-port.md`'s own task-4
+deliverable list ("reused as-is, backed by task 12.3's
+`SecureStorageAdapter`").
+
+**Verified on macOS, not on Windows or Linux — flagged rather than
+assumed,** the same gap 12.1 and 12.2 recorded. `cargo fmt --check` and
+`cargo clippy --all-targets -- -D warnings` ran clean. Two test tiers, both
+run and both green: `cargo test --lib secure_storage` (7 tests, mock-backed
+via `keyring::mock` — fast, no real OS access) and
+`apps/desktop/src-tauri/tests/vault_smoke.rs` (`#[ignore]`d — writes real
+entries into this machine's actual macOS Keychain, verifies isolation
+between two connectors sharing one credential key, verifies `clear()`
+destroys the credential, then deletes its own scratch entries regardless of
+pass/fail): `test isolates_and_destroys_credentials_in_the_real_keychain
+... ok`.
 
 ---
 

@@ -36,8 +36,21 @@ self_cell = "1"
 # in `[dependencies]` so the `metal` feature (GPU offload) is enabled only on
 # macOS, mirroring mobile's Metal-on-iOS / CPU-elsewhere split. CUDA/Vulkan on
 # Windows/Linux are a future task's concern, not invented speculatively here.
+#
+# task 12.3 adds `keyring` v3 to the same per-OS blocks (not the newer v4
+# `keyring-core` redesign — v3's `Entry::new`/`set_password`/`get_password`/
+# `delete_credential` API is the long-stable one, and its MSRV, 1.75, is
+# already below this crate's own floor). One backend feature per OS, per
+# research 0010's own naming: macOS Keychain, Windows Credential Manager,
+# Linux Secret Service.
 [target.'cfg(target_os = "macos")'.dependencies]
 llama-cpp-2 = { version = "0.1", features = ["metal"] }
+keyring = { version = "3", features = ["apple-native"] }
 
-[target.'cfg(not(target_os = "macos"))'.dependencies]
+[target.'cfg(target_os = "windows")'.dependencies]
 llama-cpp-2 = "0.1"
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+llama-cpp-2 = "0.1"
+keyring = { version = "3", features = ["sync-secret-service"] }

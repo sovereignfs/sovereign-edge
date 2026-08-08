@@ -8,16 +8,16 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 
 ## What this is
 
-A Tauri window with real on-device inference behind it (task 12.2) but still
-a placeholder React DOM frontend — no chat UI, no connectors yet. Tasks 12.1
-(scaffold) and 12.2 (`EngineAdapter` + model manager) are done; see
+A Tauri window with real on-device inference (task 12.2) and per-connector
+credential storage (task 12.3) behind it, but still a placeholder React DOM
+frontend — no chat UI, no connectors yet. Tasks 12.1–12.3 are done; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md) for
-the remaining tasks (12.3–12.7) and what each depends on.
+the remaining tasks (12.4–12.7) and what each depends on.
 
 ## Before writing more code here
 
-1. Task 12.3 (`SecureStorageAdapter` over the OS credential store) is next,
-   and depends only on 12.1. This is still "one task at a time, sequenced"
+1. Task 12.4 (Connector framework port, Tier 1) is next, and depends on both
+   12.2 and 12.3 (both done). This is still "one task at a time, sequenced"
    per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
    mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
    before starting.
@@ -52,6 +52,21 @@ the remaining tasks (12.3–12.7) and what each depends on.
   opt-in to gate app commands too isn't wired up. Flagged in
   `capabilities/default.json`; closing this is task 12.5's job, not
   something to bolt on ad hoc later.
+- **Per-connector credential isolation (12.3).**
+  `src-tauri/src/secure_storage/vault.rs` mirrors
+  `apps/mobile/src/connectors/permissions/vault.ts`'s `ConnectorVault`: the
+  only way to reach a stored credential is a handle scoped to one
+  connector's namespace, backed by `keyring` v3 over macOS Keychain/Windows
+  Credential Manager/Linux Secret Service (target-gated feature per OS —
+  see `Cargo.toml`). Deliberately **not** a Tauri plugin crate — nothing in
+  the frontend calls this on mobile either, only internal connector-runtime
+  code (task 12.4's job) will. `grants.ts`'s own port (the state machine
+  whose `revoke()` calls this vault's `clear()`) is task 12.4's deliverable,
+  not 12.3's — this module is the primitive only.
+  `cargo test --lib secure_storage` (mock-backed, fast) and
+  `src-tauri/tests/vault_smoke.rs` (`#[ignore]`d, real Keychain) both pass;
+  the real-keychain run confirmed isolation between two connectors sharing
+  one credential key and that `clear()` actually destroys a credential.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
@@ -78,11 +93,12 @@ the remaining tasks (12.3–12.7) and what each depends on.
 
 Mobile's own "two failures invisible to a green test suite" history is why
 task 12.2's own review bar was a real on-device reply
-(`tests/engine_smoke.rs`, `#[ignore]`d, run manually), not just
-`cargo check`/`cargo clippy` passing. That bar applies to every future task
-here too — 12.3's credential isolation should be verified by actually
-writing/reading/revoking a credential, not just by a passing unit test
-against a mock.
+(`tests/engine_smoke.rs`, `#[ignore]`d, run manually) and task 12.3's was a
+real Keychain round trip (`tests/vault_smoke.rs`, same pattern) — not just
+`cargo check`/`cargo clippy` passing, and not just a mock-backed unit test
+(`secure_storage/vault.rs`'s own tests exist for speed, but the `#[ignore]`d
+real-backend test is what actually closed the task). That bar applies to
+every future task here too.
 
 ## Layout
 
