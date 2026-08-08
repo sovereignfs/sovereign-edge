@@ -31,6 +31,8 @@ const COMMANDS: &[&str] = &[
     "generate_chat",
     "connector_status",
     "set_search_connector_granted",
+    "list_connectors",
+    "set_connector_granted",
 ];
 
 fn main() {

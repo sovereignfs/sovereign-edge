@@ -124,7 +124,7 @@ per-app versioning convention.
 | —       | Minimal offline chat UI                               | ✅     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
 | —       | Navigation shell scaffold                             | ✅     | Desktop | [13.1](docs/epics/desktop/app-shell.md#-131--navigation-shell-scaffold)                              |
 | —       | Model manager screen                                  | ✅     | Desktop | [13.2](docs/epics/desktop/app-shell.md#-132--model-manager-screen)                                   |
-| —       | Connectors & permissions screen                       | 📋     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |
+| —       | Connectors & permissions screen                       | ✅     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |
 | —       | General settings screen                               | 📋     | Desktop | [13.4](docs/epics/desktop/app-shell.md#-134--general-settings-screen)                                |
 | —       | Chat screen consolidation                             | 📋     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

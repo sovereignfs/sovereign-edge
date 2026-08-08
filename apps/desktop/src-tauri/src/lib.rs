@@ -426,21 +426,26 @@ struct ConnectorStatus {
     granted: bool,
 }
 
-/// The chat UI's only lever over connector consent (task 12.7): there is
-/// no separate Settings → Connectors screen on desktop yet (out of this
-/// epic's scope, per `core-port.md`'s own "deliberately out of scope"
-/// note), so this reports whether the one connector this app knows about
-/// is granted, backed by the same `connectors::permissions` state machine
-/// a future real settings screen would use.
-#[tauri::command]
-fn connector_status(state: tauri::State<AppState>) -> ConnectorStatus {
-    let manifest = search_connector_manifest();
-    let granted = connectors::permissions::is_allowed(&state.connectors_dir, &manifest);
+fn connector_status_for(
+    manifest: &connectors::manifest::ConnectorManifest,
+    connectors_dir: &std::path::Path,
+) -> ConnectorStatus {
     ConnectorStatus {
         id: manifest.id().to_string(),
         name: manifest.name().to_string(),
-        granted,
+        granted: connectors::permissions::is_allowed(connectors_dir, manifest),
     }
+}
+
+/// Task 12.7's original single-connector lever, kept as-is for
+/// `ChatScreen.tsx`'s own inline `Toggle` — task 13.5 removes that inline
+/// control and switches Chat to linking out to the real Connectors screen
+/// (`list_connectors`/`set_connector_granted` below); until then, two
+/// small commands is less risk than rewriting a working, already-verified
+/// one to fit a shape it doesn't need yet.
+#[tauri::command]
+fn connector_status(state: tauri::State<AppState>) -> ConnectorStatus {
+    connector_status_for(&search_connector_manifest(), &state.connectors_dir)
 }
 
 #[tauri::command]
@@ -454,11 +459,54 @@ fn set_search_connector_granted(
     } else {
         connectors::permissions::revoke(&state.connectors_dir, &manifest)?;
     }
-    Ok(ConnectorStatus {
-        id: manifest.id().to_string(),
-        name: manifest.name().to_string(),
-        granted,
-    })
+    Ok(connector_status_for(&manifest, &state.connectors_dir))
+}
+
+/// Every connector this app currently knows about — today, just the
+/// embedded Search fixture, the same one `search_connector_manifest`
+/// reads. A real connector-install flow (Phase 3 on mobile) would replace
+/// this with something that reads what's actually been installed; until
+/// then this is the one place task 13.3's screen and any future caller
+/// look, so there is exactly one list to keep in sync as connectors are
+/// added, not one per command.
+fn known_connector_manifests() -> Vec<connectors::manifest::ConnectorManifest> {
+    vec![search_connector_manifest()]
+}
+
+/// Task 13.3's own command: the real Connectors screen reads this instead
+/// of `connector_status`'s single hardcoded row — built as a real list
+/// against `known_connector_manifests()` so the screen doesn't need
+/// rewriting when a second connector eventually exists, even though today
+/// it will only ever return one entry.
+#[tauri::command]
+fn list_connectors(state: tauri::State<AppState>) -> Vec<ConnectorStatus> {
+    known_connector_manifests()
+        .iter()
+        .map(|manifest| connector_status_for(manifest, &state.connectors_dir))
+        .collect()
+}
+
+#[tauri::command]
+fn set_connector_granted(
+    state: tauri::State<AppState>,
+    id: String,
+    granted: bool,
+) -> Result<ConnectorStatus, CommandError> {
+    let manifest = known_connector_manifests()
+        .into_iter()
+        .find(|m| m.id() == id)
+        .ok_or_else(|| {
+            CommandError::Connector(connectors::runtime::ExecutionFailure::with_detail(
+                connectors::runtime::FailureReason::InvalidArguments,
+                format!("no known connector with id \"{id}\""),
+            ))
+        })?;
+    if granted {
+        connectors::permissions::grant(&state.connectors_dir, &manifest);
+    } else {
+        connectors::permissions::revoke(&state.connectors_dir, &manifest)?;
+    }
+    Ok(connector_status_for(&manifest, &state.connectors_dir))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -552,6 +600,8 @@ pub fn run() {
             generate_chat,
             connector_status,
             set_search_connector_granted,
+            list_connectors,
+            set_connector_granted,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");

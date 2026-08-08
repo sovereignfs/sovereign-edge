@@ -18,6 +18,8 @@
     "allow-device-info",
     "allow-generate-chat",
     "allow-connector-status",
-    "allow-set-search-connector-granted"
+    "allow-set-search-connector-granted",
+    "allow-list-connectors",
+    "allow-set-connector-granted"
   ]
 }

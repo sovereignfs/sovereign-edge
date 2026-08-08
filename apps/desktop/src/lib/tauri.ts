@@ -137,6 +137,18 @@ export function setSearchConnectorGranted(
   return call('set_search_connector_granted', { granted });
 }
 
+/** Every connector this app currently knows about — task 13.3's own list. */
+export function listConnectors(): Promise<ConnectorStatus[]> {
+  return call('list_connectors');
+}
+
+export function setConnectorGranted(
+  id: string,
+  granted: boolean,
+): Promise<ConnectorStatus> {
+  return call('set_connector_granted', { id, granted });
+}
+
 export function cancelGeneration(): Promise<void> {
   return call('cancel_generation');
 }

@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "⏳ In Progress — tasks 13.1–13.2 done"
+status: "⏳ In Progress — tasks 13.1–13.3 done"
 scope: desktop
 ---
 
@@ -199,7 +199,7 @@ the UI wiring, not the underlying operations.
 
 ---
 
-#### 📋 13.3 — Connectors & permissions screen
+#### ✅ 13.3 — Connectors & permissions screen
 
 **Goal:** A real settings surface listing every installed connector and its
 permission state, mirroring mobile task 2.2's own deliverable
@@ -237,6 +237,42 @@ only).
   two-connectors-sharing-a-credential-key adversarial case, since desktop
   still has only one connector to test against; revisit that specific case
   once a second connector exists.
+
+**Decided: a new, generic `list_connectors`/`set_connector_granted` pair,
+`connector_status`/`set_search_connector_granted` untouched.** Both new
+commands are built against a `known_connector_manifests()` helper
+(today: `vec![search_connector_manifest()]`) so the screen and any future
+caller share one list to extend as connectors are added, rather than one
+per command. `connector_status`/`set_search_connector_granted` — task
+12.7's original single-connector lever for `ChatScreen.tsx`'s own inline
+`Toggle` — are deliberately left as-is rather than rewritten to fit the
+list shape: task 13.5 removes that inline control and switches Chat to
+linking out to this screen, so two small commands until then is less risk
+than reworking a working, already-verified one. Both old and new commands
+now share a `connector_status_for()` helper internally, so there's no
+duplicated grant-status logic even though the public commands stayed
+separate. `apps/desktop/src/connectors/ConnectorsScreen.tsx` renders one
+`ListItem` + `Toggle` per entry from `list_connectors`, with an optimistic
+UI flip on toggle that reverts if the write fails — mirrors
+`ChatScreen.tsx`'s own toggle-failure handling.
+
+**Verified:** `cargo fmt --check` / `cargo clippy --all-targets -- -D
+warnings` / `cargo test --lib` (62 tests, unaffected — no logic changed,
+only two new thin commands atop already-tested `connectors::permissions`)
+clean; `cargo build` succeeds (confirms the new commands' ACL permissions
+are consistent). `tsc --noEmit`/`eslint`/`prettier --check` clean. Real
+Vite dev server viewed in a real browser: Connectors reachable, correct
+rendering, zero console errors. `scripts/ci/launch-smoke.js` re-run against
+the freshly built binary — still launches cleanly with all 16 commands
+registered and ACL-gated. **Honest gap, same as every desktop UI task since
+12.5:** this environment cannot drive the actual native Tauri window, so a
+real grant → revoke round trip through the rendered UI, and confirming
+Chat's own toggle picks up the change on next visit (it remounts and
+refetches on every navigation, per `AppShell`'s conditional rendering —
+not a live subscription, but no state to go stale between visits either),
+were not exercised by hand. `revoke()`'s actual credential-clearing
+behavior was already proven by task 12.4's own tests; this task adds no
+new permission logic, only a real list in front of what already existed.
 
 ---
 
