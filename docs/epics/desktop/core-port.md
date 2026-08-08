@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — task 12.1 done"
+status: "⏳ In Progress — tasks 12.1–12.2 done"
 scope: desktop
 ---
 
@@ -105,7 +105,7 @@ own gap, not a regression in unrelated work.
 
 ---
 
-#### 📋 12.2 — Rust `llama.cpp` `EngineAdapter` and model manager
+#### ✅ 12.2 — Rust `llama.cpp` `EngineAdapter` and model manager
 
 **Goal:** On-device GGUF inference on desktop, mirroring mobile's task 1.1
 (`llama.rn` integration) and 1.2 (model manager).
@@ -129,6 +129,50 @@ own gap, not a regression in unrelated work.
 - No network call happens on the inference path itself — only the explicit,
   user-initiated model download does, per the root `AGENTS.md`'s hard
   architectural rule 1 and its rule-3 exception.
+
+**Decided: `llama-cpp-2`** (the `utilityai/llama-cpp-rs` project), Metal
+enabled on macOS only via a target-gated Cargo dependency — CPU-only
+elsewhere for now, matching mobile's Metal-on-iOS split. Rejected
+`llama_cpp-rs` (thinner, less active) and a bundled `llama-server` subprocess
+(an IPC layer with no benefit here; in-process bindings keep this port
+structurally parallel to how `llama.rn` is used on mobile).
+
+`apps/desktop/src-tauri/src/engine/` (`types.rs`, `adapter.rs`) mirrors
+`apps/mobile/src/chat/inference/`'s `InferenceEngine` invariants (one
+context at a time, streaming per-token callback, cancellation, chat-template
+prompting) using `llama-cpp-2`'s `LlamaBackend`/`LlamaModel`/`LlamaContext`,
+with `self_cell` to hold the model and its borrowed context together safely.
+`apps/desktop/src-tauri/src/models/` (`types.rs`, `catalog.rs`, `store.rs`,
+`hashing.rs`, `verify.rs`, `download.rs`, `device.rs`, `manager.rs`) mirrors
+`apps/mobile/src/models/` closely, per this epic's own instruction, since
+`packages/core`'s extraction still hasn't happened. `lib.rs` registers the
+minimal Tauri command set (`list_models`, `install_model`, `load_model`,
+`generate` with streaming events, `cancel_generation`, `unload_model`,
+`engine_info`, etc.) plus a best-effort startup bootstrap that loads the
+last-used model, mirroring mobile's `ModelSessionProvider`.
+
+**Two deliberate deviations from mobile, both documented in-code:**
+`llama-cpp-2`'s `LlamaModelLoadError` carries no message text at all, so
+mobile's regex-on-error-message technique for distinguishing "out of memory"
+from "the file is broken" isn't portable as-is; `engine/adapter.rs` instead
+does a preflight RAM-budget check reusing `models::device`'s own fit
+formula. Separately, `capabilities/default.json` now notes that Tauri v2's
+ACL only gates *plugin*-provided commands by default — this task's own
+app-registered commands are reachable without a capability entry unless the
+app opts into gating them via `build.rs`, which isn't wired up yet; flagged
+there as a gap for task 12.5 (Tier 3 native handlers) to close, not silently
+assumed.
+
+**Verified on macOS, not on Windows or Linux — flagged rather than assumed,**
+the same gap 12.1 recorded. `cargo fmt --check` and
+`cargo clippy --all-targets -- -D warnings` ran clean.
+`apps/desktop/src-tauri/tests/engine_smoke.rs` (`#[ignore]`d — it downloads
+a real ~490MB model) downloaded, verified, and loaded the catalog's smallest
+model (Qwen2.5 0.5B) through the real `EngineAdapter` and generated an
+actual reply on-device with Metal GPU offload active:
+`loaded: gpu=true reason_no_gpu=None context_size=2048` /
+`reply (Eos, 2 tokens, Some(31)ms to first token): "Hello!"`. A grep of
+`src/engine/` confirms zero network-crate references in the inference path.
 
 ---
 

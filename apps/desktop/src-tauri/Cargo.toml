@@ -20,3 +20,24 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio = { version = "1", features = ["fs", "time", "sync", "macros", "rt-multi-thread"] }
+tokio-util = "0.7"
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls"] }
+futures-util = "0.3"
+sha2 = "0.10"
+md-5 = "0.10"
+hex = "0.4"
+sysinfo = "0.32"
+thiserror = "2"
+encoding_rs = "0.8"
+self_cell = "1"
+
+# task 12.2's own scope: `llama-cpp-2` is target-gated rather than listed once
+# in `[dependencies]` so the `metal` feature (GPU offload) is enabled only on
+# macOS, mirroring mobile's Metal-on-iOS / CPU-elsewhere split. CUDA/Vulkan on
+# Windows/Linux are a future task's concern, not invented speculatively here.
+[target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "0.1", features = ["metal"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+llama-cpp-2 = "0.1"

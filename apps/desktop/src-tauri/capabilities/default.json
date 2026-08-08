@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window's baseline capability (task 12.1). Grants only `core:default` — the permission set Tauri itself needs to create and manage a window, nothing app-specific. No command any connector or feature adds is capability-gated here; each one gets its own named permission when it's added, the same per-capability, denied-unless-explicit shape task 2.6 established on mobile (see research 0010's security-model finding).",
+  "description": "The main window's baseline capability (task 12.1). Grants only `core:default` — the permission set Tauri itself needs to create and manage a window, nothing app-specific. No command any connector or feature adds is capability-gated *here* in the Tauri-plugin sense; each one gets its own named permission when it's added, the same per-capability, denied-unless-explicit shape task 2.6 established on mobile (see research 0010's security-model finding). Note (task 12.2): Tauri v2's ACL only gates *plugin*-provided commands and the explicit `core:*` window/app APIs by default — commands an app registers itself via `tauri::generate_handler!` (task 12.2's `list_models`/`install_model`/`load_model`/`generate`/etc.) are callable from any window without a capability entry unless the app opts into gating them too, via `build.rs`'s `tauri_build::Attributes::commands(...)`. That opt-in is not wired up yet; task 12.5 (Tier 3 native handlers), which is the task actually meant to enforce per-connector revocation at this layer, is where it belongs — flagged here rather than left silently assumed.",
   "windows": ["main"],
   "permissions": ["core:default"]
 }

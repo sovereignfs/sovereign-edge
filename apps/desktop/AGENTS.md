@@ -8,16 +8,15 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 
 ## What this is
 
-An empty Tauri window with a placeholder React DOM frontend. No product
-features — no inference, no connectors, no chat UI — exist here yet; task
-12.1 (scaffold and build tooling) is the only task of epic 12 (Desktop Core
-Port) done so far. See
+A Tauri window with real on-device inference behind it (task 12.2) but still
+a placeholder React DOM frontend — no chat UI, no connectors yet. Tasks 12.1
+(scaffold) and 12.2 (`EngineAdapter` + model manager) are done; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md) for
-the remaining tasks (12.2–12.7) and what each depends on.
+the remaining tasks (12.3–12.7) and what each depends on.
 
 ## Before writing more code here
 
-1. Task 12.2 (Rust `llama.cpp` `EngineAdapter` and model manager) is next,
+1. Task 12.3 (`SecureStorageAdapter` over the OS credential store) is next,
    and depends only on 12.1. This is still "one task at a time, sequenced"
    per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
    mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
@@ -29,16 +28,30 @@ the remaining tasks (12.2–12.7) and what each depends on.
 
 ## State of play
 
-- **Scaffold only** (task 12.1). `src-tauri/` is a real, building Rust
-  crate; `src/App.tsx` renders a static placeholder, nothing interactive.
-- **Verified on macOS only.** `cargo fmt --check`, `cargo clippy --all-targets
-  -- -D warnings`, `pnpm tauri build --debug --no-bundle`, and a launch
-  (`scripts/ci/launch-smoke.js`, confirming the process survives 5s) all ran
-  clean locally on macOS. The Windows and Linux legs of `desktop.yml` are
-  written against Tauri's own documented CI recipe but have not actually run
-  on those platforms — no such machine was available when this task was
-  done. Treat their first real run (the next push to `main`) as still
-  unverified until it goes green.
+- **Scaffold (12.1) + on-device inference (12.2).** `src-tauri/src/engine/`
+  and `src-tauri/src/models/` mirror `apps/mobile/src/chat/inference/` and
+  `apps/mobile/src/models/` closely (`packages/core` still hasn't been
+  extracted). `lib.rs` registers Tauri commands
+  (`list_models`/`install_model`/`load_model`/`generate`/etc.) over them,
+  plus a best-effort startup bootstrap that loads the last-used model. No
+  frontend consumes these yet — `src/App.tsx` still renders a static
+  placeholder; that's task 12.7's job.
+- **Verified on macOS only.** `cargo fmt --check` and
+  `cargo clippy --all-targets -- -D warnings` are clean.
+  `src-tauri/tests/engine_smoke.rs` (`#[ignore]`d — downloads a real ~490MB
+  model) downloaded, verified, loaded, and generated an actual on-device
+  reply through Metal GPU offload: `reply (Eos, 2 tokens, Some(31)ms to
+  first token): "Hello!"`. Windows/Linux compile is still unverified — no
+  such machine was available, the same gap 12.1 recorded.
+- `llama-cpp-2`'s load-failure type carries no error message text, so
+  mobile's regex-based OOM/bad-file classification isn't portable as-is;
+  `engine/adapter.rs` substitutes a preflight RAM-budget check instead —
+  see that file's own doc comment before changing load-error handling.
+- **Tauri's ACL does not yet gate this app's own commands** — v2 only
+  capability-gates plugin-provided commands by default, and the `build.rs`
+  opt-in to gate app commands too isn't wired up. Flagged in
+  `capabilities/default.json`; closing this is task 12.5's job, not
+  something to bolt on ad hoc later.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
@@ -63,11 +76,13 @@ the remaining tasks (12.2–12.7) and what each depends on.
 
 ## Verification
 
-Nothing here yet has the kind of runtime surface mobile's own "two failures
-invisible to a green test suite" history warns about — there is no chat, no
-model, no connector code to hide a race or a silently-swallowed error. That
-bar still applies going forward: once task 12.2 lands real inference, verify
-it generates a real reply on-device, not just that `cargo check` passes.
+Mobile's own "two failures invisible to a green test suite" history is why
+task 12.2's own review bar was a real on-device reply
+(`tests/engine_smoke.rs`, `#[ignore]`d, run manually), not just
+`cargo check`/`cargo clippy` passing. That bar applies to every future task
+here too — 12.3's credential isolation should be verified by actually
+writing/reading/revoking a credential, not just by a passing unit test
+against a mock.
 
 ## Layout
 
