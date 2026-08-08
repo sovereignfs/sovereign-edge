@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "⏳ In Progress — tasks 13.1–13.3 done"
+status: "⏳ In Progress — tasks 13.1–13.4 done"
 scope: desktop
 ---
 
@@ -276,7 +276,7 @@ new permission logic, only a real list in front of what already existed.
 
 ---
 
-#### 📋 13.4 — General settings screen
+#### ✅ 13.4 — General settings screen
 
 **Goal:** Somewhere for app-level preferences to live, starting with the
 one that already exists in code but has no UI: theme preference.
@@ -299,6 +299,40 @@ one that already exists in code but has no UI: theme preference.
   just Settings' own), and `system` actually tracks the OS preference
   (`ThemeProvider`'s existing `matchMedia` listener) rather than freezing
   at whatever it resolved to on first render.
+
+**Decided: a plain `role="radiogroup"`, no new `desktop-ui` component.**
+`packages/desktop-ui` still has no dedicated radio-group component —
+`apps/desktop/src/settings/SettingsScreen.tsx` builds one from three
+styled `<button role="radio">`s, the same "no new component for one
+screen" call `AppShell.tsx`'s own nav buttons already made. No new state
+to manage or propagate: `useThemePreference()` reads/writes the same
+`ThemeProvider` context every screen already renders under (`App.tsx`
+wraps `AppShell`, not each screen individually), so a change is live
+everywhere immediately, for free. App version comes from
+`@tauri-apps/api/app`'s `getVersion()` — a real Tauri core API, not
+invented — which needed a new capability permission,
+`core:app:allow-version` (confirmed via the actual generated
+`gen/schemas/desktop-schema.json`, the same "let a build failure confirm
+the identifier" discipline task 12.5 established for this app's own
+commands).
+
+**Verified:** `cargo fmt --check`/`clippy`/`test` (62 tests, unaffected)
+and `cargo build` clean (confirms the new capability permission is valid).
+`tsc --noEmit`/`eslint`/`prettier --check` clean. Real Vite dev server in a
+real browser: clicking Light changed the *entire* app (nav chrome and Chat,
+not just Settings) to light immediately; switching back to System and
+toggling the browser's own emulated color scheme (`prefers-color-scheme`)
+live-updated the theme in both directions without a reload — the exact
+"tracks the OS preference, doesn't freeze at first render" bar the
+checklist asks for. Zero console errors. `scripts/ci/launch-smoke.js`
+re-run against the freshly built binary. **Honest, narrower gap than
+usual:** the live theme-switching behavior itself *was* verified for real
+in a real browser (this is a pure frontend/CSS behavior, not an IPC round
+trip) — only the native-window rendering and the real `getVersion()` IPC
+call (falls back to a blank version line in this browser-only preview,
+correctly, rather than showing a lie) remain unverified against the actual
+Tauri app, the same limitation every desktop UI task since 12.5 has
+carried.
 
 ---
 

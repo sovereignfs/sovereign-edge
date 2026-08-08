@@ -19,8 +19,9 @@ four destinations: Chat (`src/chat/ChatScreen.tsx`, unchanged), a real
 Models screen (`src/models/ModelsScreen.tsx`, task 13.2 — install/
 activate/remove with real download progress), a real Connectors screen
 (`src/connectors/ConnectorsScreen.tsx`, task 13.3 — a real grant/revoke
-list, one row today), and an honest empty-state Settings screen waiting on
-task 13.4. Epic 12 (Desktop Core Port) is done; see
+list, one row today), and a real Settings screen
+(`src/settings/SettingsScreen.tsx`, task 13.4 — live theme preference,
+app version). Epic 12 (Desktop Core Port) is done; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md).
 Epic 13 (Desktop App Shell) is in progress; see
 [docs/epics/desktop/app-shell.md](../../docs/epics/desktop/app-shell.md)
@@ -29,14 +30,13 @@ for what each task delivers.
 ## Before writing more code here
 
 Epic 12 is closed. Epic 13 (App Shell) is in progress — tasks 13.1
-(navigation scaffold), 13.2 (model manager), and 13.3 (connectors/
-permissions) are done; 13.4 (settings) and 13.5 (chat consolidation) are
-next, in that dependency order. Check `ROADMAP.md` before starting anything
-here:
-whether epic 13 continues next, mobile's own remaining Phase 1 item
-(0.1.20), or something else is actually scheduled is an open call, not
-decided by this file. `packages/mobile-ui` stays irrelevant here either
-way: Tauri renders a web frontend, not React Native primitives.
+(navigation scaffold), 13.2 (model manager), 13.3 (connectors/
+permissions), and 13.4 (settings) are done; only 13.5 (chat consolidation)
+is left. Check `ROADMAP.md` before starting anything here: whether epic 13
+continues next, mobile's own remaining Phase 1 item (0.1.20), or something
+else is actually scheduled is an open call, not decided by this file.
+`packages/mobile-ui` stays irrelevant here either way: Tauri renders a web
+frontend, not React Native primitives.
 
 ## State of play
 
@@ -223,6 +223,19 @@ way: Tauri renders a web frontend, not React Native primitives.
   anyway. No new permission logic — revoking still goes through task
   12.4's already-tested `connectors::permissions::revoke` (clears stored
   credentials, not just the grant flag).
+- **General settings screen (13.4).** `src/settings/SettingsScreen.tsx`
+  wires up `ThemeProvider`'s `system`/`light`/`dark` preference (built in
+  12.6, unused until now) as a real `role="radiogroup"` — a plain styled
+  control, not a new `desktop-ui` component, since one screen didn't
+  justify it. No new state to propagate: every screen already renders
+  under the one `ThemeProvider` `App.tsx` wraps `AppShell` in, so a change
+  here is live everywhere for free — confirmed in a real browser (Chat's
+  own chrome changed the instant Settings' radio changed) and confirmed
+  `system` tracks the OS preference live, not just at first render
+  (toggled the browser's emulated `prefers-color-scheme` both directions).
+  App version via `@tauri-apps/api/app`'s `getVersion()`, which needed a
+  new capability, `core:app:allow-version` — confirmed against the real
+  generated `gen/schemas/desktop-schema.json`, not guessed.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
