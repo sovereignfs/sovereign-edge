@@ -123,6 +123,10 @@ export function loadModel(id: string): Promise<EngineInfo> {
   return call('load_model', { id });
 }
 
+export function removeModel(id: string): Promise<void> {
+  return call('remove_model', { id });
+}
+
 export function connectorStatus(): Promise<ConnectorStatus> {
   return call('connector_status');
 }
@@ -163,6 +167,17 @@ export function onDownloadProgress(
   handler: (progress: DownloadProgress) => void,
 ): Promise<UnlistenFn> {
   return listen<DownloadProgress>('download-progress', (event) =>
+    handler(event.payload),
+  );
+}
+
+/** Mirrors `models::types::DownloadPhase`'s `#[serde(rename_all = "kebab-case")]`. */
+export type DownloadPhase = 'downloading' | 'verifying' | 'done' | 'failed';
+
+export function onDownloadPhase(
+  handler: (phase: DownloadPhase) => void,
+): Promise<UnlistenFn> {
+  return listen<DownloadPhase>('download-phase', (event) =>
     handler(event.payload),
   );
 }

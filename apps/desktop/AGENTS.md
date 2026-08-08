@@ -15,10 +15,11 @@ a real `desktop-ui` component set (task 12.6), grammar-constrained
 tool-calling wired through routing/orchestration into a `generate_chat`
 command (task 12.7a), a chat screen consuming all of it (task 12.7), and —
 since task 13.1 — real navigation chrome (`src/shell/AppShell.tsx`) with
-four destinations: Chat (`src/chat/ChatScreen.tsx`, unchanged), and honest
-empty-state Models/Connectors/Settings screens (`src/models/`,
-`src/connectors/`, `src/settings/`) waiting on tasks 13.2–13.4. Epic 12
-(Desktop Core Port) is done; see
+four destinations: Chat (`src/chat/ChatScreen.tsx`, unchanged), a real
+Models screen (`src/models/ModelsScreen.tsx`, task 13.2 — install/
+activate/remove with real download progress), and honest empty-state
+Connectors/Settings screens waiting on tasks 13.3–13.4. Epic 12 (Desktop
+Core Port) is done; see
 [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md).
 Epic 13 (Desktop App Shell) is in progress; see
 [docs/epics/desktop/app-shell.md](../../docs/epics/desktop/app-shell.md)
@@ -26,8 +27,8 @@ for what each task delivers.
 
 ## Before writing more code here
 
-Epic 12 is closed. Epic 13 (App Shell) is in progress — task 13.1
-(navigation scaffold) is done; 13.2 (model manager), 13.3 (connectors/
+Epic 12 is closed. Epic 13 (App Shell) is in progress — tasks 13.1
+(navigation scaffold) and 13.2 (model manager) are done; 13.3 (connectors/
 permissions), 13.4 (settings), and 13.5 (chat consolidation) are next, in
 that dependency order. Check `ROADMAP.md` before starting anything here:
 whether epic 13 continues next, mobile's own remaining Phase 1 item
@@ -197,6 +198,17 @@ way: Tauri renders a web frontend, not React Native primitives.
   in a real browser: all four destinations reachable via `ref`-targeted
   clicks, correct `aria-current`, correct theming after the fix, zero
   console errors.
+- **Model manager screen (13.2).** `src/models/ModelsScreen.tsx` mirrors
+  `apps/mobile/src/models/screens/ModelsScreen.tsx` exactly: tap dispatch
+  (not installed → install; installed and active → remove; installed and
+  not active → activate), subtitle names the action in words, same
+  accessory label set, `destructive` styling on a failed download. Real
+  progress via the `download-progress`/`download-phase` events (`tauri.ts`
+  gained `removeModel`/`onDownloadPhase`). **Deliberate gap:** mobile also
+  cancels a download on tap; desktop's `install_model` has no cancellation
+  wired up yet (`DownloadOptions.cancel` hardcoded `None`), so a
+  downloading row is read-only rather than pretending to support cancel.
+  `ChatScreen.tsx`'s own inline picker is untouched — task 13.5 removes it.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.

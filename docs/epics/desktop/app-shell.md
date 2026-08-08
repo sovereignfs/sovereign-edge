@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "⏳ In Progress — task 13.1 done"
+status: "⏳ In Progress — tasks 13.1–13.2 done"
 scope: desktop
 ---
 
@@ -130,7 +130,7 @@ with its own behavior unchanged.
 
 ---
 
-#### 📋 13.2 — Model manager screen
+#### ✅ 13.2 — Model manager screen
 
 **Goal:** A real model manager, mirroring mobile's `ModelsScreen.tsx` —
 `ChatScreen.tsx`'s current model picker only supports install-then-load; it
@@ -163,6 +163,39 @@ caller.
   the next message — the same end-to-end bar task 12.7's own review
   checklist set for the model picker it's replacing, now with removal
   added.
+
+**Decided: exact tap-dispatch parity with mobile, minus cancel.**
+`apps/desktop/src/models/ModelsScreen.tsx` mirrors
+`apps/mobile/src/models/screens/ModelsScreen.tsx` precisely — not
+installed → install; installed and active → remove; installed and not
+active → activate — including the "the subtitle says in words what
+clicking will do" rule and the same accessory label set (`DOWNLOAD` /
+`DOWNLOAD ANYWAY` / `DOWNLOADING` / `VERIFYING` / `RETRY` / `INSTALLED` /
+`IN USE`), plus `ListItem`'s `destructive` styling on a failed download,
+same as mobile. **Deliberate gap, not an oversight:** mobile's row also
+cancels an in-flight download on tap; desktop's `install_model` command has
+no cancellation wired up (`DownloadOptions.cancel` is hardcoded `None` in
+`lib.rs`), and wiring one is backend work outside this task's own stated
+deliverables — a downloading row is read-only (progress, no click action)
+rather than silently pretending to support cancel. `apps/desktop/src/lib/
+tauri.ts` gained `removeModel` and `onDownloadPhase` (mirrors the
+already-emitted-but-unconsumed `download-phase` event, distinct from
+`download-progress`). `ChatScreen.tsx` keeps its own inline model picker
+unchanged — task 13.5 removes it once this screen is the real thing.
+
+**Verified:** `tsc --noEmit`/`eslint`/`prettier --check` clean. Real Vite
+dev server viewed in a real browser: Models reachable, correct empty/
+loading rendering, zero console errors. `cargo build` and
+`scripts/ci/launch-smoke.js` re-run to confirm the (unchanged) Rust side —
+`remove_model` was already a registered, ACL-gated command from task 12.7 —
+still builds and launches cleanly. **Honest gap, same as every desktop UI
+task since 12.5:** this environment cannot drive the actual native Tauri
+window, so a real install → activate → remove round trip through the
+rendered UI was not exercised by hand; the commands themselves
+(`install_model`/`load_model`/`remove_model`) were already proven on-device
+by earlier tasks (12.2's `engine_smoke.rs`, `ModelManager`'s own release-
+before-delete behavior in `manager.rs`), so the incremental risk here is
+the UI wiring, not the underlying operations.
 
 ---
 
