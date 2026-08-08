@@ -5,5 +5,10 @@
   "description": "Colors, spacing, and typography as plain data — no components. Consumed by mobile-ui and, eventually, desktop-ui.",
   "license": "AGPL-3.0-or-later",
   "main": "index.ts",
-  "scripts": {}
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
 }

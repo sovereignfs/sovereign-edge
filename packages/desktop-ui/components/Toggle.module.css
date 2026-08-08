@@ -1,0 +1,36 @@
+.track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: var(--sv-radius-full);
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  background: var(--sv-color-border-strong);
+  transition: background-color var(--sv-motion-duration-fast) ease;
+}
+
+.trackChecked {
+  background: var(--sv-color-accent);
+}
+
+.track:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sv-color-surface);
+  transform: translateX(0);
+  transition: transform var(--sv-motion-duration-fast) ease;
+}
+
+.thumbChecked {
+  transform: translateX(20px);
+}

@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — tasks 12.1–12.5 done"
+status: "⏳ In Progress — tasks 12.1–12.6 done"
 scope: desktop
 ---
 
@@ -396,7 +396,7 @@ real build/launch check, which exercise the identical code path (`is_allowed`
 
 ---
 
-#### 📋 12.6 — `packages/desktop-ui` initial component set
+#### ✅ 12.6 — `packages/desktop-ui` initial component set
 
 **Goal:** The component set task 12.7's chat UI (and any future desktop
 screen) is built from, matching `apps/mobile/src/design-system`'s shape for
@@ -415,6 +415,44 @@ React DOM.
   engines this app ships on (WebKit/macOS, WebView2/Windows) — the rendering
   parity research 0010 flagged as unmeasured, checked here rather than left
   open indefinitely.
+
+Also populated `packages/design-tokens` as part of this task — nothing else
+in the epic claimed that extraction, and `desktop-ui`'s own deliverable
+("built against `packages/design-tokens`, per that package's own README")
+required it to exist first. Both packages were empty scaffolds beforehand,
+the same state `packages/core` was in before task 12.2. Styled via CSS
+Modules + CSS custom properties, no new styling-library dependency (none
+existed in this repo before this task); `ThemeProvider` sets every token as
+a `--sv-*` custom property from the live `Theme` object each render, so
+there's no parallel CSS copy of the palette to keep in sync by hand. This
+is also the first `packages/*` → `apps/*` workspace dependency exercised in
+this repo (`apps/desktop/package.json`'s `"desktop-ui": "workspace:*"`) —
+required adding `apps/desktop/src/vite-env.d.ts` (`/// <reference
+types="vite/client" />`), a genuine pre-existing gap from task 12.1's own
+scaffold that only surfaced once something actually imported a `.module.css`
+file through it.
+
+**One necessary deviation from mobile, not an oversight:** mobile's
+`Toggle` wraps React Native's native `Switch`, deliberately untinted — its
+own doc comment explains two attempts to theme it made dark mode *worse*.
+The web has no equivalent "free, already-legible OS switch" to defer to
+(`<input type="checkbox">` renders as a checkbox, not a switch, and isn't
+reliably restylable as one across engines), so desktop's `Toggle` is a
+themed `role="switch"` button built from scratch instead.
+
+**Verified — real browser, real DOM, not just a passing typecheck:**
+`pnpm typecheck`/`pnpm lint` clean workspace-wide. Ran `apps/desktop`'s
+actual Vite dev server and viewed all five components in the sandboxed
+Browser pane: correct light/dark theming via CSS custom properties, correct
+accessibility tree (`Toggle` reports as `switch "Notifications"`, not a
+generic button — confirmed via the accessibility tree, not assumed from the
+JSX), zero console errors, and the full expected text content present via
+the rendered DOM. **Honest gap:** this is a real browser rendering real
+code, but it is not one of the three WebView engines the checklist actually
+asks about (WebKit/macOS, WebView2/Windows, WebKitGTK/Linux) — this
+environment has no way to launch or screenshot the real Tauri window, the
+same limitation 12.5 hit. So this verifies the components/tokens work, not
+cross-engine parity specifically — flagged rather than claimed.
 
 ---
 

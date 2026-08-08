@@ -1,0 +1,50 @@
+.row {
+  display: flex;
+  padding: var(--sv-space-1) var(--sv-space-4);
+}
+
+.alignStart {
+  justify-content: flex-start;
+}
+
+.alignEnd {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: var(--sv-space-2) var(--sv-space-3);
+  border-radius: var(--sv-radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sv-space-1);
+}
+
+/* Squaring the trailing corner points the bubble at its sender — cheaper
+   than a tail and it survives long text reflowing. */
+.bubbleUser {
+  background: var(--sv-color-accent);
+  color: var(--sv-color-text-on-accent);
+  border-bottom-right-radius: var(--sv-radius-sm);
+}
+
+.bubbleAssistant {
+  background: var(--sv-color-surface-sunken);
+  color: var(--sv-color-text-primary);
+  border-bottom-left-radius: var(--sv-radius-sm);
+}
+
+.text {
+  font-size: var(--sv-font-size-sm);
+  font-family: var(--sv-font-family-body);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  margin: 0;
+}
+
+.connector {
+  font-size: var(--sv-font-size-label);
+  font-family: var(--sv-font-family-mono);
+  opacity: 0.8;
+  margin: 0;
+}

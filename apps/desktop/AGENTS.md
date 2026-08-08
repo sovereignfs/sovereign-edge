@@ -10,23 +10,24 @@ Workspace-wide rules live in the [root AGENTS.md](../../AGENTS.md).
 
 A Tauri window with real on-device inference (task 12.2), per-connector
 credential storage (task 12.3), a working Tier 1 (HTTP) connector runtime
-(task 12.4), and a Tier 3 native handler registry (task 12.5, `device_info`)
-behind it, but still a placeholder React DOM frontend — no chat UI, nothing
-wired to a model or a connector from the UI yet. Tasks 12.1–12.5 are done;
-see [docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
-for the remaining tasks (12.6–12.7) and what each depends on.
+(task 12.4), a Tier 3 native handler registry (task 12.5, `device_info`),
+and a real `desktop-ui` component set (task 12.6) behind it — but `src/
+App.tsx` is still just a component gallery proving the pieces render, not
+the real chat UI. Tasks 12.1–12.6 are done; see
+[docs/epics/desktop/core-port.md](../../docs/epics/desktop/core-port.md)
+for the remaining task (12.7) and what it depends on.
 
 ## Before writing more code here
 
-1. Task 12.6 (`packages/desktop-ui` initial component set) is next, and
-   depends on 12.1 (done). This is still "one task at a time, sequenced"
-   per the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
+1. Task 12.7 (minimal offline chat UI) is next, and depends on 12.2, 12.4,
+   and 12.6 (all done). This is still "one task at a time, sequenced" per
+   the root `AGENTS.md` — check `ROADMAP.md` for whether epic 12 or
    mobile's own remaining Phase 1 item (0.1.20) is actually scheduled next
    before starting.
-2. `packages/desktop-ui` needs real content before task 12.7 (minimal chat
-   UI) can use it — that's task 12.6, not yet done. `packages/mobile-ui`
-   stays irrelevant here: Tauri renders a web frontend, not React Native
-   primitives.
+2. `src/App.tsx`'s current contents (a component gallery, task 12.6's own
+   verification artifact) are meant to be replaced by 12.7's real chat
+   screen, not extended — `packages/mobile-ui` stays irrelevant here either
+   way: Tauri renders a web frontend, not React Native primitives.
 
 ## State of play
 
@@ -108,6 +109,25 @@ for the remaining tasks (12.6–12.7) and what each depends on.
   literal "invoke from the WebView console" step wasn't performed by hand —
   the unmocked Rust test plus the real build/launch check exercise the same
   code path instead.
+- **`desktop-ui` component set (12.6).** `packages/design-tokens` (also
+  populated this task — nothing else claimed that extraction) and
+  `packages/desktop-ui` were both empty scaffolds beforehand, the same
+  state `packages/core` was in before 12.2. `desktop-ui`'s `ThemeProvider`
+  sets every token as a `--sv-*` CSS custom property from the live `Theme`
+  object each render (no parallel CSS copy to keep in sync by hand);
+  components use CSS Modules, no new styling-library dependency. This is
+  also the first `packages/*` → `apps/*` workspace dependency exercised in
+  this repo (`"desktop-ui": "workspace:*"` in `package.json`) — needed a
+  genuinely missing `src/vite-env.d.ts` (`/// <reference types="vite/client"
+  />`) to resolve `.module.css` imports, a real gap from 12.1's own scaffold
+  that only surfaced once something imported one through it. `Toggle`
+  necessarily differs from mobile's own (a themed `role="switch"` button,
+  not a wrapped native control — see `packages/desktop-ui/README.md` for
+  why mobile's own approach doesn't transfer to the web). Verified via
+  `apps/desktop`'s real Vite dev server rendered in a real browser (DOM
+  text, accessibility tree, zero console errors) — not the three actual
+  Tauri WebView engines the review checklist names, which this environment
+  can't launch or screenshot; flagged as a gap, not claimed.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
