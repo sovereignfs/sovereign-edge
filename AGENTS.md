@@ -11,7 +11,7 @@ to one app, read that app's own `AGENTS.md`:
 | Read this for...                                      | File                                        |
 | ------------------------------------------------------- | -------------------------------------------- |
 | Commands, native build mechanics, environment quirks, current implementation state — **mobile** | [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) |
-| Same, for **desktop** — Tauri v2 scaffold only (task 12.1); rest of epic 12 not started | [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) |
+| Same, for **desktop** — epic 12 (Desktop Core Port) done; epic 13 (App Shell) scoped, not started | [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) |
 
 ## What this is
 
@@ -29,7 +29,7 @@ sovereign-edge/
 ├── docs/                 canonical concept, epics, research (this file's own doc set)
 ├── apps/
 │   ├── mobile/            the shipping product — iOS + Android, Expo/React Native
-│   └── desktop/           Tauri v2 scaffold only (task 12.1), rest of epic 12 not started
+│   └── desktop/           epic 12 (Core Port) done; epic 13 (App Shell) scoped, not started
 └── packages/               internal, unpublished — no code here is meant for
     ├── core/                external consumers
     ├── design-tokens/
@@ -82,9 +82,13 @@ overturned a design that looked obviously correct on paper.
 - **Desktop**: epic 9 (Desktop Shell — `docs/epics/desktop/shell.md`) is
   resolved, Tauri v2, see
   [research 0010](docs/research/0010-desktop-shell-technology.md). Epic 12
-  (Desktop Core Port, tasks 12.1–12.7) has task 12.1 (scaffold and build
-  tooling) done; the rest — inference, connector framework, a chat UI — has
-  not started, and epic 12 is not yet scheduled into a `ROADMAP.md` phase.
+  (Desktop Core Port, tasks 12.1–12.7 plus 12.7a) is done — real on-device
+  inference, connector framework, and a minimal offline chat UI. Epic 13
+  (Desktop App Shell — `docs/epics/desktop/app-shell.md`) is scoped but not
+  started: real navigation, a model manager screen, a connectors/permissions
+  screen, and general settings, extracted from what task 12.7's chat screen
+  currently does inline. Neither epic is yet scheduled into a `ROADMAP.md`
+  phase.
 
 ## Working conventions
 

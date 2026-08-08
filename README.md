@@ -180,7 +180,7 @@ sovereign-edge/
 │   ├── mobile/          # the shipping product — see apps/mobile/AGENTS.md
 │   │   ├── src/          # chat, models, connectors, design-system, settings
 │   │   └── ...
-│   └── desktop/          # Tauri v2 scaffold only (task 12.1) — see apps/desktop/AGENTS.md
+│   └── desktop/          # Tauri v2 app, epic 12 done — see apps/desktop/AGENTS.md
 ├── packages/             # internal, unpublished, shared between the apps
 │   ├── core/              # empty scaffold — connector manifest/permissions/
 │   │   ...                # routing, eventually extracted from apps/mobile

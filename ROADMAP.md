@@ -98,10 +98,12 @@ of the desktop work, broken into 8 tasks (12.1–12.7, plus 12.7a split out
 from 12.7) sized to match mobile's own epic granularity — **all done**: a
 Tauri v2 app with real on-device inference, per-connector credential
 storage, a Tier 1 + Tier 3 connector runtime, grammar-constrained
-tool-calling, and a minimal offline chat UI exercising all of it. Still
-deliberately out of scope: a full desktop app shell (navigation, settings,
-per-connector permission UI) — future, unscoped work, its own epic once
-there's a reason to build it.
+tool-calling, and a minimal offline chat UI exercising all of it. Epic 13
+(Desktop App Shell) is now scoped — real navigation, a model manager
+screen, a connectors/permissions screen, and general settings, extracted
+from what task 12.7's chat screen currently does inline — but not started
+and not yet scheduled into a phase; see
+[app-shell.md](docs/epics/desktop/app-shell.md).
 
 ### Non-prioritised tasks
 
@@ -120,4 +122,9 @@ per-app versioning convention.
 | —       | `packages/desktop-ui` initial component set           | ✅     | Desktop | [12.6](docs/epics/desktop/core-port.md#-126--packagesdesktop-ui-initial-component-set)               |
 | —       | Grammar-constrained tool-calling in the Rust engine   | ✅     | Desktop | [12.7a](docs/epics/desktop/core-port.md#-127a--grammar-constrained-tool-calling-in-the-rust-engine)  |
 | —       | Minimal offline chat UI                               | ✅     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
+| —       | Navigation shell scaffold                             | 📋     | Desktop | [13.1](docs/epics/desktop/app-shell.md#-131--navigation-shell-scaffold)                              |
+| —       | Model manager screen                                  | 📋     | Desktop | [13.2](docs/epics/desktop/app-shell.md#-132--model-manager-screen)                                   |
+| —       | Connectors & permissions screen                       | 📋     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |
+| —       | General settings screen                               | 📋     | Desktop | [13.4](docs/epics/desktop/app-shell.md#-134--general-settings-screen)                                |
+| —       | Chat screen consolidation                             | 📋     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

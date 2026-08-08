@@ -48,7 +48,8 @@ file lives in; only the path changes.
 | ID  | Epic                                       | Status      | Summary                                                                     |
 | --- | -------------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
 | 9   | [Desktop Shell](desktop/shell.md)           | ✅ Complete | Shell technology decision — Tauri v2, over Electron and a React Native shell |
-| 12  | [Desktop Core Port](desktop/core-port.md)   | ⏳ In Progress | Secondary, optional desktop client on Tauri — scaffold done (12.1), inference/connector framework/chat UI not started (12.2–12.7) |
+| 12  | [Desktop Core Port](desktop/core-port.md)   | ✅ Done | Secondary, optional desktop client on Tauri — on-device inference, connector framework, grammar-constrained tool-calling, minimal offline chat UI (12.1–12.7, 12.7a) |
+| 13  | [Desktop App Shell](desktop/app-shell.md)   | 📋 Not Started | Real navigation, model manager, connectors/permissions, and settings screens — extracted from task 12.7's single chat screen |
 
 ## Shared
 
