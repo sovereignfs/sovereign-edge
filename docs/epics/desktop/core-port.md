@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "✅ Done — tasks 12.1–12.7, 12.7a, 12.8, 12.9 all done"
+status: "✅ Done — tasks 12.1–12.7, 12.7a, 12.8, 12.9, 12.10 all done"
 scope: desktop
 ---
 
@@ -830,6 +830,99 @@ confirm the guard doesn't break real model loading at startup. **Honest
 gap:** this mechanism does not achieve mobile's coverage — it is a real,
 executable check where there was previously none, not full parity with
 an ambient-global interception Rust has no equivalent primitive for.
+
+---
+
+#### ✅ 12.10 — Rust model-management test coverage
+
+**Goal:** Close a fresh feature audit's top-ranked finding: desktop's
+Rust ports of mobile's model-management logic had effectively zero test
+coverage where mobile's TypeScript equivalents are thoroughly tested with
+mocks — `models/manager.rs` (0 tests vs. mobile's 233-line
+`manager.test.ts`), `models/verify.rs` (0 vs. 234 lines across two
+files), `models/store.rs`, `models/catalog.rs`, `models/device.rs` (0
+each), and `engine/adapter.rs` (441 lines, 0 tests, vs. mobile's
+`engine.test.ts` mocking `llama.rn` for load-failure/OOM/abort paths).
+`models/download.rs` and the connector/vault/manifest modules were
+already well covered and are out of scope here.
+
+**Real constraint, confirmed by reading the code before writing anything:**
+`engine/adapter.rs`'s `EngineAdapter` is hard-wired to real `llama-cpp-2`
+bindings with no injectable trait seam — mobile mocks `llama.rn` because
+it's a JS import `jest.mock()` can intercept; Rust has no equivalent for
+a linked native library. Full parity with mobile's mocked coverage isn't
+achievable here.
+
+**Deliverables:**
+
+- `models/verify.rs`: 9 tests — `assert_verifiable`'s three branches,
+  `verify_file`'s size/sha256/md5 success and mismatch paths, and a
+  missing-file storage error — using well-known SHA-256/MD5 test vectors
+  for fixed content (`"hello world"`), not invented values.
+- `models/store.rs`: 11 tests — path helpers, `is_installed`,
+  `list_installed` (excludes `.part` files, reports real size),
+  `remove_model` (deletes both files, no-ops cleanly), the active-model-id
+  round trip including the "stored id but file gone → degrades to None,
+  doesn't error" case, and `assert_space_for` against real disk space
+  (`u64::MAX / 2` for the failure case).
+- `models/catalog.rs`: 5 tests — non-empty, unique ids, every entry
+  carries a verifiable checksum, `find_in_catalog` hit/miss.
+- `models/device.rs`: 5 tests — `estimate_peak_bytes`' formula checked
+  independently, `total_memory_bytes()` returns real data on this
+  machine, and `fit_for_device`'s three `Fit` branches hit deterministically
+  by sizing a synthetic `CatalogEntry` relative to the *real*
+  `total_memory_bytes()` read at test time, not a stubbed value.
+- `models/manager.rs`: 11 tests via a new `FakeEngine` (implementing the
+  existing `LoadedModelHandle` trait, which exists specifically for this —
+  mirrors `connectors/routing/route.rs`'s own `FakeEngine` naming for an
+  unrelated trait) — `list()` against real scratch-dir installed state,
+  `remove()`'s "unloads the engine and clears the stored choice only for
+  the *active* model" behavior (and its inverse: leaves both alone for a
+  non-active model), `mark_active`/`preferred_model_id` round-trip and
+  fallback, `prepare_switch`'s three branches, `descriptor()` hit/miss.
+- `engine/adapter.rs`: 1 test covering 4 scenarios — `generate()` before
+  any load → `NoModelLoaded` (no file needed at all); `load()` against a
+  small garbage-bytes file → `ModelLoadFailed`, a real llama.cpp GGUF
+  parser rejection, confirmed in the test's own stderr output, not
+  silently no-op'd; `load()` against a **sparse** file (`File::set_len`
+  reports a huge logical size with no real disk blocks allocated) sized
+  past `total_memory_bytes() * 0.5` → `OutOfMemory`, proving `classify()`'s
+  size-vs-RAM arithmetic for real; `unload()` on a never-loaded adapter is
+  a safe no-op.
+
+**Dependencies:** None new.
+
+**Review checklist:**
+
+- The new tests exercise the real success/failure branches of each
+  function (not just "it compiles"), and the `engine/adapter.rs` tests
+  are confirmed to hit real `llama-cpp-2` failure paths, not a silent
+  no-op.
+
+**Decided: one shared `EngineAdapter` across all four
+`engine/adapter.rs` scenarios, not four separate `#[test]`s.**
+`LlamaBackend::init()` is a process-global singleton — a second call
+anywhere in the process fails with `BackendAlreadyInitialized`, found by
+actually writing four separate tests first and watching three of them
+fail with exactly that error (`cargo test` runs tests concurrently in one
+process). Rather than threading a `OnceLock`/lock through every test for
+a constraint that only bites once per process, one `EngineAdapter` is
+created once and `.unload()` reset between phases inside a single
+`#[test]` — simpler than the alternative for what it's guarding against.
+
+**Honest, documented gap:** the "generation already in progress" branch
+(`EngineAdapter`'s `generating` `AtomicBool`) is only reachable after a
+*successful* load, which needs real GGUF weights this environment
+doesn't have — left unverified here rather than faked, the same class of
+on-device-only gap this app's docs already carry elsewhere.
+
+**Verified:** `cargo fmt --check`/`clippy --all-targets -- -D warnings`
+clean. `cargo test --lib` — 117/117 (75 existing + 42 new), including the
+`engine/adapter.rs` test whose stderr output shows real `gguf_init_from_
+reader: invalid magic characters` rejections from llama.cpp itself for
+both the garbage-file and sparse-file scenarios. Real debug binary build
+(`pnpm tauri build --debug --no-bundle`) + `scripts/ci/launch-smoke.js`
+confirm nothing in the six touched modules broke real startup.
 
 ## Related Docs
 

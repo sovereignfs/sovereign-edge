@@ -94,17 +94,21 @@ instruction, ahead of 0.1.20 closing out Phase 1: see
 [research 0010](docs/research/0010-desktop-shell-technology.md) (Tauri v2,
 over Electron and a React Native desktop shell). Epic 9 (Desktop Shell) held
 only that decision and is closed; epic 12 (Desktop Core Port) held the rest
-of the desktop work, broken into 10 tasks (12.1–12.7, plus 12.7a split out
-from 12.7, plus 12.8 and 12.9) sized to match mobile's own epic granularity
+of the desktop work, broken into 11 tasks (12.1–12.7, plus 12.7a split out
+from 12.7, plus 12.8–12.10) sized to match mobile's own epic granularity
 — **all done**: a Tauri v2 app with real on-device inference, per-connector
 credential storage, a Tier 1 + Tier 3 connector runtime, grammar-constrained
 tool-calling, a minimal offline chat UI exercising all of it, (12.8) the
 same six writing-assist modes mobile has — brainstorm, grammar-fix, tone
 rewrite, and draft, plus forced-Search mode — closing the single largest UX
-gap a feature audit found between the two apps, and (12.9) a debug-only
+gap a feature audit found between the two apps, (12.9) a debug-only
 runtime offline tripwire (`net_guard.rs`) closing a defense-in-depth
 asymmetry the same audit found — mobile had a live runtime network guard,
-desktop had only structural guarantees; see
+desktop had only structural guarantees — and (12.10) real unit test
+coverage for `models/{manager,verify,store,catalog,device}.rs` and
+`engine/adapter.rs`, closing a later audit's top-ranked finding that these
+Rust ports had none where mobile's TS equivalents are thoroughly mocked
+and tested. See
 [desktop-network-audit.md](docs/desktop-network-audit.md) for exactly what
 it does and does not cover. Epic 13
 (Desktop App Shell) is also **all done**: real navigation, a model manager
@@ -152,6 +156,7 @@ section used to flag; future bumps happen the same way, via
 | —       | Minimal offline chat UI                               | ✅     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
 | —       | Writing-assist modes                                  | ✅     | Desktop | [12.8](docs/epics/desktop/core-port.md#-128--writing-assist-modes-desktop-port)                                   |
 | —       | Debug-only runtime offline tripwire                    | ✅     | Desktop | [12.9](docs/epics/desktop/core-port.md#-129--debug-only-runtime-offline-tripwire)                                 |
+| —       | Rust model-management test coverage                    | ✅     | Desktop | [12.10](docs/epics/desktop/core-port.md#-1210--rust-model-management-test-coverage)                               |
 | —       | Navigation shell scaffold                             | ✅     | Desktop | [13.1](docs/epics/desktop/app-shell.md#-131--navigation-shell-scaffold)                              |
 | —       | Model manager screen                                  | ✅     | Desktop | [13.2](docs/epics/desktop/app-shell.md#-132--model-manager-screen)                                   |
 | —       | Connectors & permissions screen                       | ✅     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |

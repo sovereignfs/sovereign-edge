@@ -95,3 +95,115 @@ pub fn verify_file(path: &Path, descriptor: &ModelDescriptor) -> Result<(), Mode
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use std::path::PathBuf;
+
+    // Well-known test vectors for the literal bytes "hello world" — not
+    // invented, not computed circularly from the code under test.
+    const CONTENT: &[u8] = b"hello world";
+    const SHA256: &str = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+    const MD5: &str = "5eb63bbbe01eeed093cb22bb8f5acdc3";
+
+    fn scratch_file(label: &str, content: &[u8]) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "sovereign-edge-desktop-verify-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir_all(&dir).expect("could not create scratch dir");
+        let path = dir.join("file.bin");
+        let mut file = std::fs::File::create(&path).expect("could not create scratch file");
+        file.write_all(content)
+            .expect("could not write scratch file");
+        path
+    }
+
+    fn descriptor(size_bytes: u64, md5: Option<&str>, sha256: Option<&str>) -> ModelDescriptor {
+        ModelDescriptor {
+            id: "scratch-verify-model".to_string(),
+            name: "Scratch".to_string(),
+            url: "https://example.org/scratch.gguf".to_string(),
+            size_bytes,
+            md5: md5.map(String::from),
+            sha256: sha256.map(String::from),
+            quantization: None,
+        }
+    }
+
+    #[test]
+    fn assert_verifiable_rejects_a_descriptor_with_no_checksum_at_all() {
+        let d = descriptor(11, None, None);
+        let error = assert_verifiable(&d).expect_err("no checksum must be rejected");
+        assert_eq!(error.code, ModelErrorCode::VerificationUnavailable);
+    }
+
+    #[test]
+    fn assert_verifiable_accepts_md5_only() {
+        assert!(assert_verifiable(&descriptor(11, Some(MD5), None)).is_ok());
+    }
+
+    #[test]
+    fn assert_verifiable_accepts_sha256_only() {
+        assert!(assert_verifiable(&descriptor(11, None, Some(SHA256))).is_ok());
+    }
+
+    #[test]
+    fn verify_file_succeeds_with_correct_size_and_sha256() {
+        let path = scratch_file("sha-ok", CONTENT);
+        let d = descriptor(CONTENT.len() as u64, None, Some(SHA256));
+        assert!(verify_file(&path, &d).is_ok());
+    }
+
+    #[test]
+    fn verify_file_rejects_a_wrong_sha256() {
+        let path = scratch_file("sha-bad", CONTENT);
+        let d = descriptor(CONTENT.len() as u64, None, Some(&"0".repeat(64)));
+        let error = verify_file(&path, &d).expect_err("wrong sha256 must be rejected");
+        assert_eq!(error.code, ModelErrorCode::ChecksumMismatch);
+    }
+
+    #[test]
+    fn verify_file_succeeds_with_correct_size_and_md5() {
+        let path = scratch_file("md5-ok", CONTENT);
+        let d = descriptor(CONTENT.len() as u64, Some(MD5), None);
+        assert!(verify_file(&path, &d).is_ok());
+    }
+
+    #[test]
+    fn verify_file_rejects_a_wrong_md5() {
+        let path = scratch_file("md5-bad", CONTENT);
+        let d = descriptor(CONTENT.len() as u64, Some(&"0".repeat(32)), None);
+        let error = verify_file(&path, &d).expect_err("wrong md5 must be rejected");
+        assert_eq!(error.code, ModelErrorCode::ChecksumMismatch);
+    }
+
+    #[test]
+    fn verify_file_rejects_a_size_mismatch_before_hashing() {
+        let path = scratch_file("size-mismatch", CONTENT);
+        let d = descriptor(CONTENT.len() as u64 + 1, None, Some(SHA256));
+        let error = verify_file(&path, &d).expect_err("size mismatch must be rejected");
+        assert_eq!(error.code, ModelErrorCode::SizeMismatch);
+    }
+
+    #[test]
+    fn verify_file_reports_storage_error_for_a_missing_file() {
+        let missing = std::env::temp_dir().join(format!(
+            "sovereign-edge-desktop-verify-missing-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        let d = descriptor(11, None, Some(SHA256));
+        let error = verify_file(&missing, &d).expect_err("a missing file must fail");
+        assert_eq!(error.code, ModelErrorCode::Storage);
+    }
+}

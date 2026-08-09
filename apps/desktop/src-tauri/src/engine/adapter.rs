@@ -439,3 +439,86 @@ struct DecisionToolCall {
     name: String,
     arguments: serde_json::Value,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scratch_path(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "sovereign-edge-desktop-adapter-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir_all(&dir).expect("could not create scratch dir");
+        dir.join("scratch.gguf")
+    }
+
+    /// `LlamaBackend::init()` is a process-global singleton — a second call
+    /// anywhere in the process fails with `BackendAlreadyInitialized`,
+    /// confirmed by actually running these as separate `#[test]`s first
+    /// (`cargo test` runs them concurrently in one process). One shared
+    /// `EngineAdapter`, one `#[test]`, `.unload()` between phases to reset
+    /// state — simpler than threading a `OnceLock`/lock through every test
+    /// for a constraint that only bites once per process anyway.
+    #[test]
+    fn engine_adapter_error_paths_against_a_single_shared_backend() {
+        let mut adapter = EngineAdapter::new().expect("backend init must succeed");
+
+        // 1. Generation before any load.
+        let error = adapter
+            .generate(GenerateOptions::default(), None, None)
+            .expect_err("generation with nothing loaded must fail");
+        assert_eq!(error.code, InferenceErrorCode::NoModelLoaded);
+
+        // 2. A small garbage file — comfortably under any real machine's
+        // OOM threshold, so this exercises the "load failed for a real
+        // reason" branch of classify(), not the size heuristic. llama.cpp's
+        // own GGUF parser rejects this for real; no model weights needed.
+        let garbage_path = scratch_path("garbage");
+        std::fs::write(&garbage_path, b"not a gguf file").expect("could not write scratch file");
+        let error = adapter
+            .load(LoadOptions {
+                model_path: garbage_path,
+                ..Default::default()
+            })
+            .expect_err("a non-GGUF file must fail to load");
+        assert_eq!(error.code, InferenceErrorCode::ModelLoadFailed);
+        assert!(!adapter.is_loaded_engine());
+        assert!(adapter.engine_info().is_none());
+
+        // 3. A sparse file: `set_len` makes `fs::metadata` report a huge
+        // logical size without allocating real disk blocks or requiring
+        // real bytes to exist. Sized well past this real machine's own
+        // usable-RAM budget (read directly here, not assumed), so
+        // `classify()`'s size-vs-RAM heuristic — pure arithmetic, no
+        // llama.cpp involvement — deterministically picks OutOfMemory
+        // before llama.cpp's own (also real) load failure is even reached.
+        let total =
+            crate::models::device::total_memory_bytes().expect("this machine must report its RAM");
+        let huge_size = (total as f64 * 4.0) as u64;
+        let sparse_path = scratch_path("sparse-huge");
+        let file = std::fs::File::create(&sparse_path).expect("could not create scratch file");
+        file.set_len(huge_size)
+            .expect("could not size the sparse file");
+        drop(file);
+        let error = adapter
+            .load(LoadOptions {
+                model_path: sparse_path,
+                ..Default::default()
+            })
+            .expect_err("an implausibly large file must fail to load");
+        assert_eq!(error.code, InferenceErrorCode::OutOfMemory);
+        assert!(!adapter.is_loaded_engine());
+
+        // 4. Unload on an adapter that was never successfully loaded is a
+        // safe no-op — both prior `load()` calls failed, so this is the
+        // state every failed load leaves behind.
+        adapter.unload();
+        assert!(!adapter.is_loaded_engine());
+        assert!(adapter.engine_info().is_none());
+    }
+}

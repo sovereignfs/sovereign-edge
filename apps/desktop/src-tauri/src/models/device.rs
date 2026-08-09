@@ -116,3 +116,82 @@ pub fn fit_for_device(entry: &CatalogEntry) -> FitAssessment {
         ),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::types::ModelDescriptor;
+
+    fn entry(size_bytes: u64) -> CatalogEntry {
+        CatalogEntry {
+            descriptor: ModelDescriptor {
+                id: "scratch-device-model".to_string(),
+                name: "Scratch".to_string(),
+                url: "https://example.org/scratch.gguf".to_string(),
+                size_bytes,
+                md5: None,
+                sha256: Some("0".repeat(64)),
+                quantization: None,
+            },
+            parameters: "0B".to_string(),
+            parameters_b: 0.0,
+            summary: "Scratch entry for device.rs tests.".to_string(),
+        }
+    }
+
+    /// The exact formula `estimate_peak_bytes` implements, computed
+    /// independently here so the test is a real check, not a restatement.
+    fn expected_peak(size_bytes: u64) -> u64 {
+        (size_bytes as f64 * 1.15) as u64 + 256 * 1024 * 1024
+    }
+
+    #[test]
+    fn estimate_peak_bytes_matches_the_documented_formula() {
+        let e = entry(1_000_000_000);
+        assert_eq!(estimate_peak_bytes(&e), expected_peak(1_000_000_000));
+    }
+
+    #[test]
+    fn total_memory_bytes_reads_something_real_on_this_machine() {
+        // A real machine always reports nonzero RAM — this asserts the
+        // function actually reads it, not that it returns a specific value.
+        assert!(total_memory_bytes().is_some_and(|t| t > 0));
+    }
+
+    #[test]
+    fn fit_for_device_reports_comfortable_for_a_small_model() {
+        let total = total_memory_bytes().expect("this machine must report its RAM");
+        let budget = total as f64 * USABLE_FRACTION;
+        // Comfortably under the 70% comfortable threshold.
+        let target_peak = budget * 0.3;
+        let size = ((target_peak - RUNTIME_OVERHEAD_BYTES as f64) / OVERHEAD_RATIO) as u64;
+
+        let assessment = fit_for_device(&entry(size));
+        assert_eq!(assessment.fit, Fit::Comfortable);
+        assert_eq!(assessment.total_memory_bytes, Some(total));
+    }
+
+    #[test]
+    fn fit_for_device_reports_unsupported_for_a_model_far_past_budget() {
+        let total = total_memory_bytes().expect("this machine must report its RAM");
+        let budget = total as f64 * USABLE_FRACTION;
+        // Comfortably past the 100% budget threshold.
+        let target_peak = budget * 3.0;
+        let size = ((target_peak - RUNTIME_OVERHEAD_BYTES as f64) / OVERHEAD_RATIO) as u64;
+
+        let assessment = fit_for_device(&entry(size));
+        assert_eq!(assessment.fit, Fit::Unsupported);
+    }
+
+    #[test]
+    fn fit_for_device_reports_tight_for_a_model_between_the_two_thresholds() {
+        let total = total_memory_bytes().expect("this machine must report its RAM");
+        let budget = total as f64 * USABLE_FRACTION;
+        // Between the 70% comfortable ceiling and the 100% budget ceiling.
+        let target_peak = budget * 0.85;
+        let size = ((target_peak - RUNTIME_OVERHEAD_BYTES as f64) / OVERHEAD_RATIO) as u64;
+
+        let assessment = fit_for_device(&entry(size));
+        assert_eq!(assessment.fit, Fit::Tight);
+    }
+}

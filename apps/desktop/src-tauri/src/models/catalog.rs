@@ -89,3 +89,48 @@ pub fn find_in_catalog(id: &str) -> Option<CatalogEntry> {
         .into_iter()
         .find(|entry| entry.descriptor.id == id)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn curated_models_is_non_empty() {
+        assert!(!curated_models().is_empty());
+    }
+
+    #[test]
+    fn every_curated_entry_has_a_unique_id() {
+        let ids: HashSet<_> = curated_models()
+            .into_iter()
+            .map(|e| e.descriptor.id)
+            .collect();
+        assert_eq!(ids.len(), curated_models().len());
+    }
+
+    #[test]
+    fn every_curated_entry_carries_a_verifiable_checksum() {
+        for entry in curated_models() {
+            assert!(
+                entry.descriptor.sha256.is_some() || entry.descriptor.md5.is_some(),
+                "{} has no checksum, so a download of it could never be verified",
+                entry.descriptor.id,
+            );
+        }
+    }
+
+    #[test]
+    fn find_in_catalog_finds_a_known_id() {
+        let known = curated_models()[0].descriptor.id.clone();
+        assert_eq!(
+            find_in_catalog(&known).map(|e| e.descriptor.id),
+            Some(known)
+        );
+    }
+
+    #[test]
+    fn find_in_catalog_returns_none_for_an_unknown_id() {
+        assert!(find_in_catalog("no-such-model-id").is_none());
+    }
+}

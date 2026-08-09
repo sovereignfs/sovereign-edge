@@ -157,3 +157,139 @@ pub fn assert_space_for(models_dir: &Path, descriptor: &ModelDescriptor) -> Resu
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scratch_dir(label: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "sovereign-edge-desktop-store-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        fs::create_dir_all(&dir).expect("could not create scratch dir");
+        dir
+    }
+
+    fn descriptor(id: &str, size_bytes: u64) -> ModelDescriptor {
+        ModelDescriptor {
+            id: id.to_string(),
+            name: "Scratch".to_string(),
+            url: "https://example.org/scratch.gguf".to_string(),
+            size_bytes,
+            md5: None,
+            sha256: Some("0".repeat(64)),
+            quantization: None,
+        }
+    }
+
+    #[test]
+    fn models_directory_creates_the_dir() {
+        let base = scratch_dir("models-directory");
+        let dir = models_directory(&base).expect("must create the models dir");
+        assert!(dir.is_dir());
+        assert_eq!(dir, base.join("models"));
+    }
+
+    #[test]
+    fn model_file_and_part_file_have_the_expected_shape() {
+        let dir = scratch_dir("paths");
+        assert_eq!(model_file(&dir, "abc"), dir.join("abc.gguf"));
+        assert_eq!(part_file(&dir, "abc"), dir.join("abc.gguf.part"));
+    }
+
+    #[test]
+    fn is_installed_reflects_the_final_file_only() {
+        let dir = scratch_dir("is-installed");
+        assert!(!is_installed(&dir, "abc"));
+        fs::write(part_file(&dir, "abc"), b"partial").unwrap();
+        assert!(!is_installed(&dir, "abc"), "a .part file is not installed");
+        fs::write(model_file(&dir, "abc"), b"complete").unwrap();
+        assert!(is_installed(&dir, "abc"));
+    }
+
+    #[test]
+    fn list_installed_excludes_part_files_and_reports_real_size() {
+        let dir = scratch_dir("list-installed");
+        fs::write(model_file(&dir, "abc"), b"12345").unwrap();
+        fs::write(part_file(&dir, "def"), b"partial-only").unwrap();
+
+        let installed = list_installed(&dir);
+        assert_eq!(installed.len(), 1);
+        assert_eq!(installed[0].id, "abc");
+        assert_eq!(installed[0].size_bytes, 5);
+        assert!(installed[0].complete);
+    }
+
+    #[test]
+    fn remove_model_deletes_both_the_model_and_any_partial_file() {
+        let dir = scratch_dir("remove");
+        fs::write(model_file(&dir, "abc"), b"complete").unwrap();
+        fs::write(part_file(&dir, "abc"), b"stale partial").unwrap();
+
+        remove_model(&dir, "abc").expect("remove must succeed");
+
+        assert!(!model_file(&dir, "abc").exists());
+        assert!(!part_file(&dir, "abc").exists());
+    }
+
+    #[test]
+    fn remove_model_is_a_no_op_when_neither_file_exists() {
+        let dir = scratch_dir("remove-noop");
+        assert!(remove_model(&dir, "never-existed").is_ok());
+    }
+
+    #[test]
+    fn active_model_id_round_trips() {
+        let dir = scratch_dir("active-round-trip");
+        fs::write(model_file(&dir, "abc"), b"complete").unwrap();
+
+        assert_eq!(read_active_model_id(&dir), None);
+        write_active_model_id(&dir, Some("abc"));
+        assert_eq!(read_active_model_id(&dir), Some("abc".to_string()));
+    }
+
+    #[test]
+    fn active_model_id_degrades_to_none_when_the_stored_file_is_gone() {
+        let dir = scratch_dir("active-degraded");
+        fs::write(model_file(&dir, "abc"), b"complete").unwrap();
+        write_active_model_id(&dir, Some("abc"));
+
+        fs::remove_file(model_file(&dir, "abc")).unwrap();
+
+        assert_eq!(
+            read_active_model_id(&dir),
+            None,
+            "a stored id naming a file that no longer exists must degrade to None, not error"
+        );
+    }
+
+    #[test]
+    fn write_active_model_id_none_removes_the_stored_file() {
+        let dir = scratch_dir("active-clear");
+        fs::write(model_file(&dir, "abc"), b"complete").unwrap();
+        write_active_model_id(&dir, Some("abc"));
+        assert!(dir.join(ACTIVE_FILENAME).exists());
+
+        write_active_model_id(&dir, None);
+        assert!(!dir.join(ACTIVE_FILENAME).exists());
+    }
+
+    #[test]
+    fn assert_space_for_succeeds_for_a_tiny_request() {
+        let dir = scratch_dir("space-ok");
+        assert!(assert_space_for(&dir, &descriptor("small", 1024)).is_ok());
+    }
+
+    #[test]
+    fn assert_space_for_fails_for_an_absurd_request() {
+        let dir = scratch_dir("space-bad");
+        let error = assert_space_for(&dir, &descriptor("huge", u64::MAX / 2))
+            .expect_err("an absurd request must fail against real disk space");
+        assert_eq!(error.code, ModelErrorCode::InsufficientSpace);
+    }
+}

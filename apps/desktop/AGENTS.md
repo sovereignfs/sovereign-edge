@@ -275,6 +275,43 @@ frontend, not React Native primitives.
   binary build + `launch-smoke.js`. **Honest gap:** does not achieve
   mobile's coverage — a real, executable check where there was none, not
   full parity with an interception primitive Rust doesn't have.
+- **Rust model-management test coverage (12.10).** Closed a fresh feature
+  audit's top-ranked finding: `models/{manager,verify,store,catalog,
+  device}.rs` and `engine/adapter.rs` had zero tests where mobile's TS
+  equivalents (`manager.test.ts`, `verify.test.ts`, `engine.test.ts`
+  mocking `llama.rn`) are thoroughly mocked and tested. **Real
+  constraint:** `EngineAdapter` is hard-wired to real `llama-cpp-2`
+  bindings with no injectable trait seam — Rust has no equivalent to
+  `jest.mock()`ing a linked native library, so full parity with mobile's
+  mocked coverage isn't achievable. 42 new tests added instead using this
+  codebase's own conventions (hand-rolled scratch dirs, a new `FakeEngine`
+  implementing the existing `LoadedModelHandle` trait — mirrors
+  `connectors/routing/route.rs`'s own `FakeEngine` naming for a different
+  trait): `verify.rs` (9, well-known SHA-256/MD5 test vectors, not
+  invented), `store.rs` (11, including the "stored id but file gone →
+  degrades to None" case), `catalog.rs` (5), `device.rs` (5, sizing a
+  synthetic `CatalogEntry` relative to the *real* `total_memory_bytes()`
+  read at test time), `manager.rs` (11, via `FakeEngine`), `engine/
+  adapter.rs` (1 test, 4 scenarios: `NoModelLoaded` needs no file at all;
+  a small garbage-bytes file → `ModelLoadFailed`, a real llama.cpp GGUF
+  parser rejection confirmed in the test's own stderr, not silently
+  no-op'd; a **sparse** file — `File::set_len` reports a huge logical
+  size with no real disk blocks allocated — sized past `total_memory_
+  bytes() * 0.5` → `OutOfMemory`, proving the size-vs-RAM classification
+  arithmetic for real; `unload()` on a never-loaded adapter is a safe
+  no-op). **A real constraint found only by writing the tests, not by
+  reading docs first:** `LlamaBackend::init()` is a process-global
+  singleton — three of the four `engine/adapter.rs` scenarios, first
+  written as separate `#[test]`s, failed with `BackendAlreadyInitialized`
+  since `cargo test` runs tests concurrently in one process; fixed by
+  sharing one `EngineAdapter` across all four scenarios inside a single
+  `#[test]`, resetting via `.unload()` between phases. **Honest,
+  documented gap:** the "generation already in progress" branch is only
+  reachable after a *successful* load, which needs real GGUF weights this
+  environment doesn't have — left unverified rather than faked. Verified:
+  `cargo fmt`/`clippy --all-targets -- -D warnings` clean; `cargo test
+  --lib` 117/117 (75 existing + 42 new); real debug binary build +
+  `launch-smoke.js`.
 - **Navigation shell scaffold (13.1).** `src/shell/AppShell.tsx` — plain
   `useState` destination switch, no routing-library dependency (four flat
   destinations, no deep-linking need). Chat unchanged behind its own
