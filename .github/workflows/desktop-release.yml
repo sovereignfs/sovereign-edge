@@ -161,6 +161,19 @@ jobs:
             exit 1
           fi
 
+      # TEMPORARY diagnostic for task 14.4's own CI debugging — remove
+      # once the macOS MACOSX_DEPLOYMENT_TARGET propagation bug is found.
+      - name: DEBUG env
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+        run: |
+          echo "shell MACOSX_DEPLOYMENT_TARGET=[$MACOSX_DEPLOYMENT_TARGET]"
+          cat apps/desktop/.cargo/config.toml || echo "NO CONFIG FILE FOUND"
+          find . -name config.toml -path "*.cargo*"
+          xcrun --show-sdk-version --sdk macosx || true
+          sw_vers || true
+
       # tauri-action builds, bundles, signs (via the env vars below), and
       # uploads every platform's artifacts to the same GitHub Release
       # (identified by tagName) — additive across matrix legs, and
