@@ -41,7 +41,7 @@ file lives in; only the path changes.
 | 7   | [Design System & Branding](mobile/design-system.md)                   | ⏳ In Progress  | Native theme adapting Sovereign's visual identity; standalone app, shared look   |
 | 8   | [Mobile App Shell](mobile/mobile-app-shell.md)                        | ⏳ In Progress  | The React Native app itself — iOS + Android, not a WebView wrapper               |
 | 10  | [Calendar Connector](mobile/calendar-connector.md)                    | ⏳ In Progress  | First Tier 3 connector — create/update/delete/query the device's own calendar; mobile + desktop (macOS only) done, Windows/Linux desktop scoped as a fast-follow (10.3) |
-| 11  | [Device Connector](mobile/device-connector.md)                        | 📋 Planned      | Tier 3 connector — flashlight and app-window brightness                          |
+| 11  | [Device Connector](mobile/device-connector.md)                        | ⏳ In Progress  | Tier 3 connector — app-window brightness done; flashlight (11.2) scoped as a fast-follow (no imperative torch API, unverifiable without a physical device) |
 
 ## Desktop
 

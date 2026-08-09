@@ -59,7 +59,8 @@ connector-management UI. Still first-party only.
 | ------- | ------------------------------------ | ------ | ------ | --------------------------------------------------------------------------------------------------------- |
 | 0.2.1   | Tier 3 connector scaffolding          | ✅     | Mobile | [2.6](docs/epics/mobile/connector-framework.md#-26--tier-3-connector-scaffolding)                                |
 | 0.2.2   | Calendar connector (mobile)          | ✅     | Mobile | [10.1](docs/epics/mobile/calendar-connector.md#-101--calendar-connector-mobile)                                 |
-| 0.2.3   | Device Utilities connector           | 📋     | Mobile | [11.1](docs/epics/mobile/device-connector.md#-111--device-utilities-connector)                                  |
+| 0.2.3   | Device connector — brightness         | ✅     | Mobile | [11.1](docs/epics/mobile/device-connector.md#-111--brightness)                                                  |
+| —       | Device connector — torch (fast-follow) | 📋   | Mobile | [11.2](docs/epics/mobile/device-connector.md#-112--torch-fast-follow)                                           |
 | 0.2.4   | Sovereign Tasks connector            | 📋     | Mobile | [4.1](docs/epics/mobile/sovereign-tasks-connector.md#-41--sovereign-tasks-connector)                            |
 | 0.2.5   | Instance URL and API token setup flow | 📋   | Mobile | [4.2](docs/epics/mobile/sovereign-tasks-connector.md#-42--instance-url-and-api-token-setup-flow)                |
 | —       | Calendar connector (desktop, macOS only) | ✅ | Shared | [10.2](docs/epics/mobile/calendar-connector.md#-102--desktop-calendar-connector-macos-only)                     |
