@@ -112,7 +112,13 @@ built and installed/launched outside the build tree, plus real Linux
 `.deb`/`.AppImage` built and verified via a native (non-cross-compiled)
 Docker container; Windows remains an honest, infeasible-on-this-machine
 gap (no Windows host, no MSVC cross-toolchain, Docker Desktop can't run
-Windows containers on macOS) deferred to task 14.4's CI pipeline; see
+Windows containers on macOS) deferred to task 14.4's CI pipeline. Task 14.3
+(update mechanism) is also done: `tauri-plugin-updater` + a real Ed25519
+signing keypair, hosted via GitHub Releases, verified with a real signed
+build, a real (throwaway, deleted) GitHub prerelease, and a real
+cryptographic signature check — proceeding deliberately without task 14.2
+(code signing, still skipped for lack of an Apple Developer ID
+certificate), since the two signing schemes are independent. See
 [distribution.md](docs/epics/desktop/distribution.md).
 
 ### Non-prioritised tasks

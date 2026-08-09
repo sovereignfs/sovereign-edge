@@ -512,6 +512,13 @@ fn set_connector_granted(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Task 14.3's own plugins — the first `.plugin(...)` calls in this
+        // codebase. `tauri-plugin-updater` supplies `check()`/
+        // `downloadAndInstall()` to the frontend; `tauri-plugin-process`
+        // supplies `relaunch()`, which the updater plugin itself doesn't
+        // include, needed to actually apply a downloaded update.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let app_data_dir = app
                 .path()

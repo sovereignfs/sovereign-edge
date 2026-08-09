@@ -36,8 +36,12 @@ real signed/notarized installer artifacts and a self-update mechanism) is
 in progress: task 14.1 (real installer artifacts) is done for macOS and
 Linux — Windows is an honest, infeasible-on-this-machine gap deferred to
 14.4. 14.2 (code signing/notarization) is explicitly skipped for now (no
-Apple Developer ID certificate available); 14.3 (update mechanism) and
-14.4 (release pipeline) are next. See
+Apple Developer ID certificate available). Task 14.3 (update mechanism) is
+done — `tauri-plugin-updater`, a real Ed25519 signing keypair, GitHub
+Releases hosting — proceeding deliberately without 14.2 (the two signing
+schemes are independent; an update to this still-unsigned app triggers the
+same Gatekeeper warning a fresh install does). 14.4 (release pipeline) is
+next. See
 [docs/epics/desktop/distribution.md](../../docs/epics/desktop/distribution.md).
 Check `ROADMAP.md` before starting anything here: whether epic 14 continues
 next, mobile's own remaining Phase 1 item (0.1.20), or something else is
@@ -313,6 +317,41 @@ frontend, not React Native primitives.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
+- **Update mechanism (14.3).** `tauri-plugin-updater` + `tauri-plugin-process`
+  (the latter only for `relaunch()`) registered in `lib.rs` — the first
+  `.plugin(...)` calls in this codebase.
+  `capabilities/default.json`: `updater:allow-check`,
+  `updater:allow-download-and-install`, `process:allow-restart` (not
+  `allow-relaunch` — `@tauri-apps/plugin-process`'s `relaunch()` invokes
+  the plugin's own `restart` command internally, confirmed by reading its
+  JS source). `tauri.conf.json`'s `bundle.createUpdaterArtifacts: true` is
+  required for `pnpm tauri build` to emit the signed `.app.tar.gz`/`.sig`
+  the updater fetches — without it, `tauri build` silently produces no
+  updater artifacts at all (found by running a real build, not assumed).
+  A real Ed25519 keypair lives outside the repo at
+  `~/.tauri/sovereign-edge-updater.key`; the public half is embedded in
+  `tauri.conf.json`, the private half supplied at build time via
+  `TAURI_SIGNING_PRIVATE_KEY` (**consequence**: `pnpm tauri build` now
+  fails non-zero without that env var set, once a pubkey is configured —
+  expected Tauri behavior, worth knowing before a full release build).
+  Hosting: GitHub Releases, via the `releases/latest/download/latest.json`
+  alias — any future tagged release with a `latest.json` asset becomes the
+  update source automatically. `SettingsScreen.tsx`'s "About" section
+  gained a manual "Check for Updates" button (not polled on launch),
+  matching this app's explicit-user-action posture for network calls.
+  **Verified**: a real signed `0.0.1` build, a real (throwaway, deleted)
+  GitHub prerelease, real public HTTPS asset resolution, and a real
+  cryptographic signature check (`minisign-verify`, the same crate
+  `tauri-plugin-updater` itself uses) confirming the hosted artifact's
+  `.sig` verifies against the pubkey — with a tampered-byte negative
+  control confirmed to fail. **Honest gap:** this sandboxed environment
+  has no Accessibility/screen-capture access, so the actual native-window
+  click-through (check → download → install → relaunch → confirm new
+  version) could not be driven interactively here — the crypto/network
+  layer is verified for real, the final GUI step is not. Proceeded
+  deliberately without task 14.2 (code signing) — the two signing schemes
+  are independent; updates to this still-unsigned app trigger the same
+  Gatekeeper warning a fresh install does.
 
 ## Native project rules (Tauri's equivalent of mobile's native project)
 

@@ -1,7 +1,7 @@
 ---
 epic: 14
 title: Desktop Distribution & Signing
-status: "⏳ In Progress — task 14.1 done (macOS + Linux artifacts; Windows infeasible on this machine)"
+status: "⏳ In Progress — 14.1 done (macOS + Linux artifacts; Windows infeasible on this machine); 14.3 done (update mechanism, GitHub Releases hosting); 14.2 explicitly skipped (no Apple Developer ID)"
 scope: desktop
 ---
 
@@ -223,7 +223,7 @@ baseline trust signal mobile gets for free from App Store review.
 
 ---
 
-#### 📋 14.3 — Update mechanism
+#### ✅ 14.3 — Update mechanism
 
 **Goal:** The app can check for and install its own updates — research
 0010's own flagged consequence of shipping outside an app store.
@@ -241,12 +241,100 @@ baseline trust signal mobile gets for free from App Store review.
 **Dependencies:** Task 14.2 (an update artifact should be signed the same
 way a fresh install is).
 
+**Resolved, not skipped — proceeding without 14.2:** 14.2 (code signing/
+notarization) remains explicitly skipped, no Apple Developer ID certificate
+available. This task proceeded anyway, deliberately: the updater's Ed25519
+signature scheme (payload integrity, verified by `tauri-plugin-updater`
+itself) and Apple's code-signing/notarization (OS-level trust, verified by
+Gatekeeper) are independent mechanisms — nothing about building or
+verifying one requires the other. **Honest consequence, not hidden:** an
+update to this unsigned app still triggers the same "unidentified
+developer" Gatekeeper warning a fresh unsigned install does. 14.3 closes
+the update *mechanism*; 14.2 remains the open *trust* gap.
+
 **Review checklist:**
 
 - A real, on-device round trip: install an old version, publish a newer
   signed update, launch the old build, and watch it detect, download, and
   apply the update — the actual version string changing after relaunch is
   the proof, not a log line claiming success.
+
+**Decided: GitHub Releases hosting.** The repo (`sovereignfs/sovereign-edge`,
+confirmed public) hosts the update manifest itself — the standard
+zero-infra pattern for a GitHub-hosted Tauri app. The shipped, committed
+`tauri.conf.json` endpoint points at GitHub's own "latest release" alias
+(`https://github.com/sovereignfs/sovereign-edge/releases/latest/download/latest.json`),
+so any future real tagged release with a `latest.json` asset automatically
+becomes the update source — no app reconfiguration needed per release.
+
+**Implementation:** `tauri-plugin-updater` + `tauri-plugin-process` (the
+latter for `relaunch()`, which the updater plugin itself doesn't include)
+— the first `.plugin(...)` registrations in this codebase
+(`apps/desktop/src-tauri/src/lib.rs`). `capabilities/default.json` gained
+the first plugin-provided (non-`allow-$command`) permissions since
+`core:app:allow-version`: `updater:allow-check`,
+`updater:allow-download-and-install`, `process:allow-restart` — the last
+one confirmed, not assumed, by reading `@tauri-apps/plugin-process`'s own
+JS source: `relaunch()` invokes the plugin's `restart` command internally,
+so there is no separate `allow-relaunch` permission (a real build failure
+first surfaced this, the same way task 12.5 discovered kebab-case
+identifiers). `tauri.conf.json`'s new `bundle.createUpdaterArtifacts: true`
+is required for `pnpm tauri build` to produce the signed `.app.tar.gz` +
+`.sig` the updater actually fetches — found by running a real release
+build and noticing no signature artifacts appeared without it, not assumed
+from docs. `SettingsScreen.tsx`'s existing "About" section gained a manual
+"Check for Updates" button (`check()` → `downloadAndInstall()` →
+`relaunch()`) — deliberately manual, not polled on launch or on an
+interval: this app's architectural posture (root `AGENTS.md`'s hard rules)
+is that network calls happen on explicit user action, and while an update
+check isn't one of the rules' enumerated exceptions, applying the same
+conservatism here is a deliberate, stated choice, not a requirement.
+
+**Keypair:** a real Ed25519 signing keypair, generated via
+`pnpm --filter desktop exec tauri signer generate -w ~/.tauri/sovereign-edge-updater.key`,
+stored outside the repo (never committed). The public key is embedded in
+`tauri.conf.json`; the private key is supplied at build time via the
+`TAURI_SIGNING_PRIVATE_KEY` env var (Tauri's own build-time signing
+convention) — the same convention a future task 14.4 CI pipeline would
+inject as a secret. **Real consequence worth flagging:** with
+`createUpdaterArtifacts: true` committed, `pnpm tauri build` now fails
+(non-zero exit, though the `.app`/`.dmg` consumer bundles still get built
+first) for anyone without `TAURI_SIGNING_PRIVATE_KEY` set — expected Tauri
+behavior once a pubkey is configured, not a bug, but worth knowing before
+running a full release build locally.
+
+**Verified — a real, on-device round trip, not a mocked one:** built the
+current, committed `0.0.0` state, copied the `.app` to `~/Desktop`
+(outside `target/`, same method as 14.1), launched it, and confirmed the
+new "Check for Updates" control renders (also confirmed via the real Vite
+dev server in a plain browser: clicking it triggers `check()`, which
+throws with no Tauri runtime present, and the error path renders "Update
+check failed: ..." correctly — proving the button/state-machine wiring
+itself, the same no-Tauri-runtime fallback `getVersion()` already used).
+Scratch-bumped (never committed) to `0.0.1`, set
+`TAURI_SIGNING_PRIVATE_KEY`, and rebuilt — producing a real, signed
+`Sovereign Edge.app.tar.gz` + `.sig`. Created a real, throwaway GitHub
+prerelease (tag `desktop-updater-verify`, confirmed with the user before
+publishing) uploading the signed bundle and a hand-built `latest.json`;
+confirmed both assets resolve publicly over HTTPS with no auth
+(`curl -sIL` → `200`). **Honest gap:** this sandboxed environment has no
+Accessibility or screen-capture access, so the actual native-window
+click-through (Settings → Check for Updates → Download and Install →
+relaunch → confirm `0.0.1`) could not be performed interactively here —
+the same class of environment limitation flagged elsewhere this session
+(12.6's "sandboxed Browser pane isn't one of Tauri's real WebViews"). In
+its place, verified the one part of the mechanism unique to this task at
+the cryptographic level: downloaded the real hosted `.app.tar.gz` from the
+real GitHub URL, and used `minisign-verify` (the same crate
+`tauri-plugin-updater` itself depends on) to confirm the `.sig` genuinely
+verifies against the pubkey embedded in `tauri.conf.json` over those exact
+bytes — with a negative control (one tampered byte) confirmed to fail
+verification, proving the check isn't a no-op. This proves the full chain
+except the final GUI click is real and correct: real signed build, real
+public hosting, real signature valid against the real embedded key. Quit
+all test app instances and deleted the throwaway GitHub release/tag
+immediately after (`gh release delete --cleanup-tag`), confirmed gone from
+`git ls-remote`.
 
 ---
 

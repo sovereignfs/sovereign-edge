@@ -31,6 +31,14 @@ sysinfo = "0.32"
 thiserror = "2"
 encoding_rs = "0.8"
 self_cell = "1"
+# Task 14.3's own additions: the first Tauri *plugins* this app registers
+# (every previous command was this app's own `#[tauri::command]`, gated by
+# `build.rs`'s `AppManifest::commands` — plugin commands are ACL'd by the
+# plugin's own permission identifiers instead, added to
+# `capabilities/default.json` directly). `tauri-plugin-process` supplies
+# `relaunch()`, which `tauri-plugin-updater` itself doesn't include.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 # task 12.2's own scope: `llama-cpp-2` is target-gated rather than listed once
 # in `[dependencies]` so the `metal` feature (GPU offload) is enabled only on

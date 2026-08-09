@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
-import { useTheme, useThemePreference, type ThemePreference } from 'desktop-ui';
+import { check, type Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import {
+  Button,
+  useTheme,
+  useThemePreference,
+  type ThemePreference,
+} from 'desktop-ui';
 
 /**
  * Task 13.4's own scope: expose `ThemeProvider`'s existing `system`/
@@ -25,10 +32,19 @@ const OPTIONS: { id: ThemePreference; label: string }[] = [
   { id: 'dark', label: 'Dark' },
 ];
 
+type UpdateState =
+  | { kind: 'idle' }
+  | { kind: 'checking' }
+  | { kind: 'not-available' }
+  | { kind: 'available'; update: Update }
+  | { kind: 'installing' }
+  | { kind: 'error'; message: string };
+
 export function SettingsScreen() {
   const theme = useTheme();
   const { preference, setPreference } = useThemePreference();
   const [version, setVersion] = useState<string | null>(null);
+  const [updateState, setUpdateState] = useState<UpdateState>({ kind: 'idle' });
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +60,41 @@ export function SettingsScreen() {
       cancelled = true;
     };
   }, []);
+
+  // Deliberately manual, not polled on mount or on an interval: this app's
+  // architectural posture (root AGENTS.md's hard rules) is that network
+  // calls happen on explicit user action, not silently in the background.
+  // An update check isn't one of the rules' enumerated exceptions
+  // (chat/model code, model acquisition) — nothing requires this
+  // conservatism here — but it's the same posture applied consistently
+  // rather than a network call this app makes on every launch unasked.
+  async function handleCheckForUpdates() {
+    setUpdateState({ kind: 'checking' });
+    try {
+      const update = await check();
+      setUpdateState(
+        update ? { kind: 'available', update } : { kind: 'not-available' },
+      );
+    } catch (cause) {
+      setUpdateState({
+        kind: 'error',
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+    }
+  }
+
+  async function handleInstallUpdate(update: Update) {
+    setUpdateState({ kind: 'installing' });
+    try {
+      await update.downloadAndInstall();
+      await relaunch();
+    } catch (cause) {
+      setUpdateState({
+        kind: 'error',
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+    }
+  }
 
   return (
     <div style={{ padding: theme.space[4] }}>
@@ -124,6 +175,57 @@ export function SettingsScreen() {
         >
           {version ? `Sovereign Edge ${version}` : 'Sovereign Edge'}
         </p>
+
+        <div style={{ marginTop: theme.space[2] }}>
+          {updateState.kind === 'available' ? (
+            <Button
+              label={`Download and Install v${updateState.update.version}`}
+              size="sm"
+              onClick={() => handleInstallUpdate(updateState.update)}
+            />
+          ) : (
+            <Button
+              label="Check for Updates"
+              size="sm"
+              variant="secondary"
+              loading={updateState.kind === 'checking'}
+              onClick={handleCheckForUpdates}
+            />
+          )}
+          {updateState.kind === 'installing' && (
+            <p
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: theme.fontSize.sm,
+                marginTop: theme.space[1],
+              }}
+            >
+              Downloading and installing — the app will relaunch automatically.
+            </p>
+          )}
+          {updateState.kind === 'not-available' && (
+            <p
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: theme.fontSize.sm,
+                marginTop: theme.space[1],
+              }}
+            >
+              You're on the latest version.
+            </p>
+          )}
+          {updateState.kind === 'error' && (
+            <p
+              style={{
+                color: theme.colors.errorText,
+                fontSize: theme.fontSize.sm,
+                marginTop: theme.space[1],
+              }}
+            >
+              Update check failed: {updateState.message}
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );
