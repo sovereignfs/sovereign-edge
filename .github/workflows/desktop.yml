@@ -81,9 +81,17 @@ jobs:
             patchelf \
             xvfb
 
+      # Scoped to desktop's own dependency subgraph (desktop, desktop-ui,
+      # design-tokens) — a full workspace install also runs mobile's
+      # llama.rn postinstall, which downloads native artifacts via a
+      # script that fails on Windows runners ("tar (child): Cannot connect
+      # to C: resolve failed", `C:` misparsed as a hostname) and is
+      # irrelevant to a desktop-only build regardless of platform. Found by
+      # actually running this workflow, not assumed — every recent run had
+      # been failing on Windows for this exact reason.
       - name: Install dependencies
         working-directory: .
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter desktop...
 
       - name: Rust format check
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check

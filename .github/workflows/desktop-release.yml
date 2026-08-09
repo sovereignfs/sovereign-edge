@@ -145,8 +145,14 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      # Scoped to desktop's own dependency subgraph (desktop, desktop-ui,
+      # design-tokens) — a full workspace install also runs mobile's
+      # llama.rn postinstall, which downloads native artifacts via a
+      # script that fails on Windows runners ("tar (child): Cannot connect
+      # to C: resolve failed", `C:` misparsed as a hostname) and is
+      # irrelevant to a desktop-only build regardless of platform.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter desktop...
 
       - name: Check signing key is configured
         run: |
