@@ -184,4 +184,29 @@ describe('ConnectorsScreen', () => {
       );
     });
   });
+
+  describe('Device (task 11.1)', () => {
+    it('always shows the brightness row, unconfigured', async () => {
+      const s = await renderScreen();
+      expect(s.getByText('Device — Brightness')).toBeTruthy();
+    });
+
+    it('grants on tap with no OS permission step', async () => {
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Device — Brightness'));
+      expect(mockEnsureCalendarAccess).not.toHaveBeenCalled();
+      expect(mockGrant).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fs.sovereign.device.set-brightness' }),
+      );
+    });
+
+    it('revokes a granted brightness connector on tap', async () => {
+      mockGrantFor.mockReturnValue({ state: 'granted' });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Device — Brightness'));
+      expect(mockRevoke).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fs.sovereign.device.set-brightness' }),
+      );
+    });
+  });
 });

@@ -17,6 +17,7 @@ import {
   CALENDAR_CONNECTOR_IDS,
   CALENDAR_MANIFESTS,
 } from '@/connectors/calendar/manifest';
+import { DEVICE_MANIFESTS } from '@/connectors/device/manifest';
 import { readSearchConfig } from '@/connectors/search/config';
 import {
   TAVILY_MANIFEST,
@@ -211,6 +212,12 @@ export function ConnectorsScreen() {
           connector (see `calendar/manifest.ts`'s own doc comment for why),
           so a user can allow querying without allowing deletion. */}
       {CALENDAR_MANIFESTS.map((manifest) => renderRow(manifest))}
+
+      {/* Device (task 11.1) is also always offered — app-window brightness
+          needs no OS permission at all, so this row uses the plain default
+          grant path below, unlike Calendar's. Torch (task 11.2) isn't here
+          yet — scoped as its own fast-follow, see that task's own notes. */}
+      {DEVICE_MANIFESTS.map((manifest) => renderRow(manifest))}
 
       {storeConnectors.map((manifest) => (
         <View key={manifest.id}>
