@@ -63,6 +63,7 @@ connector-management UI. Still first-party only.
 | 0.2.4   | Sovereign Tasks connector            | 📋     | Mobile | [4.1](docs/epics/mobile/sovereign-tasks-connector.md#-41--sovereign-tasks-connector)                            |
 | 0.2.5   | Instance URL and API token setup flow | 📋   | Mobile | [4.2](docs/epics/mobile/sovereign-tasks-connector.md#-42--instance-url-and-api-token-setup-flow)                |
 | —       | Calendar connector (desktop, macOS only) | ✅ | Shared | [10.2](docs/epics/mobile/calendar-connector.md#-102--desktop-calendar-connector-macos-only)                     |
+| —       | Calendar connector (desktop, Windows/Linux) | 📋 | Shared | [10.3](docs/epics/mobile/calendar-connector.md#-103--desktop-calendar-connector-windowslinux-fast-follow)     |
 
 ---
 

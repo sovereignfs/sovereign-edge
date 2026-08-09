@@ -1,7 +1,7 @@
 ---
 epic: 10
 title: Calendar Connector
-status: "⏳ In Progress — 10.1 (mobile) done; 10.2 (desktop, macOS only) done; Windows/Linux desktop unsupported"
+status: "⏳ In Progress — 10.1 (mobile) done; 10.2 (desktop, macOS only) done; 10.3 (desktop, Windows/Linux) planned as a fast-follow"
 scope: shared
 ---
 
@@ -232,3 +232,63 @@ doesn't have) and Linux (no single calendar API) are out of scope for now.
 - Real debug binary build (`pnpm tauri build --debug --no-bundle`,
   including a real `objc2-event-kit`/`block2` link) and launch-smoke
   check: process starts, stays running, no panic.
+
+---
+
+#### 📋 10.3 — Desktop calendar connector, Windows/Linux (fast-follow)
+
+**Goal:** Extend task 10.2's desktop calendar connector to Windows and
+Linux, closing the gap research 0011 documented rather than solved.
+Explicitly **not scoped for this pass** — handed off as a real, scoped
+fast-follow rather than left as a vague "someday." macOS's own connector
+(task 10.2) is unaffected either way: `calendar_manifests()` stays
+`#[cfg(target_os = "macos")]`-gated today, and whoever picks this up adds
+sibling `#[cfg(target_os = "windows")]`/`#[cfg(target_os = "linux")]`
+modules alongside it, not a rewrite of it.
+
+**Deliverables (per research 0011's findings — this is scope, not new
+research):**
+
+- **Windows:** `windows::ApplicationModel::Appointments::AppointmentStore`
+  (the official `windows` crate) is the real API, but it requires package
+  identity this app's current unpackaged NSIS/MSI distribution doesn't
+  have. First decision to make: adopt a sparse/external-location package
+  (identity without full MSIX) — check this doesn't conflict with
+  `.github/workflows/desktop-release.yml`'s existing release pipeline
+  before committing to it — or fall back to Outlook COM automation (works
+  unpackaged, but only when Outlook happens to be installed, an assumption
+  this app makes nowhere else today).
+- **Linux:** no single calendar API. Real support means picking one
+  backend — GNOME's `evolution-data-server` D-Bus interface is the
+  pragmatic default research 0011 flagged (more standardized than KDE's
+  Akonadi), not a decision already made — and documenting other desktop
+  environments as unsupported, the same honest-gap pattern task 10.2 used
+  for Windows/Linux as a whole.
+- Same four tools, same manifest ids/capability shape as task 10.2 (one
+  manifest = one tool = one `handler.capability`, matching
+  `permissions.device.capabilities` per the validator's cross-field rule);
+  `known_connector_manifests()` needs no change beyond each new platform's
+  own `calendar_manifests()` returning real entries instead of `Vec::new()`.
+
+**Dependencies:** Task 10.2 (the manifest/handler shape to mirror);
+research 0011 (the platform findings — read this before starting, it's
+not just a stub).
+
+**Review checklist:**
+
+- Windows: create/update/delete/query all reflect in the real Windows
+  Calendar app (or Outlook, if that's the fallback taken), from a real
+  installed (not just `cargo run`) build — package-identity issues often
+  only surface post-install, not in a dev build.
+- Linux (GNOME): same four operations reflect in GNOME Calendar/Evolution.
+  A non-GNOME Linux desktop's Connectors screen shows no Calendar row
+  (same "absent, not broken" bar task 10.2 set for pre-this-task Windows/
+  Linux) rather than a row that fails at dispatch time.
+
+**Not decided — real forks for whoever picks this up:**
+
+- Windows: sparse package vs. Outlook COM (see Deliverables above) — this
+  is a real architectural fork with distribution-pipeline consequences,
+  not a detail to default silently.
+- Linux: GNOME/EDS only, or also attempt KDE/Akonadi? EDS-only was
+  research 0011's pragmatic-default flag, not its decision.
