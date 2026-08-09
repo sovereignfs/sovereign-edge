@@ -1,0 +1,56 @@
+{
+  "manifestVersion": 1,
+  "id": "com.example.weather-lookup",
+  "name": "Weather Lookup",
+  "version": "1.0.0",
+  "summary": "Looks up the current weather for a place name.",
+  "tier": 1,
+  "platforms": ["ios", "android"],
+  "tool": {
+    "name": "weather_lookup",
+    "description": "Get the current weather conditions for a named place.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "place": {
+          "type": "string",
+          "description": "A city or place name, e.g. \"Lisbon\" or \"Austin, TX\"."
+        },
+        "units": {
+          "type": "string",
+          "description": "\"metric\" or \"imperial\".",
+          "default": "metric"
+        }
+      },
+      "required": ["place"]
+    }
+  },
+  "permissions": {
+    "network": {
+      "origins": ["https://api.example.com"]
+    },
+    "credentials": [
+      {
+        "key": "apiKey",
+        "label": "Weather API key"
+      }
+    ]
+  },
+  "request": {
+    "method": "GET",
+    "origin": "https://api.example.com",
+    "path": [{ "literal": "v1" }, { "literal": "weather" }],
+    "query": {
+      "place": { "slot": "place" },
+      "units": { "slot": "units" }
+    },
+    "headers": {
+      "Authorization": { "credential": "apiKey" }
+    }
+  },
+  "response": {
+    "textFrom": "current.summary",
+    "maxBytes": 65536
+  },
+  "pricing": { "model": "free" }
+}

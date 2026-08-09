@@ -73,7 +73,7 @@ store, and turn on monetization.
 | Version | Task                                       | Status | Scope  | Epic task                                                                                     |
 | ------- | --------------------------------------------- | ------ | ------ | ------------------------------------------------------------------------------------------------ |
 | 0.3.1   | Connector SDK                                | ✅     | Shared | [5.1](docs/epics/shared/connector-store-sdk.md#-51--connector-sdk)                                     |
-| 0.3.2   | Connector plugin template                    | 📋     | Shared | [5.2](docs/epics/shared/connector-store-sdk.md#-52--connector-plugin-template)                        |
+| 0.3.2   | Connector plugin template                    | ✅     | Shared | [5.2](docs/epics/shared/connector-store-sdk.md#-52--connector-plugin-template)                        |
 | 0.3.3   | First-party example connectors               | 📋     | Shared | [5.3](docs/epics/shared/connector-store-sdk.md#-53--first-party-example-connectors)                    |
 | 0.3.4   | Public connector registry and submission process | 📋 | Shared | [5.4](docs/epics/shared/connector-store-sdk.md#-54--public-connector-registry-and-submission-process) |
 | 0.3.5   | In-app Connector Store                       | 📋     | Shared | [5.5](docs/epics/shared/connector-store-sdk.md#-55--in-app-connector-store)                            |

@@ -95,7 +95,7 @@ directly, does not redefine it.
 
 ---
 
-#### 📋 5.2 — Connector plugin template
+#### ✅ 5.2 — Connector plugin template
 
 **Goal:** A "use this template" starting point for a new third-party
 connector.
@@ -111,6 +111,48 @@ connector.
 
 - A developer unfamiliar with the project can go from cloning the template
   to a submittable connector manifest without reading source code.
+
+**Decided:**
+
+- `templates/connector-plugin-template/` **inside this repo**, not a
+  separate GitHub repo. `sovereign`'s own equivalent
+  (`sovereign-plugin-template`) is a standalone repo, but creating a new
+  public repo is a real, visible action outside what an assistant should
+  do without the project owner confirming the exact name and visibility
+  first — that's a decision left to a human. The in-repo template can be
+  split out into its own repo later with no loss; nothing about its
+  content assumes it lives here.
+- The example manifest (`manifest.json`, a fictional weather-lookup
+  connector) is a genuine, complete Tier 1 example — not an abbreviated
+  sketch — and `validate.mjs` runs it through the actual
+  `@sovereignfs/connector-sdk` validator, so `npm run validate` in the
+  template shows a connector author exactly what the app's own load-time
+  check would say.
+- The README states plainly which tier is actually usable: **Tier 1
+  only.** Tier 3 is first-party-only by design (a manifest alone can't
+  authorize native code, since Tier 3 dispatches to a handler already
+  registered inside the app). Tier 2 has no runtime yet (task 5.6) — its
+  `tier2-preview/` directory is explicitly marked non-functional in its
+  own README and in a comment at the top of its one script file, so it
+  can't be mistaken for a working example.
+
+**Honest gap:**
+
+- The README's "Submission" section says outright that there is no public
+  registry or submission process yet (task 5.4, still 📋). A connector
+  built from this template can be validated and run locally, but has
+  nowhere to be submitted to yet.
+
+**Verified:**
+
+- Confirmed `manifest.json` actually validates against the real built
+  `@sovereignfs/connector-sdk` (`dist/index.js`), not just a
+  plausible-looking JSON file: `validateManifest()` returns
+  `{ valid: true, ... }`.
+- Confirmed the validator is not a rubber stamp: mutating the same
+  manifest to smuggle a credential into a URL query value (exactly the
+  rule the README calls out) makes `validateManifest()` return
+  `{ valid: false, issues: [...] }` with the expected message.
 
 ---
 
