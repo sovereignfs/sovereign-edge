@@ -1,0 +1,46 @@
+/*
+ * Non-shrinking, horizontally scrollable row — the CSS port of mobile's own
+ * `flexGrow: 0`/`flexShrink: 0` fix on its ModeBar's ScrollView, found there
+ * empirically: a default-shrinking container squeezed chip labels to
+ * slivers once the conversation grew tall.
+ */
+.row {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--sv-space-2);
+  overflow-x: auto;
+  padding: var(--sv-space-2) var(--sv-space-4);
+  border-bottom: 1px solid var(--sv-color-border);
+}
+
+.chip,
+.chipSelected {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--sv-radius-full);
+  font-family: var(--sv-font-family-body);
+  font-size: var(--sv-font-size-caption);
+  font-weight: var(--sv-font-weight-medium);
+  padding: var(--sv-space-1) var(--sv-space-3);
+  cursor: pointer;
+  transition: background-color var(--sv-motion-duration-fast) ease;
+}
+
+.chip {
+  background: transparent;
+  border-color: var(--sv-color-border);
+  color: var(--sv-color-text-muted);
+}
+.chip:hover {
+  background: var(--sv-color-accent-subtle);
+}
+
+.chipSelected {
+  background: var(--sv-color-accent);
+  border-color: transparent;
+  color: var(--sv-color-text-on-accent);
+}

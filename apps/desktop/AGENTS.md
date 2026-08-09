@@ -31,7 +31,10 @@ for what each task delivered.
 
 ## Before writing more code here
 
-Epics 12 and 13 are both closed. Epic 14 (Desktop Distribution & Signing —
+Epics 12 and 13 are both closed — epic 12 briefly reopened for task 12.8
+(writing-assist modes, a direct port of mobile's task 1.4, closing the
+single largest UX gap a feature audit found between the two apps) and
+closed again once it landed. Epic 14 (Desktop Distribution & Signing —
 real signed/notarized installer artifacts and a self-update mechanism) is
 nearly done: tasks 14.1, 14.3, and 14.4 are all complete — only 14.2 (code
 signing/notarization) remains, explicitly skipped for now (no Apple
@@ -203,6 +206,38 @@ frontend, not React Native primitives.
   **Honest gap:** no tool here can drive the actual native window, so
   clicking "Send" and watching a reply arrive wasn't done by hand — flagged,
   not claimed, the same gap every desktop task since 12.5 has hit.
+- **Writing-assist modes (12.8).** `src/chat/modes.ts` is a byte-for-byte
+  port of mobile's own `chat/modes/modes.ts` — same six modes (`plain`,
+  `search`, `brainstorm`, `grammar`, `tone`, `draft`), same prompts,
+  temperatures, `usesHistory`, `cautionBelowB`; nothing re-derived. Confirmed
+  by reading the code first that this needed **no Rust changes at all**:
+  `ConnectorMode` already carried `'required'` end-to-end, `generateChat()`
+  already accepted `temperature`, and `ManagedModel.parametersB` was already
+  fetched by `ChatScreen.tsx` and simply discarded — a mode's system prompt
+  is just a `ChatMessage{role: 'system'}` prepended into the same array
+  already sent, the identical mechanism mobile uses. New `ModeBar.tsx` +
+  `.module.css` (bespoke — no `desktop-ui` primitive has chip/selected-state
+  semantics; mobile's own `ModeBar` isn't a design-system component either)
+  renders the six chips with `aria-pressed` selected state and
+  `"${label} mode"` accessible names matching mobile's own test convention
+  exactly. A risk banner (mirroring mobile's `OfflineBanner` risk branch)
+  warns only for `draft` mode when the loaded model's `parametersB < 1`.
+  **Verified:** `tsc`/`eslint`/`prettier` clean; real Vite dev server in a
+  real browser — all 6 chips render with the correct accessible names,
+  clicking one flips `aria-pressed` on exactly one chip (checked via
+  `document.querySelectorAll`, not just visually), the header banner
+  composes the active mode's text exactly when not `plain`, zero console
+  errors; a real debug build (`pnpm tauri build --debug --no-bundle`,
+  embedding the new frontend) launched and stayed running
+  (`launch-smoke.js`). **Honest gap:** tried harder than prior tasks to
+  close the "can't drive the real native window" gap — attempted mocking
+  `window.__TAURI_INTERNALS__` in the real Browser pane to capture the
+  actual `generate_chat` request per mode, but browser navigation always
+  creates a fresh JS context, so there's no way to pre-seed the mock before
+  the app's own module evaluates with the tools available here (confirmed
+  by testing it). The exact per-mode `connector_mode`/`temperature`/
+  system-prompt-and-history request shape was verified by code review and
+  typechecking, not a captured live request — flagged, not claimed.
 - **Navigation shell scaffold (13.1).** `src/shell/AppShell.tsx` — plain
   `useState` destination switch, no routing-library dependency (four flat
   destinations, no deep-linking need). Chat unchanged behind its own

@@ -9,6 +9,8 @@ import {
   onGenerateToken,
   type ChatMessage,
 } from '../lib/tauri';
+import { ModeBar } from './ModeBar';
+import { DEFAULT_MODE_ID, findMode, type ModeId } from './modes';
 
 /**
  * Task 13.5's own scope: close the loop epic 13 opened in task 12.7.
@@ -27,6 +29,11 @@ import {
  * `connector_mode` — the actual grant/revoke lever moved to
  * `ConnectorsScreen.tsx` entirely, so there is exactly one place that
  * mutates consent, not two that could disagree.
+ *
+ * Task 12.8 adds writing-assist modes, ported from mobile's own
+ * `ChatScreen.tsx` (task 1.4): `modeId` state derives each turn's
+ * `connector_mode`/`temperature`/system-prompt-and-history handling in
+ * `send()`, mirroring mobile's own logic field-for-field — see `./modes.ts`.
  */
 
 type Status = 'loading' | 'no-model' | 'ready' | 'busy';
@@ -53,8 +60,12 @@ export function ChatScreen({
   const theme = useTheme();
   const [status, setStatus] = useState<Status>('loading');
   const [activeModelName, setActiveModelName] = useState<string | null>(null);
+  const [activeModelParamsB, setActiveModelParamsB] = useState<number | null>(
+    null,
+  );
   const [connectorName, setConnectorName] = useState<string | null>(null);
   const [connectorGranted, setConnectorGranted] = useState(false);
+  const [modeId, setModeId] = useState<ModeId>(DEFAULT_MODE_ID);
 
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -69,7 +80,9 @@ export function ChatScreen({
         connectorStatus().catch(() => null),
       ]);
       if (cancelled) return;
-      setActiveModelName(models.find((m) => m.id === active)?.name ?? null);
+      const activeModel = models.find((m) => m.id === active);
+      setActiveModelName(activeModel?.name ?? null);
+      setActiveModelParamsB(activeModel?.parametersB ?? null);
       if (connector) {
         setConnectorName(connector.name);
         setConnectorGranted(connector.granted);
@@ -89,11 +102,20 @@ export function ChatScreen({
     const text = draft.trim();
     if (!text || status !== 'ready') return;
 
-    const history: ChatMessage[] = messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-    history.push({ role: 'user', content: text });
+    // Mode's system prompt is prepended fresh each turn, not stored in
+    // `messages` state, so switching modes takes effect on the next reply
+    // instead of leaving a stale instruction in the history — mirrors
+    // mobile's own `send()` exactly.
+    const mode = findMode(modeId);
+    const history: ChatMessage[] = [
+      ...(mode.systemPrompt
+        ? [{ role: 'system' as const, content: mode.systemPrompt }]
+        : []),
+      ...(mode.usesHistory
+        ? messages.map((m) => ({ role: m.role, content: m.content }))
+        : []),
+      { role: 'user' as const, content: text },
+    ];
 
     const userId = newId();
     const assistantId = newId();
@@ -114,9 +136,23 @@ export function ChatScreen({
     });
 
     try {
+      // Transform modes (brainstorm/grammar/tone/draft) are not
+      // conversations, so offering them a connector is a category error
+      // regardless of grant state — 'off' for all of them. Search forces
+      // 'required'. Plain chat keeps today's existing behavior, gated on
+      // whether the connector is actually granted.
+      const connector_mode =
+        modeId === 'search'
+          ? 'required'
+          : modeId === 'plain'
+            ? connectorGranted
+              ? 'auto'
+              : 'off'
+            : 'off';
       const result = await generateChat({
         messages: history,
-        connector_mode: connectorGranted ? 'auto' : 'off',
+        connector_mode,
+        temperature: mode.temperature,
       });
       setMessages((prev) =>
         prev.map((m) =>
@@ -152,6 +188,16 @@ export function ChatScreen({
     await cancelGeneration();
   }
 
+  const activeMode = findMode(modeId);
+  // A measured limitation of the loaded model, not a general disclaimer
+  // about AI — mirrors mobile's own `OfflineBanner` risk branch. Appears
+  // only for the mode and the sizes where fabrication was actually
+  // observed (mobile's task 1.4 measurement), so it stays worth reading.
+  const risky =
+    activeMode.cautionBelowB !== null &&
+    activeModelParamsB !== null &&
+    activeModelParamsB < activeMode.cautionBelowB;
+
   return (
     <div
       style={{
@@ -184,7 +230,41 @@ export function ChatScreen({
         >
           On-device — nothing you type here leaves this machine unless a
           connector is granted and used.
+          {modeId !== DEFAULT_MODE_ID ? ` · ${activeMode.banner}` : ''}
         </p>
+
+        {risky && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.space[2],
+              padding: theme.space[2],
+              borderRadius: theme.radius.md,
+              background: theme.colors.warningSurface,
+              border: `1px solid ${theme.colors.warningBorder}`,
+            }}
+          >
+            <p
+              style={{
+                color: theme.colors.warningText,
+                fontSize: theme.fontSize.sm,
+                margin: 0,
+                flex: 1,
+              }}
+            >
+              {activeModelName} is small enough to invent details that were not
+              in your notes — it has produced figures nobody typed. Check any
+              draft before sending it, or switch to a larger model in Models.
+            </p>
+            <Button
+              label="Switch model"
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('models')}
+            />
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: theme.space[2] }}>
           <Button
@@ -241,6 +321,8 @@ export function ChatScreen({
           ))
         )}
       </div>
+
+      <ModeBar active={modeId} onSelect={setModeId} />
 
       <footer
         style={{

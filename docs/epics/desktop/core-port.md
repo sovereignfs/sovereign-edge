@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "⏳ In Progress — tasks 12.1–12.7, 12.7a done; 12.8 (writing-assist modes) scoped, not started"
+status: "✅ Done — tasks 12.1–12.7, 12.7a, 12.8 all done"
 scope: desktop
 ---
 
@@ -637,7 +637,7 @@ had crossed the IPC boundary needing it before `revoke`'s own error type).
 
 ---
 
-#### 📋 12.8 — Writing-assist modes (desktop port)
+#### ✅ 12.8 — Writing-assist modes (desktop port)
 
 **Goal:** Port mobile's task 1.4 — the concrete scenario-1 use case
 (brainstorm, grammar-fix, rewrite tone, draft from bullet points) — to
@@ -722,6 +722,36 @@ not just "the UI renders"):
 - Revoking the Search connector's permission does not affect any other
   mode's availability, and switching away from Search mode does not
   require the connector to still be granted.
+
+**Verified:** `apps/desktop/src/chat/modes.ts` is a byte-for-byte port of
+mobile's six modes (prompts, temperatures, `usesHistory`, `cautionBelowB`
+all unchanged). `pnpm typecheck` / `pnpm lint` / `pnpm exec prettier
+--check` clean. Real Vite dev server viewed in a real browser: all 6
+chips render with the exact `"${label} mode"` accessible names mobile's
+own tests assert on (`"Fix grammar mode"`, `"Search mode"`, etc.),
+clicking a chip flips `aria-pressed` on exactly one chip at a time
+(confirmed via `document.querySelectorAll`, not just visually), and the
+header subtitle composes the active mode's `banner` text after the base
+sentence exactly when `modeId !== 'plain'` — mirroring mobile's own
+conditional-join composition. Zero console errors. A real debug build
+(`pnpm tauri build --debug --no-bundle`, embedding the new frontend
+bundle) and `scripts/ci/launch-smoke.js` confirm the real binary still
+launches and stays running with `ChatScreen.tsx`'s changed import surface
+— `cargo clippy --all-targets -- -D warnings` also clean (no Rust
+changed, cheap insurance regardless).
+
+**Honest gap:** this sandboxed environment has no Accessibility/
+screen-capture access, so — the same limitation task 14.3 flagged —
+neither the real native Tauri window nor a synthetic mocked-IPC round
+trip could be driven here: browser navigation always creates a fresh JS
+context, so there's no way to pre-seed a mock `window.__TAURI_INTERNALS__`
+bridge before the app's own module evaluates in this tooling (confirmed
+by testing it, not assumed). The actual `connector_mode`/`temperature`/
+system-prompt-and-history request shape sent to `generate_chat` per mode
+was verified by code review and typechecking, not by inspecting a live
+request — a genuine gap from the review checklist's own bar, not silently
+skipped. The UI-rendering, selection-state, and build/launch verification
+above is the strongest chain available without that.
 
 ## Related Docs
 
