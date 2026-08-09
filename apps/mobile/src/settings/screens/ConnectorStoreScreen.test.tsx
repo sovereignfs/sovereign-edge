@@ -16,12 +16,18 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 function entry(overrides: Record<string, unknown> = {}) {
+  // A real registry entry always has `entry.id === entry.manifest.id`
+  // (enforced by `registry/validate.mjs`) — deriving the top-level `id`
+  // from `overrides.id` here keeps that true for fixtures too, instead of
+  // silently leaving two entries sharing the same top-level `id` (which
+  // React then rightly complains about as a duplicate list key).
+  const id = (overrides.id as string | undefined) ?? 'fs.sovereign.weather-open-meteo';
   return {
-    id: 'fs.sovereign.weather-open-meteo',
+    id,
     submittedBy: { name: 'kasunben' },
     manifest: {
       manifestVersion: 1,
-      id: 'fs.sovereign.weather-open-meteo',
+      id,
       name: 'Open-Meteo Forecast',
       version: '1.0.0',
       summary: 'Current temperature for a location.',
