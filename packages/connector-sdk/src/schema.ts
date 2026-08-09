@@ -155,7 +155,7 @@ const manifestCommon = {
   name: z.string().min(1),
   version: z.string().regex(SEMVER),
   summary: z.string().min(1),
-  platforms: z.array(z.enum(['ios', 'android'])).min(1),
+  platforms: z.array(z.enum(['ios', 'android', 'desktop'])).min(1),
   tool: toolDefinition,
   pricing,
 };

@@ -77,6 +77,7 @@ pub struct ToolParameters {
 pub enum Platform {
     Ios,
     Android,
+    Desktop,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
