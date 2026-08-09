@@ -33,9 +33,11 @@ for what each task delivered.
 
 Epics 12 and 13 are both closed. Epic 14 (Desktop Distribution & Signing —
 real signed/notarized installer artifacts and a self-update mechanism) is
-in progress: task 14.1 (real installer artifacts) is done; 14.2 (code
-signing/notarization), 14.3 (update mechanism), and 14.4 (release
-pipeline) are next, in that dependency order. See
+in progress: task 14.1 (real installer artifacts) is done for macOS and
+Linux — Windows is an honest, infeasible-on-this-machine gap deferred to
+14.4. 14.2 (code signing/notarization) is explicitly skipped for now (no
+Apple Developer ID certificate available); 14.3 (update mechanism) and
+14.4 (release pipeline) are next. See
 [docs/epics/desktop/distribution.md](../../docs/epics/desktop/distribution.md).
 Check `ROADMAP.md` before starting anything here: whether epic 14 continues
 next, mobile's own remaining Phase 1 item (0.1.20), or something else is
@@ -282,9 +284,32 @@ frontend, not React Native primitives.
   the `.app` was copied to `~/Desktop` (confirmed via the running
   process's own path in `ps aux`, not just build success) and launched for
   real, and the `.dmg` was mounted with `hdiutil` and confirmed to contain
-  the standard drag-to-install layout. **Honest gap:** Windows/Linux
-  artifacts weren't built or tested — macOS-only, same as every desktop
-  task since 12.1.
+  the standard drag-to-install layout. Linux artifacts closed the same way,
+  after the fact: `apps/desktop/docker/linux-build.Dockerfile` builds a
+  Debian bookworm image with Tauri's Linux prerequisites plus `cmake`/
+  `clang`/`libclang-dev` (the latter two for `llama-cpp-sys-2`'s `bindgen`
+  step — not part of Tauri's own prerequisite list), and runs a real,
+  native (not cross-compiled) `pnpm --filter desktop exec tauri build`
+  inside a container — producing `Sovereign Edge_0.0.0_arm64.deb` and
+  `Sovereign Edge_0.0.0_aarch64.AppImage` (arm64, Docker Desktop's default
+  container arch on this Apple Silicon host, not x86_64). Verified for
+  real: `dpkg --info`/`--contents` confirm sane package metadata and
+  layout; `dpkg-deb -x` + `ldd` confirmed every shared library resolves
+  cleanly; running the extracted binary under `xvfb-run` (a real virtual X
+  server) and checking `ps aux` after several seconds confirmed the
+  process genuinely stays alive, not just "the build exited 0" — a plain
+  headless run (no display) reaches GTK init and fails there with a clear
+  panic, not a linker error, itself further evidence the binary is sound.
+  This native container build writes into the same
+  `apps/desktop/src-tauri/target/release/` path the macOS build uses, so
+  running it leaves the host's own `target/release` holding a Linux ELF
+  binary until a macOS `pnpm tauri build`/`cargo build --release` runs
+  again on the host — do this before trusting `target/release` for local
+  macOS work if you've run the Linux container. **Honest gap, deliberately
+  not closed:** Windows (`nsis`) artifacts remain unbuilt — infeasible on
+  this machine, not just untested: Docker Desktop can't run Windows
+  containers on macOS and there's no MSVC cross-toolchain here. A real
+  `.exe`/`.msi` needs an actual Windows host or CI runner (task 14.4).
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.

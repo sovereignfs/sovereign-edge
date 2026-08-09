@@ -108,7 +108,11 @@ artifacts and a self-update mechanism, since desktop ships with no app
 store to piggyback signing/distribution/updates on (research 0010's own
 flagged, previously-unanswered question). Task 14.1 (real installer
 artifacts) is done: explicit `bundle.targets`, a real macOS `.app`/`.dmg`
-built and installed/launched outside the build tree; see
+built and installed/launched outside the build tree, plus real Linux
+`.deb`/`.AppImage` built and verified via a native (non-cross-compiled)
+Docker container; Windows remains an honest, infeasible-on-this-machine
+gap (no Windows host, no MSVC cross-toolchain, Docker Desktop can't run
+Windows containers on macOS) deferred to task 14.4's CI pipeline; see
 [distribution.md](docs/epics/desktop/distribution.md).
 
 ### Non-prioritised tasks

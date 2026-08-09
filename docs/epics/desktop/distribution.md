@@ -1,7 +1,7 @@
 ---
 epic: 14
 title: Desktop Distribution & Signing
-status: "⏳ In Progress — task 14.1 done"
+status: "⏳ In Progress — task 14.1 done (macOS + Linux artifacts; Windows infeasible on this machine)"
 scope: desktop
 ---
 
@@ -144,10 +144,53 @@ and confirmed the running process's own path
 via `ps aux` — proving a real relocatable bundle, not an artifact of
 running from `target/` — then quit it cleanly. Separately mounted the
 `.dmg` with `hdiutil attach` and confirmed its contents: the `.app` plus
-an `Applications` symlink, the standard drag-to-install layout. **Honest
-gap:** Windows (`nsis`) and Linux (`deb`/`appimage`) artifacts were not
-built or verified — this machine can only produce and test macOS bundles,
-the same platform limitation every desktop task has carried since 12.1.
+an `Applications` symlink, the standard drag-to-install layout.
+
+**Linux artifacts, closed after the fact:** this machine has no Linux
+host, but Docker (native, not cross-compiled, container arch) was enough
+to produce and verify real `.deb`/`.AppImage` artifacts. See
+`apps/desktop/docker/linux-build.Dockerfile` — a Debian bookworm image
+with Tauri v2's own documented Linux prerequisites plus `cmake`/`clang`/
+`libclang-dev` for `llama-cpp-sys-2`'s `bindgen`-based build. Two real
+build failures this surfaced, neither visible without actually running
+the container: (1) `pnpm install` refused to touch a repo-wide bind mount
+that also carried the host's macOS-native `node_modules` without a TTY —
+fixed with `-e CI=true` plus a named Docker volume shadowing every
+`node_modules` directory in the workspace, which also prevents the
+container's Linux-native install from silently overwriting the host's own
+`node_modules` through the shared mount; (2) `bindgen` failed with
+"Unable to find libclang" — `llama-cpp-sys-2` needs `clang`/`libclang-dev`
+installed, which Tauri's own prerequisite list doesn't mention since it's
+specific to this repo's inference engine (task 12.2), not to Tauri itself.
+`pnpm --filter desktop exec tauri build` inside the container produced
+`Sovereign Edge_0.0.0_arm64.deb` and `Sovereign Edge_0.0.0_aarch64.AppImage`
+(Docker Desktop's default arm64 container arch on this Apple Silicon host —
+a real, native arm64 Linux artifact, not x86_64). Verified for real, not
+just "the build exited 0": `dpkg --info`/`dpkg --contents` on the `.deb`
+show correct metadata and a sane file layout; `dpkg-deb -x` extracted the
+binary and `ldd` showed every shared library resolving cleanly (no "not
+found"); running the extracted binary under `xvfb-run` (a real, if virtual,
+X server) and checking `ps aux` after several seconds showed the process
+genuinely alive, not crashed — the same "confirm it's actually running,
+not just that the build succeeded" bar used for the macOS `.app` above. A
+plain headless run (no display) reached GTK init and failed there with a
+clear "Failed to initialize GTK backend" panic, not a linker or missing-
+library error — expected for a container with no display server, and
+itself further evidence the binary and its dynamic links are correct.
+**Caveat, not a gap:** this native (non-cross-compiled) container build
+writes directly into `apps/desktop/src-tauri/target/release/`, the same
+path the macOS build uses — running the Linux build leaves the host's own
+`target/release` containing a Linux ELF binary until a macOS
+`pnpm tauri build`/`cargo build --release` is run again on the host
+afterward, which this session did immediately after copying the Linux
+artifacts out.
+
+**Honest gap, deliberately not closed:** Windows (`nsis`) artifacts remain
+unbuilt and unverified — infeasible on this machine specifically, not just
+untested: Docker Desktop cannot run Windows containers on macOS, and there
+is no MSVC cross-toolchain here. A real `.exe`/`.msi` needs an actual
+Windows host or CI runner — task 14.4's job, not something a local
+Docker-based workaround can stand in for.
 
 ---
 
