@@ -17,12 +17,14 @@ const mockGrant = jest.fn();
 const mockRevoke = jest.fn();
 const mockGrantFor = jest.fn();
 const mockNeedsRedecision = jest.fn();
+const mockEnsureCalendarAccess = jest.fn();
 jest.mock('@/connectors', () => ({
   ...jest.requireActual('@/connectors'),
   grant: (...args: unknown[]) => mockGrant(...args),
   revoke: (...args: unknown[]) => mockRevoke(...args),
   grantFor: (...args: unknown[]) => mockGrantFor(...args),
   needsRedecision: (...args: unknown[]) => mockNeedsRedecision(...args),
+  ensureCalendarAccess: () => mockEnsureCalendarAccess(),
 }));
 
 const mockReadSearchConfig = jest.fn();
@@ -77,6 +79,7 @@ describe('ConnectorsScreen', () => {
     mockReadInstalledConnectors.mockReset().mockReturnValue([]);
     mockRemoveInstalledConnector.mockReset();
     mockNavigate.mockReset();
+    mockEnsureCalendarAccess.mockReset();
   });
 
   it('shows the Search setup row and the store entry point when nothing is installed', async () => {
@@ -139,5 +142,46 @@ describe('ConnectorsScreen', () => {
     const s = await renderScreen();
     expect(s.getByText('Search (SearXNG)')).toBeTruthy();
     expect(s.getByText('Reconfigure Search')).toBeTruthy();
+  });
+
+  describe('Calendar (task 10.1)', () => {
+    it('always shows all four calendar rows, unconfigured', async () => {
+      const s = await renderScreen();
+      expect(s.getByText('Calendar — Create Event')).toBeTruthy();
+      expect(s.getByText('Calendar — Update Event')).toBeTruthy();
+      expect(s.getByText('Calendar — Delete Event')).toBeTruthy();
+      expect(s.getByText('Calendar — Query Events')).toBeTruthy();
+    });
+
+    it('requests real OS calendar access before granting, and grants on success', async () => {
+      mockEnsureCalendarAccess.mockResolvedValue({ granted: true });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Calendar — Create Event'));
+      expect(mockEnsureCalendarAccess).toHaveBeenCalled();
+      expect(mockGrant).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fs.sovereign.calendar.create-event' }),
+      );
+    });
+
+    it('does not grant, and shows a message, when the OS refuses calendar access', async () => {
+      mockEnsureCalendarAccess.mockResolvedValue({ granted: false });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Calendar — Create Event'));
+      expect(mockEnsureCalendarAccess).toHaveBeenCalled();
+      expect(mockGrant).not.toHaveBeenCalled();
+      expect(
+        s.getByText(/Calendar access was not allowed/),
+      ).toBeTruthy();
+    });
+
+    it('revoking a granted calendar connector does not request OS access again', async () => {
+      mockGrantFor.mockReturnValue({ state: 'granted' });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Calendar — Create Event'));
+      expect(mockEnsureCalendarAccess).not.toHaveBeenCalled();
+      expect(mockRevoke).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fs.sovereign.calendar.create-event' }),
+      );
+    });
   });
 });

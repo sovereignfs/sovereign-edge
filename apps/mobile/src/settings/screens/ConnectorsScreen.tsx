@@ -5,6 +5,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import {
   connectorScope,
+  ensureCalendarAccess,
   grant,
   grantFor,
   needsRedecision,
@@ -12,6 +13,10 @@ import {
   type ConnectorManifest,
   type GrantState,
 } from '@/connectors';
+import {
+  CALENDAR_CONNECTOR_IDS,
+  CALENDAR_MANIFESTS,
+} from '@/connectors/calendar/manifest';
 import { readSearchConfig } from '@/connectors/search/config';
 import {
   TAVILY_MANIFEST,
@@ -59,6 +64,7 @@ export function ConnectorsScreen() {
     useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
   const [, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
 
   // `readSearchConfig()` below only runs when this component re-renders.
   // React Navigation keeps a stack screen mounted and does not re-render it
@@ -113,10 +119,29 @@ export function ConnectorsScreen() {
         onPress={() => {
           if (allowed) {
             void revoke(manifest).then(refresh);
-          } else {
-            grant(manifest);
-            refresh();
+            return;
           }
+          // Calendar connectors need a real OS permission before the app's
+          // own `grant()` is allowed to record "granted" — see
+          // `permissions/calendarAccess.ts`'s own doc comment for why this
+          // is asked once, not once per calendar row, and why it must run
+          // before, not after, `grant()`.
+          if (CALENDAR_CONNECTOR_IDS.includes(manifest.id)) {
+            void ensureCalendarAccess().then(({ granted }) => {
+              if (granted) {
+                setCalendarError(null);
+                grant(manifest);
+              } else {
+                setCalendarError(
+                  'Calendar access was not allowed. Check this device’s system settings to allow it.',
+                );
+              }
+              refresh();
+            });
+            return;
+          }
+          grant(manifest);
+          refresh();
         }}
       />
     );
@@ -147,6 +172,17 @@ export function ConnectorsScreen() {
             ? 'Nothing in this app can reach the network. Chat runs entirely on device. Set up Search below, or browse the Connector Store — either only acts once you configure and grant it access.'
             : 'Granting one connector never grants another. Revoking a connector also deletes any credential you gave it.'}
         </Text>
+        {calendarError ? (
+          <Text
+            style={{
+              color: theme.colors.warningText,
+              fontSize: theme.fontSize.caption,
+              fontFamily: theme.fontFamily.body,
+            }}
+          >
+            {calendarError}
+          </Text>
+        ) : null}
       </View>
 
       {searchManifest === null ? (
@@ -169,6 +205,12 @@ export function ConnectorsScreen() {
           />
         </>
       )}
+
+      {/* Calendar (task 10.1) is always offered, like Search — it needs no
+          setup, only a grant. Four rows, not one: each tool is its own
+          connector (see `calendar/manifest.ts`'s own doc comment for why),
+          so a user can allow querying without allowing deletion. */}
+      {CALENDAR_MANIFESTS.map((manifest) => renderRow(manifest))}
 
       {storeConnectors.map((manifest) => (
         <View key={manifest.id}>

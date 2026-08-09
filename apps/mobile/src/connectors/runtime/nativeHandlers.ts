@@ -1,5 +1,11 @@
 import * as Device from 'expo-device';
 
+import {
+  createEvent,
+  deleteEvent,
+  queryEvents,
+  updateEvent,
+} from '../calendar/handlers';
 import type { ExecutionResult } from './types';
 
 /**
@@ -19,11 +25,11 @@ import type { ExecutionResult } from './types';
  * `isAllowed()` is checked by the caller before dispatch, same as Tier 1 —
  * a handler here is never reached for a capability the user hasn't granted.
  *
- * `device.info` is this task's proof-of-life handler: reserved-but-real
- * scaffolding, not a shipped connector. It exists to prove the extension
- * point works end to end without pulling in a native module (`expo-calendar`,
- * `expo-camera`) that only the Calendar and Device connectors (epics 10, 11)
- * actually need.
+ * `device.info` was this task's original proof-of-life handler:
+ * reserved-but-real scaffolding, not a shipped connector, proving the
+ * extension point worked end to end before any real Tier 3 connector
+ * needed it. Calendar (task 10.1, `../calendar/handlers.ts`) is the first
+ * one that does.
  */
 export type NativeHandler = (
   args: Record<string, unknown>,
@@ -41,6 +47,10 @@ const NATIVE_HANDLERS: Record<string, NativeHandler> = {
       text: parts.length > 0 ? parts.join(' ') : 'Unknown device',
     };
   },
+  'calendar.event.create': createEvent,
+  'calendar.event.update': updateEvent,
+  'calendar.event.delete': deleteEvent,
+  'calendar.event.query': queryEvents,
 };
 
 export function nativeHandlerFor(

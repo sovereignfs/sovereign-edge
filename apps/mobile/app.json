@@ -39,6 +39,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "This lets you ask the assistant to create, update, delete, or look up events on your own calendar."
+        }
+      ],
       "./plugins/withAndroidReleaseSigning"
     ]
   }

@@ -18,3 +18,4 @@ export {
   revokeEntitlement,
   type EntitlementRecord,
 } from './entitlements';
+export { ensureCalendarAccess } from './calendarAccess';

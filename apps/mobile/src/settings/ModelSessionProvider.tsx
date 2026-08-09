@@ -15,6 +15,7 @@ import {
   type ChatSessionStatus,
 } from '@/chat/session/ChatSessionContext';
 import type { ConnectorManifest } from '@/connectors';
+import { CALENDAR_MANIFESTS } from '@/connectors/calendar/manifest';
 import { readSearchConfig } from '@/connectors/search/config';
 import {
   TAVILY_MANIFEST,
@@ -43,6 +44,13 @@ import { generateWithConnectors } from './connectorOrchestration';
  * persisted) because it has no registry entry to install from; every other
  * connector on the device now comes from `readInstalledConnectors()`, the
  * first time this function has returned more than Search alone.
+ *
+ * The four Calendar connectors (task 10.1) are included unconditionally,
+ * like Search's manifest — Calendar needs no user configuration before it
+ * can be offered, only a grant (and, the first time, the real OS
+ * permission `ConnectorsScreen.tsx`'s grant handler requests before
+ * calling `grant()`). Whether a call actually reaches the device only
+ * depends on `isAllowed()` at dispatch time, same as every other connector.
  */
 function installedConnectors(): ConnectorManifest[] {
   const config = readSearchConfig();
@@ -53,7 +61,7 @@ function installedConnectors(): ConnectorManifest[] {
           : TAVILY_MANIFEST,
       ]
     : [];
-  return [...search, ...readInstalledConnectors()];
+  return [...search, ...CALENDAR_MANIFESTS, ...readInstalledConnectors()];
 }
 
 /**
