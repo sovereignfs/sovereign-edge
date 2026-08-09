@@ -35,4 +35,34 @@ export default defineConfig([
   {
     ignores: ['node_modules/', 'dist/', 'src-tauri/'],
   },
+  {
+    // Task 13.10's own rule, ported from apps/mobile/eslint.config.js —
+    // mobile's own review checklist ("no screen hardcodes a color …
+    // outside the theme module") turned into a check rather than a habit,
+    // closing a gap a fresh feature audit found: desktop had no
+    // equivalent. Colours are the enforceable part: a hex or rgba()/hsla()
+    // literal is unambiguous, whereas a bare `12` could be a colour, a
+    // space value, or a timeout.
+    //
+    // Nothing under apps/desktop/src/ defines these values — that job
+    // belongs to packages/design-tokens (outside this package's own
+    // ESLint scope, since `eslint .` here only ever reaches this app's
+    // own src/ tree) — so this rule has no exemption directory the way
+    // mobile's src/design-system/ needs one.
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/^(#[0-9a-fA-F]{3,8}|rgba?\\(|hsla?\\()/]',
+          message:
+            'Use a semantic token from `useTheme()` instead of a colour ' +
+            'literal. If a new colour is genuinely needed, add it to ' +
+            'packages/design-tokens/semantic.ts so both light and dark are ' +
+            'defined.',
+        },
+      ],
+    },
+  },
 ]);

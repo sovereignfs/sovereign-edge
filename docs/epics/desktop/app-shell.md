@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "✅ Done — tasks 13.1–13.9 all done"
+status: "✅ Done — tasks 13.1–13.10 all done"
 scope: desktop
 ---
 
@@ -718,7 +718,50 @@ boundary" step already just calls `pnpm check:offline`).
 
 ---
 
-This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.9 are done.
+---
+
+#### ✅ 13.10 — No-hardcoded-color ESLint rule
+
+**Goal:** Close the fourth-ranked (lowest-severity) gap the same audit
+found: mobile enforces "no screen hardcodes a color outside the theme
+module" as an ESLint rule, verified by a planted-violation test; desktop
+had the same convention as an unwritten habit only, nothing stopping a
+screen from hardcoding a hex/`rgb()`/`hsl()` literal outside
+`packages/design-tokens`.
+
+**Deliverables:**
+
+- `apps/desktop/eslint.config.js` gained a `no-restricted-syntax` rule
+  banning `#hex`/`rgb()`/`rgba()`/`hsl()`/`hsla()` literals under
+  `src/**/*.ts(x)` (excluding test files) — the same regex mobile's own
+  rule uses, byte-for-byte.
+
+**Dependencies:** None new — the base ESLint config already exists.
+
+**Review checklist:**
+
+- The rule passes on the real, unmodified tree, and fires with the right
+  message on a planted color literal.
+
+**Decided: no exemption directory needed, unlike mobile's.** Mobile's
+rule exempts `src/design-system/` because that's where color values are
+legitimately defined. Desktop's equivalent (`packages/design-tokens`)
+lives outside `apps/desktop/`'s own directory tree entirely — `eslint .`
+run from `apps/desktop/` never reaches it — so no exemption glob was
+needed; the rule's own message points there anyway, for a developer who
+hits the error and needs to know where a genuinely new color belongs.
+
+**Verified:** ran against the real, unmodified `apps/desktop/src/` tree
+— clean, confirming no existing hardcoded color was already present to
+grandfather in. Planted a real scratch violation
+(`export const scratchColor = '#ff0000';` appended to `modes.ts`) and
+confirmed ESLint reported the exact rule and message, then reverted it
+before committing (`git diff` confirmed clean). `pnpm typecheck`/`prettier
+--check` also clean.
+
+---
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.10 are done.
 
 ## Related Docs
 

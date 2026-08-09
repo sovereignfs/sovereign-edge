@@ -459,6 +459,16 @@ frontend, not React Native primitives.
   `modes.ts`) was confirmed to report the exact import chain and exit
   non-zero, then reverted before committing (`git diff` confirmed clean).
   `typecheck`/`eslint`/`prettier` clean.
+- **No-hardcoded-color ESLint rule (13.10).** `eslint.config.js` gained a
+  `no-restricted-syntax` rule banning `#hex`/`rgb()`/`rgba()`/`hsl()`/
+  `hsla()` literals under `src/**` (test files excluded) — the same
+  regex mobile's own equivalent rule uses. No exemption directory
+  needed, unlike mobile's `src/design-system/` exemption: `packages/
+  design-tokens` (where color values legitimately live) sits outside
+  `apps/desktop/`'s own tree, so `eslint .` run here never reaches it.
+  Verified: clean on the real, unmodified tree; a scratch-planted
+  literal (`'#ff0000'` in `modes.ts`) was confirmed to fire the rule with
+  the right message, then reverted before committing.
 - **Real installer artifacts per platform (14.1).**
   `tauri.conf.json`'s `bundle.targets` names each platform explicitly
   (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —
