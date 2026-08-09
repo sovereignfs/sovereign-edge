@@ -95,10 +95,14 @@ instruction, ahead of 0.1.20 closing out Phase 1: see
 over Electron and a React Native desktop shell). Epic 9 (Desktop Shell) held
 only that decision and is closed; epic 12 (Desktop Core Port) held the rest
 of the desktop work, broken into 8 tasks (12.1–12.7, plus 12.7a split out
-from 12.7) sized to match mobile's own epic granularity — **all done**: a
-Tauri v2 app with real on-device inference, per-connector credential
-storage, a Tier 1 + Tier 3 connector runtime, grammar-constrained
-tool-calling, and a minimal offline chat UI exercising all of it. Epic 13
+from 12.7) sized to match mobile's own epic granularity — 12.1–12.7/12.7a
+**all done**: a Tauri v2 app with real on-device inference, per-connector
+credential storage, a Tier 1 + Tier 3 connector runtime, grammar-constrained
+tool-calling, and a minimal offline chat UI exercising all of it. A feature
+audit against mobile surfaced the single largest remaining UX gap between
+the two apps — desktop chat has no writing-assist modes at all — so epic 12
+reopened with task 12.8 (writing-assist modes, a direct port of mobile's
+task 1.4), scoped but not yet started. Epic 13
 (Desktop App Shell) is also **all done**: real navigation, a model manager
 screen, a connectors/permissions screen, and general settings, extracted
 from what task 12.7's chat screen used to do inline; see

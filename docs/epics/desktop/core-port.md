@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "✅ Done — tasks 12.1–12.7, 12.7a all done"
+status: "⏳ In Progress — tasks 12.1–12.7, 12.7a done; 12.8 (writing-assist modes) scoped, not started"
 scope: desktop
 ---
 
@@ -634,6 +634,94 @@ had crossed the IPC boundary needing it before `revoke`'s own error type).
   running binary with correct IPC wiring, and the real on-device generation
   path already proven by 12.7a — not a substitute for actually watching it
   happen, and flagged as such rather than claimed.
+
+---
+
+#### 📋 12.8 — Writing-assist modes (desktop port)
+
+**Goal:** Port mobile's task 1.4 — the concrete scenario-1 use case
+(brainstorm, grammar-fix, rewrite tone, draft from bullet points) — to
+desktop chat. Closes the single largest UX gap a feature audit found
+between the two apps: desktop's chat screen has no writing-assist modes at
+all today, only plain chat with `auto`/`off` connector routing.
+
+**What already exists and needs no change** (confirmed by reading the
+code, not assumed): `ConnectorMode` already carries `'required'`
+end-to-end — TS type → `generate_chat`'s Rust enum → `ToolChoice::Required`
+— desktop's connector layer already supports Search-style forcing, only
+`ChatScreen.tsx` has never sent it. `generateChat()`'s wrapper already
+accepts `temperature`; per-mode temperature needs no API change.
+`ManagedModel.parametersB` is already fetched by `ChatScreen.tsx` via
+`listModels()` on mount and currently discarded — the model-size data the
+risk banner needs is already in memory, just not stored into state.
+
+**Decided: modes stay entirely client-side, mirroring mobile's own
+architecture exactly** — no new Tauri command, no new field on
+`GenerateChatRequest`. A mode's system prompt is a `ChatMessage{role:
+'system', content}` prepended into the same `messages` array already
+sent, identical to how mobile's `ChatScreen.send()` builds `history`
+today; `generate_chat`'s Rust side needs zero changes since system-prompt-
+via-message is already the only mechanism that exists at the engine
+layer (confirmed: no `system_prompt` field exists on `GenerateOptions` on
+either platform). This makes 12.8 a frontend-only task.
+
+**Deliverables:**
+
+- `apps/desktop/src/chat/modes.ts` — a direct port of
+  `apps/mobile/src/chat/modes/modes.ts`'s six modes (`plain`, `search`,
+  `brainstorm`, `grammar`, `tone`, `draft`), same `id`/`label`/`banner`/
+  `systemPrompt`/`temperature`/`usesHistory`/`cautionBelowB` fields, same
+  prompt copy and temperatures — these were empirically tuned against the
+  smallest catalog model (mobile's own review checklist), not invented
+  fresh here.
+- `ChatScreen.tsx`: `modeId` state; `send()` derives `connectorMode`
+  (`search` → `'required'`, `plain` → `'auto'`, else `'off'`) and
+  `temperature` from the active mode, prepends the mode's system message
+  when set, and drops history when `usesHistory` is false — mirroring
+  mobile's `send()` exactly, including the "mode's prompt is prepended
+  fresh each turn, not stored in message history" behavior (so switching
+  modes takes effect on the next reply, not retroactively).
+- A `ModeBar`-equivalent: a new, bespoke component (not a `desktop-ui`
+  primitive — mobile's own `ModeBar` lives inside `ChatScreen.tsx`, not
+  its design system either, since no other screen needs mode chips), row
+  of selectable chips above the composer, in the existing unused space
+  between the message list and `<footer>`. No existing `desktop-ui`
+  component has selected-state chip semantics (`Button` has no
+  `active`/`selected` variant) — needs its own CSS module, `aria-pressed`
+  (or equivalent) for the selected state, and an accessible name following
+  mobile's exact convention (`"${label} mode"`) so the two platforms'
+  screen-reader behavior matches.
+- A risk banner mirroring mobile's `OfflineBanner` risk branch: shown when
+  `mode.cautionBelowB !== null && activeModelParamsB !== null &&
+  activeModelParamsB < mode.cautionBelowB` — today only `draft` at `< 1`.
+  Copy adapted from mobile's (`"{model} is small enough to invent details
+  that were not in your notes..."`), with the "switch to a larger model"
+  call-to-action pointing at desktop's own `onNavigate('models')` instead
+  of mobile's Models tab.
+
+**Dependencies:** Task 12.7 (the chat screen this extends).
+
+**Review checklist** (mirrors mobile's task 1.4 bar — measured behavior,
+not just "the UI renders"):
+
+- Each mode produces a materially different, appropriate transformation of
+  the same input text, measured against whatever model is actually loaded
+  on this machine at the time (mobile's own review found real,
+  model-size-dependent failure modes — brainstorm restating one idea
+  several ways, draft inventing a figure below 1B — these are worth
+  re-checking on desktop's own inference path, not assumed identical just
+  because the prompts are copied).
+- A mode's system prompt reaches the model only via the current turn, not
+  retroactively rewriting prior turns already in `messages` state.
+- `connectorMode` sent to `generate_chat` is `'required'` for Search,
+  `'off'` for every non-plain, non-search mode, `'auto'` for plain chat —
+  verified by inspecting the actual request, not just trusting the code
+  path.
+- The draft risk banner appears only for `draft` mode below the 1B
+  threshold and is absent for every other mode regardless of model size.
+- Revoking the Search connector's permission does not affect any other
+  mode's availability, and switching away from Search mode does not
+  require the connector to still be granted.
 
 ## Related Docs
 
