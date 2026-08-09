@@ -1,29 +1,66 @@
 import { validateManifest } from '@sovereignfs/connector-sdk';
 
-import { DEVICE_MANIFESTS, DEVICE_SET_BRIGHTNESS_MANIFEST } from './manifest';
+import {
+  DEVICE_MANIFESTS,
+  DEVICE_SET_BRIGHTNESS_MANIFEST,
+  DEVICE_SET_TORCH_MANIFEST,
+} from './manifest';
 
 describe('device manifests', () => {
-  it('has exactly one manifest', () => {
-    expect(DEVICE_MANIFESTS).toHaveLength(1);
-    expect(DEVICE_MANIFESTS[0]).toBe(DEVICE_SET_BRIGHTNESS_MANIFEST);
+  it('has exactly two manifests', () => {
+    expect(DEVICE_MANIFESTS).toHaveLength(2);
+    expect(DEVICE_MANIFESTS).toEqual([
+      DEVICE_SET_BRIGHTNESS_MANIFEST,
+      DEVICE_SET_TORCH_MANIFEST,
+    ]);
   });
 
-  it('validates against the real connector-sdk schema', () => {
-    const result = validateManifest(DEVICE_SET_BRIGHTNESS_MANIFEST);
-    expect(result.valid).toBe(true);
+  describe('brightness', () => {
+    it('validates against the real connector-sdk schema', () => {
+      const result = validateManifest(DEVICE_SET_BRIGHTNESS_MANIFEST);
+      expect(result.valid).toBe(true);
+    });
+
+    it('declares no required parameters, since value is optional', () => {
+      expect(
+        DEVICE_SET_BRIGHTNESS_MANIFEST.tool.parameters.required,
+      ).toBeUndefined();
+    });
+
+    it('declares its handler capability as its permission scope', () => {
+      expect(
+        DEVICE_SET_BRIGHTNESS_MANIFEST.permissions.device.capabilities,
+      ).toEqual([DEVICE_SET_BRIGHTNESS_MANIFEST.handler.capability]);
+    });
+
+    it('declares itself mobile-only', () => {
+      expect(DEVICE_SET_BRIGHTNESS_MANIFEST.platforms).toEqual([
+        'ios',
+        'android',
+      ]);
+    });
   });
 
-  it('declares no required parameters, since value is optional', () => {
-    expect(DEVICE_SET_BRIGHTNESS_MANIFEST.tool.parameters.required).toBeUndefined();
-  });
+  describe('torch', () => {
+    it('validates against the real connector-sdk schema', () => {
+      const result = validateManifest(DEVICE_SET_TORCH_MANIFEST);
+      expect(result.valid).toBe(true);
+    });
 
-  it('declares its handler capability as its permission scope', () => {
-    expect(DEVICE_SET_BRIGHTNESS_MANIFEST.permissions.device.capabilities).toEqual(
-      [DEVICE_SET_BRIGHTNESS_MANIFEST.handler.capability],
-    );
-  });
+    it('requires the on parameter', () => {
+      expect(DEVICE_SET_TORCH_MANIFEST.tool.parameters.required).toEqual([
+        'on',
+      ]);
+    });
 
-  it('declares itself mobile-only', () => {
-    expect(DEVICE_SET_BRIGHTNESS_MANIFEST.platforms).toEqual(['ios', 'android']);
+    it('declares its handler capability as its permission scope', () => {
+      expect(
+        DEVICE_SET_TORCH_MANIFEST.permissions.device.capabilities,
+      ).toEqual([DEVICE_SET_TORCH_MANIFEST.handler.capability]);
+    });
+
+    it('declares itself mobile-only', () => {
+      expect(DEVICE_SET_TORCH_MANIFEST.platforms).toEqual(['ios', 'android']);
+    });
   });
 });

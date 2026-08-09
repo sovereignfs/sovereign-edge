@@ -18,10 +18,11 @@ import type { ConnectorManifestTier3 } from '@sovereignfs/connector-sdk';
  * platform, confirmed by reading `expo-brightness`'s own doc comments
  * (only the system-wide functions mention anything permission-related).
  *
- * Torch (`device.set_torch`, the epic's other originally-scoped tool) is
- * not here — `expo-camera` has no imperative torch API at all, only a
- * `<CameraView>` prop, a real architecture change from every other Tier 3
- * handler in this app. Scoped as its own fast-follow task (11.2).
+ * Torch (`device_set_torch`, task 11.2) is the other tool here — unlike
+ * brightness it has no meaningful "read" state, so `on` is required, not
+ * optional. `expo-camera` has no imperative torch API at all, only a
+ * `<CameraView>` prop; see `torchBridge.ts`/`TorchHost.tsx` for how the
+ * handler reaches a live one.
  */
 
 export const DEVICE_SET_BRIGHTNESS_MANIFEST: ConnectorManifestTier3 = {
@@ -55,6 +56,34 @@ export const DEVICE_SET_BRIGHTNESS_MANIFEST: ConnectorManifestTier3 = {
   pricing: { model: 'free' },
 };
 
+export const DEVICE_SET_TORCH_MANIFEST: ConnectorManifestTier3 = {
+  manifestVersion: 1,
+  id: 'fs.sovereign.device.set-torch',
+  name: 'Device — Flashlight',
+  version: '1.0.0',
+  summary: 'Turns this device’s flashlight on or off.',
+  tier: 3,
+  platforms: ['ios', 'android'],
+  tool: {
+    name: 'device_set_torch',
+    description: 'Turns the flashlight on or off.',
+    parameters: {
+      type: 'object',
+      properties: {
+        on: {
+          type: 'boolean',
+          description: 'true to turn the flashlight on, false to turn it off.',
+        },
+      },
+      required: ['on'],
+    },
+  },
+  permissions: { device: { capabilities: ['device.torch'] } },
+  handler: { capability: 'device.torch' },
+  pricing: { model: 'free' },
+};
+
 export const DEVICE_MANIFESTS: ConnectorManifestTier3[] = [
   DEVICE_SET_BRIGHTNESS_MANIFEST,
+  DEVICE_SET_TORCH_MANIFEST,
 ];

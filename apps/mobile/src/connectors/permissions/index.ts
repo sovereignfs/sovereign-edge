@@ -19,3 +19,4 @@ export {
   type EntitlementRecord,
 } from './entitlements';
 export { ensureCalendarAccess } from './calendarAccess';
+export { ensureCameraAccess } from './cameraAccess';

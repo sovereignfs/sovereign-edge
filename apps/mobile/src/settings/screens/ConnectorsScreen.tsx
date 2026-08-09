@@ -6,6 +6,7 @@ import { ScrollView, Text, View } from 'react-native';
 import {
   connectorScope,
   ensureCalendarAccess,
+  ensureCameraAccess,
   grant,
   grantFor,
   needsRedecision,
@@ -17,7 +18,10 @@ import {
   CALENDAR_CONNECTOR_IDS,
   CALENDAR_MANIFESTS,
 } from '@/connectors/calendar/manifest';
-import { DEVICE_MANIFESTS } from '@/connectors/device/manifest';
+import {
+  DEVICE_MANIFESTS,
+  DEVICE_SET_TORCH_MANIFEST,
+} from '@/connectors/device/manifest';
 import { readSearchConfig } from '@/connectors/search/config';
 import {
   TAVILY_MANIFEST,
@@ -65,7 +69,12 @@ export function ConnectorsScreen() {
     useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
   const [, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
-  const [calendarError, setCalendarError] = useState<string | null>(null);
+  // Shared by Calendar and Torch — both need a real OS permission before
+  // the app's own `grant()` runs, and never at the same time, so one piece
+  // of state for "the OS refused" is simpler than one per connector.
+  const [permissionError, setPermissionError] = useState<string | null>(
+    null,
+  );
 
   // `readSearchConfig()` below only runs when this component re-renders.
   // React Navigation keeps a stack screen mounted and does not re-render it
@@ -130,11 +139,28 @@ export function ConnectorsScreen() {
           if (CALENDAR_CONNECTOR_IDS.includes(manifest.id)) {
             void ensureCalendarAccess().then(({ granted }) => {
               if (granted) {
-                setCalendarError(null);
+                setPermissionError(null);
                 grant(manifest);
               } else {
-                setCalendarError(
+                setPermissionError(
                   'Calendar access was not allowed. Check this device’s system settings to allow it.',
+                );
+              }
+              refresh();
+            });
+            return;
+          }
+          // Torch needs a real OS camera permission before the app's own
+          // `grant()` is allowed to record "granted" — see
+          // `permissions/cameraAccess.ts`'s own doc comment.
+          if (manifest.id === DEVICE_SET_TORCH_MANIFEST.id) {
+            void ensureCameraAccess().then(({ granted }) => {
+              if (granted) {
+                setPermissionError(null);
+                grant(manifest);
+              } else {
+                setPermissionError(
+                  'Camera access was not allowed. Check this device’s system settings to allow it.',
                 );
               }
               refresh();
@@ -173,7 +199,7 @@ export function ConnectorsScreen() {
             ? 'Nothing in this app can reach the network. Chat runs entirely on device. Set up Search below, or browse the Connector Store — either only acts once you configure and grant it access.'
             : 'Granting one connector never grants another. Revoking a connector also deletes any credential you gave it.'}
         </Text>
-        {calendarError ? (
+        {permissionError ? (
           <Text
             style={{
               color: theme.colors.warningText,
@@ -181,7 +207,7 @@ export function ConnectorsScreen() {
               fontFamily: theme.fontFamily.body,
             }}
           >
-            {calendarError}
+            {permissionError}
           </Text>
         ) : null}
       </View>
@@ -213,10 +239,11 @@ export function ConnectorsScreen() {
           so a user can allow querying without allowing deletion. */}
       {CALENDAR_MANIFESTS.map((manifest) => renderRow(manifest))}
 
-      {/* Device (task 11.1) is also always offered — app-window brightness
-          needs no OS permission at all, so this row uses the plain default
-          grant path below, unlike Calendar's. Torch (task 11.2) isn't here
-          yet — scoped as its own fast-follow, see that task's own notes. */}
+      {/* Device (tasks 11.1/11.2) is also always offered. Brightness needs
+          no OS permission at all, so its row uses the plain default grant
+          path above. Torch needs real camera permission, handled by the
+          `DEVICE_SET_TORCH_MANIFEST.id` branch above — same shape as
+          Calendar's. */}
       {DEVICE_MANIFESTS.map((manifest) => renderRow(manifest))}
 
       {storeConnectors.map((manifest) => (

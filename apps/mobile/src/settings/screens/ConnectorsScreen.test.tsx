@@ -18,6 +18,7 @@ const mockRevoke = jest.fn();
 const mockGrantFor = jest.fn();
 const mockNeedsRedecision = jest.fn();
 const mockEnsureCalendarAccess = jest.fn();
+const mockEnsureCameraAccess = jest.fn();
 jest.mock('@/connectors', () => ({
   ...jest.requireActual('@/connectors'),
   grant: (...args: unknown[]) => mockGrant(...args),
@@ -25,6 +26,7 @@ jest.mock('@/connectors', () => ({
   grantFor: (...args: unknown[]) => mockGrantFor(...args),
   needsRedecision: (...args: unknown[]) => mockNeedsRedecision(...args),
   ensureCalendarAccess: () => mockEnsureCalendarAccess(),
+  ensureCameraAccess: () => mockEnsureCameraAccess(),
 }));
 
 const mockReadSearchConfig = jest.fn();
@@ -80,6 +82,7 @@ describe('ConnectorsScreen', () => {
     mockRemoveInstalledConnector.mockReset();
     mockNavigate.mockReset();
     mockEnsureCalendarAccess.mockReset();
+    mockEnsureCameraAccess.mockReset();
   });
 
   it('shows the Search setup row and the store entry point when nothing is installed', async () => {
@@ -185,7 +188,7 @@ describe('ConnectorsScreen', () => {
     });
   });
 
-  describe('Device (task 11.1)', () => {
+  describe('Device brightness (task 11.1)', () => {
     it('always shows the brightness row, unconfigured', async () => {
       const s = await renderScreen();
       expect(s.getByText('Device — Brightness')).toBeTruthy();
@@ -195,6 +198,7 @@ describe('ConnectorsScreen', () => {
       const s = await renderScreen();
       await userEvent.press(s.getByText('Device — Brightness'));
       expect(mockEnsureCalendarAccess).not.toHaveBeenCalled();
+      expect(mockEnsureCameraAccess).not.toHaveBeenCalled();
       expect(mockGrant).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'fs.sovereign.device.set-brightness' }),
       );
@@ -206,6 +210,42 @@ describe('ConnectorsScreen', () => {
       await userEvent.press(s.getByText('Device — Brightness'));
       expect(mockRevoke).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'fs.sovereign.device.set-brightness' }),
+      );
+    });
+  });
+
+  describe('Device torch (task 11.2)', () => {
+    it('always shows the flashlight row, unconfigured', async () => {
+      const s = await renderScreen();
+      expect(s.getByText('Device — Flashlight')).toBeTruthy();
+    });
+
+    it('requests real OS camera access before granting, and grants on success', async () => {
+      mockEnsureCameraAccess.mockResolvedValue({ granted: true });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Device — Flashlight'));
+      expect(mockEnsureCameraAccess).toHaveBeenCalled();
+      expect(mockGrant).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fs.sovereign.device.set-torch' }),
+      );
+    });
+
+    it('does not grant, and shows a message, when the OS refuses camera access', async () => {
+      mockEnsureCameraAccess.mockResolvedValue({ granted: false });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Device — Flashlight'));
+      expect(mockEnsureCameraAccess).toHaveBeenCalled();
+      expect(mockGrant).not.toHaveBeenCalled();
+      expect(s.getByText(/Camera access was not allowed/)).toBeTruthy();
+    });
+
+    it('revoking a granted torch connector does not request OS access again', async () => {
+      mockGrantFor.mockReturnValue({ state: 'granted' });
+      const s = await renderScreen();
+      await userEvent.press(s.getByText('Device — Flashlight'));
+      expect(mockEnsureCameraAccess).not.toHaveBeenCalled();
+      expect(mockRevoke).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'fs.sovereign.device.set-torch' }),
       );
     });
   });

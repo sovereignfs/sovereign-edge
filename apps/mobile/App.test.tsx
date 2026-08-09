@@ -33,6 +33,16 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 jest.mock('expo-device', () => ({ totalMemory: 8 * 1024 ** 3 }));
+// `TorchHost` (task 11.2) checks camera permission status on mount — give
+// it a resolved, non-granted response rather than jest-expo's default
+// automock (which resolves `undefined`, not a `PermissionResponse`).
+jest.mock('expo-camera', () => ({
+  Camera: {
+    getCameraPermissionsAsync: () =>
+      Promise.resolve({ status: 'undetermined' }),
+  },
+  CameraView: () => null,
+}));
 
 describe('App', () => {
   it('mounts the navigator and opens on chat', async () => {

@@ -45,6 +45,15 @@
           "calendarPermission": "This lets you ask the assistant to create, update, delete, or look up events on your own calendar."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "This lets you ask the assistant to turn on the flashlight.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
       "./plugins/withAndroidReleaseSigning"
     ]
   }

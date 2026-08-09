@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { armOfflineTripwire } from '@/chat/session/offlineTripwire';
+import { TorchHost } from '@/connectors/device/TorchHost';
 import { ThemeProvider } from '@/design-system';
 import { ModelSessionProvider } from '@/settings/ModelSessionProvider';
 import { RootNavigator } from '@/settings/navigation/RootNavigator';
@@ -20,6 +21,9 @@ export default function App() {
         {/* One engine for the whole app — see ModelSessionProvider. */}
         <ModelSessionProvider>
           <RootNavigator />
+          {/* Hidden, always-mounted — see TorchHost.tsx's own doc comment
+              for why this is safe (no camera permission, no hardware use). */}
+          <TorchHost />
           <StatusBar style="auto" />
         </ModelSessionProvider>
       </ThemeProvider>
