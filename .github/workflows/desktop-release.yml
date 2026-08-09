@@ -168,11 +168,28 @@ jobs:
       # hand-rolling it the way task 14.3's local-only verification did.
       # releaseDraft: true is a deliberate safety default — nothing goes
       # public until a human clicks "Publish release".
+      # MACOSX_DEPLOYMENT_TARGET set explicitly here too, not just relying
+      # on src-tauri/.cargo/config.toml's [env] table (task 14.1's own
+      # fix): found by actually running this workflow that
+      # tauri-apps/tauri-action's `npm run tauri build` invocation doesn't
+      # pick up that file the same way a local `pnpm tauri build` from
+      # apps/desktop does — Cargo's own config-file discovery walks up
+      # from the *current working directory*, not from --manifest-path,
+      # and evidently resolves differently through this action's own
+      # process chain. The real cmake invocation logged
+      # `-mmacosx-version-min=10.13` (llama-cpp-sys-2's old default)
+      # despite the config file being present and correct, confirming the
+      # env var genuinely wasn't reaching the build script here — a
+      # step-level `env:` is set directly on the process GitHub Actions
+      # execs for this step, so every child process (npm -> tauri CLI ->
+      # cargo -> build.rs -> cmake) reliably inherits it regardless of
+      # Cargo's own config-file resolution quirks.
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
         with:
           projectPath: apps/desktop
           tagName: ${{ needs.prepare.outputs.tag }}

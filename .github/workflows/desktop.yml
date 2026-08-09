@@ -99,7 +99,17 @@ jobs:
       - name: Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
+      # MACOSX_DEPLOYMENT_TARGET set explicitly here too, not just relying
+      # on src-tauri/.cargo/config.toml's [env] table (task 14.1's own
+      # local fix) — found by actually running this workflow (task 14.4)
+      # that this GitHub Actions macOS runner doesn't pick up that file
+      # the same way the local development machine does: the real cmake
+      # invocation logged `-mmacosx-version-min=10.13` (llama-cpp-sys-2's
+      # old default) despite the config file being present and correct.
+      # Harmless on Windows/Linux, where it's simply unused.
       - name: Build (debug)
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
         run: pnpm tauri build --debug --no-bundle
 
       # macOS and Windows runners provide a real (if headless) display
