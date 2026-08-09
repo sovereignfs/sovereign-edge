@@ -1,4 +1,4 @@
-import type { ConnectorManifestTier1 } from '../manifest';
+import type { ConnectorManifestTier1 } from '@sovereignfs/connector-sdk';
 
 /**
  * The Search connector's manifests (task 3.1).

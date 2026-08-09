@@ -24,7 +24,7 @@ unchanged, per research 0001's "build once, widen without rework" principle.
 
 ## Tasks
 
-#### 📋 5.1 — Connector SDK
+#### ✅ 5.1 — Connector SDK
 
 **Goal:** A published package with the manifest schema types and a validator,
 for connector authors to build and test against before submission.
@@ -45,6 +45,53 @@ directly, does not redefine it.
 - The SDK's validator accepts the exact same manifests the app's own runtime
   (epic 2.4) already accepts — no drift between author-time and load-time
   validation.
+
+**Decided:**
+
+- New package `packages/connector-sdk` (`@sovereignfs/connector-sdk`,
+  `0.1.0`), structurally mirroring `sovereign`'s real `@sovereignfs/sdk`
+  `package.json` (dual `exports`: raw `src/*.ts` for workspace consumers,
+  `publishConfig.exports` pointing at built `dist/*.js`+`.d.ts` for real npm
+  consumers).
+- The manifest schema (`src/schema.ts`), validator (`src/validate.ts`),
+  fixtures, and test suite were **relocated**, not duplicated, from
+  `apps/mobile/src/connectors/manifest/` — `apps/mobile` now consumes the
+  package via `workspace:*` across all 8 of its former import sites. This is
+  what makes the review checklist true by construction: it's the same code
+  running in both places, not a second implementation that could drift.
+- `packages/core` was deliberately **not** the home for this — its README
+  earmarked the schema for future extraction, but that package also covers
+  genuinely internal-only concerns (permission state machine, routing,
+  adapter interfaces) a third-party connector author has no business
+  depending on. `packages/connector-sdk`'s README documents its own scope
+  and the Tier-1/Tier-3 status honestly.
+
+**Honest gaps:**
+
+- **"Tier 1/Tier 2 manifest types" (this task's own original deliverable
+  text) is not what shipped.** Tier 2 has no schema anywhere yet — its
+  sandboxed script runtime (task 5.6) hasn't been designed. The SDK exports
+  what the runtime actually accepts today: Tier 1 and Tier 3 (the real
+  `connectorManifest` discriminated union). Tier 2 types will be added here
+  once 5.6 gives them a real shape.
+- **Not actually published to npm.** The package is built and verified
+  publish-ready (`pnpm --filter @sovereignfs/connector-sdk build` produces a
+  real `dist/index.js` + `dist/index.d.ts`; `publishConfig` is set), but the
+  `npm publish` step itself was not performed — no npm account/org
+  credentials exist in this environment, and it's an irreversible public
+  action regardless of packaging readiness. That's a follow-up for whoever
+  holds the project's npm access.
+
+**Verified:**
+
+- `pnpm --filter @sovereignfs/connector-sdk typecheck` / `test` (18 tests,
+  the relocated `validate.test.ts` suite, now running under Vitest instead
+  of mobile's Jest) / `build` all pass.
+- `pnpm --filter mobile typecheck` / `lint` / `test` (223 tests, full suite)
+  all pass unchanged after the import rewrite.
+- `pnpm check:offline` (root) stays clean — the offline-boundary walk never
+  reached into `connectors/` in the first place, and importing from an
+  external workspace package doesn't change that.
 
 ---
 

@@ -1,6 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 
-import type { ConnectorManifest } from '../manifest';
+import type { ConnectorManifest } from '@sovereignfs/connector-sdk';
 import type { ConnectorGrant, GrantState } from './types';
 import { openVault } from './vault';
 

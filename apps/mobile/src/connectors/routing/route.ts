@@ -3,7 +3,7 @@ import type {
   InferenceEngine,
   ToolDefinition,
 } from '../../chat/inference';
-import type { ConnectorManifest } from '../manifest';
+import type { ConnectorManifest } from '@sovereignfs/connector-sdk';
 import { isAllowed } from '../permissions';
 import type { RoutingDecision } from './types';
 

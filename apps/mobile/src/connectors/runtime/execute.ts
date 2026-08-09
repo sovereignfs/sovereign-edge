@@ -4,7 +4,7 @@ import type {
   ConnectorManifestTier1,
   ConnectorManifestTier3,
   ValueSource,
-} from '../manifest';
+} from '@sovereignfs/connector-sdk';
 import { isAllowed, openVault } from '../permissions';
 import { nativeHandlerFor } from './nativeHandlers';
 import type { ExecutionResult } from './types';

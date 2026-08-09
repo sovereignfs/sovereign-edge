@@ -1,6 +1,6 @@
 import type { InferenceEngine } from '@/chat/inference';
 import type { ConnectorManifest } from '@/connectors';
-import searchManifest from '@/connectors/manifest/fixtures/search.manifest.json';
+import searchManifest from '@sovereignfs/connector-sdk/src/fixtures/search.manifest.json';
 
 import { generateWithConnectors } from './connectorOrchestration';
 

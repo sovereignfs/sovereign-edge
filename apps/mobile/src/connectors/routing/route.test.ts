@@ -1,6 +1,6 @@
 import type { InferenceEngine } from '../../chat/inference';
-import type { ConnectorManifest } from '../manifest';
-import searchManifest from '../manifest/fixtures/search.manifest.json';
+import type { ConnectorManifest } from '@sovereignfs/connector-sdk';
+import searchManifest from '@sovereignfs/connector-sdk/src/fixtures/search.manifest.json';
 import { routeMessage } from './route';
 
 /**

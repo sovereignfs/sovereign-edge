@@ -4,8 +4,6 @@ Empty scaffold — not populated yet. This package will hold the code that is
 genuinely platform-agnostic and shared between `apps/mobile` and
 `apps/desktop`:
 
-- Connector manifest schema and validator (currently
-  `apps/mobile/src/connectors/manifest/`)
 - Permission/consent state machine (currently
   `apps/mobile/src/connectors/permissions/`)
 - Tool-routing decision logic (currently
@@ -13,7 +11,14 @@ genuinely platform-agnostic and shared between `apps/mobile` and
 - Platform-adapter interfaces (`EngineAdapter`, `SecureStorageAdapter`,
   `NativeHandlerRegistry`) that each app implements concretely
 
-**Nothing has been extracted into this package yet.** The move above requires
+The connector manifest schema and validator were extracted separately, as
+their own reviewed step (task 5.1) — they now live in
+`packages/connector-sdk`, a distinct, independently-versioned package
+because it's meant to be published for third-party connector authors, who
+have no business depending on this package's other (internal-only)
+concerns. `apps/mobile` consumes it via a workspace dependency.
+
+**The remaining three items above have not been extracted yet.** The move requires
 rewriting imports across `apps/mobile/src/connectors/`, `src/settings/`, and
 their tests, and should happen as its own reviewed step — not bundled into
 the workspace restructure that created this scaffold. See the connector

@@ -1,7 +1,10 @@
 # Workspace member globs. `apps/*` are shippable products (mobile today;
 # desktop is Tauri v2, epic 9, but only has scaffolding so far — epic 12);
 # `packages/*` are internal, unpublished libraries shared between them —
-# nothing here is meant to be installed from outside this repo.
+# nothing here is meant to be installed from outside this repo, with one
+# deliberate exception: `packages/connector-sdk` (task 5.1) is versioned
+# and packaged to publish to npm for third-party connector authors, though
+# it has not actually been published yet.
 packages:
   - 'apps/*'
   - 'packages/*'
@@ -16,7 +19,11 @@ packages:
 # Without it the package installs but cannot build. Note this means the
 # inference engine's binaries arrive over the network at install time rather
 # than being built from source — see research 0004.
+#
+# esbuild's postinstall downloads its own platform-specific binary; it's
+# tsup's (packages/connector-sdk, task 5.1) actual bundler dependency.
 allowBuilds:
+  esbuild: true
   llama.rn: true
   unrs-resolver: true
 

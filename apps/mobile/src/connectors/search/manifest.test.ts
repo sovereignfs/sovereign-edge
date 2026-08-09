@@ -1,4 +1,4 @@
-import { validateManifest } from '../manifest';
+import { validateManifest } from '@sovereignfs/connector-sdk';
 import {
   CONNECTOR_ID,
   TAVILY_MANIFEST,

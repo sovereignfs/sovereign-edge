@@ -1,9 +1,9 @@
 import type {
   ConnectorManifestTier1,
   ConnectorManifestTier3,
-} from '../manifest';
-import deviceInfoManifest from '../manifest/fixtures/device-info.manifest.json';
-import searchManifest from '../manifest/fixtures/search.manifest.json';
+} from '@sovereignfs/connector-sdk';
+import deviceInfoManifest from '@sovereignfs/connector-sdk/src/fixtures/device-info.manifest.json';
+import searchManifest from '@sovereignfs/connector-sdk/src/fixtures/search.manifest.json';
 import { executeConnectorCall } from './execute';
 
 /**
