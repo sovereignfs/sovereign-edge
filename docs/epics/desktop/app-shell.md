@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "✅ Done — tasks 13.1–13.6 all done"
+status: "✅ Done — tasks 13.1–13.7 all done"
 scope: desktop
 ---
 
@@ -495,7 +495,85 @@ glue, not the underlying save/validate/grant behavior.
 
 ---
 
-This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.6 are done.
+---
+
+#### ✅ 13.7 — Cancel an in-flight model download
+
+**Goal:** Close the stated gap task 13.2 shipped with: mobile's
+`ModelsScreen.tsx` lets a user tap a downloading/verifying row to cancel
+it (the only stop control), but desktop's `install_model` command
+hardcoded `DownloadOptions.cancel: None`, so a downloading row was
+read-only.
+
+**Deliverables:**
+
+- `AppState` gains `downloads: Mutex<HashMap<String, CancellationToken>>`
+  — one cancel switch per in-flight download, keyed by model id, mirroring
+  mobile's own `Map<string, AbortController>`.
+- `install_model` constructs a real `CancellationToken`, stashes it keyed
+  by id before downloading, passes it into `DownloadOptions.cancel`
+  (previously hardcoded `None`), and removes the entry once the download
+  settles either way.
+- New command `cancel_install(id)` trips the stashed token if present,
+  silently harmless otherwise — mirrors mobile's `controllers.get(id)
+  ?.abort()`.
+- `ModelsScreen.tsx`'s downloading/verifying rows are now clickable
+  (`CANCEL` accessory, `tap to cancel` subtitle suffix on the downloading
+  line), and a cancelled install drops its row entirely rather than
+  showing a failure — mirroring mobile's exact copy and its "a cancel is
+  not a failure to report back" handling.
+
+**Dependencies:** Task 13.2 (the screen this closes the gap in).
+
+**Review checklist:**
+
+- Cancelling an in-flight download actually stops it and deletes the
+  partial file, rather than merely hiding the row while the transfer
+  continues in the background.
+
+**Decided: nothing needed to change in `download.rs` itself.** Reading
+the code first showed the cancellation mechanism was already fully built
+and unused: `DownloadOptions.cancel: Option<CancellationToken>` was
+already checked every loop iteration, and `download_model` already
+deleted the partial `.part` file on a `Cancelled` error, the same cleanup
+path a checksum failure takes. The entire gap was that no caller ever
+constructed a token — closing it was pure plumbing (`lib.rs` + a new
+command + the frontend), no changes to the download logic itself.
+
+**A real gap this task's own review caught, not just this task's scope:**
+`download.rs` had zero tests of any kind before this task, despite being
+one of the more failure-prone modules in the app (network, disk, resume,
+stall, and now cancellation all interact there). Added two real,
+unmocked tests using the same hand-rolled local-`TcpListener`-server
+pattern `tests/connector_dispatch.rs` and `tests/tool_calling_smoke.rs`
+already established (no mocking library in this repo): a pre-cancelled
+token stops the download before any bytes land, and a token cancelled
+mid-stream (triggered from the real `on_progress` callback, against a
+server that pauses between chunks) stops it and confirms the partial file
+is actually deleted from disk — not just trusting `download_model`'s
+cleanup branch by reading it.
+
+**Verified:** `cargo fmt --check`/`clippy --all-targets -- -D warnings`
+clean; `cargo test --lib` (72/72 passing, including the 2 new
+cancellation tests). `tsc --noEmit`/`eslint`/`prettier --check` clean.
+Real Vite dev server in a real browser: a scratch-only seeded row (this
+sandbox cannot drive a real multi-GB download) confirmed the `CANCEL`
+accessory, the `tap to cancel` subtitle, and that clicking the row fires
+`cancelInstall` with no console errors — the scratch state was reverted
+before committing, confirmed via `git diff` showing only the real code
+changes remain. Real debug binary build
+(`pnpm tauri build --debug --no-bundle`) + `scripts/ci/launch-smoke.js`.
+**Honest gap, narrower than most:** a real native-window click-through
+(start installing an actual multi-GB model, cancel it mid-transfer,
+confirm the `.part` file is gone from disk) can't be driven in this
+sandbox — but unlike a typical frontend-only task, the actual
+cancellation mechanics are proven by real, unmocked local-server tests
+against the real `download.rs` code path, not just typechecking; the only
+unverified surface is the thin UI-click-to-IPC-call glue, structurally
+identical to every other button-to-command wire-up already proven
+elsewhere in this app.
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.7 are done.
 
 ## Related Docs
 

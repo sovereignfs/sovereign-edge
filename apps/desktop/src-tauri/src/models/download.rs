@@ -230,3 +230,151 @@ async fn run_download(
     file.flush().await.ok();
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::types::ModelDescriptor;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    /// Same hand-rolled local-server pattern as
+    /// `tests/connector_dispatch.rs`/`tests/tool_calling_smoke.rs`: no
+    /// mocking library in this repo, so cancellation gets proven against a
+    /// real TCP connection rather than trusted from reading the code.
+    /// Writes `chunks` one at a time, `pause` between each, so a test can
+    /// cancel mid-stream with a real window to land the cancellation in.
+    fn serve_slow_chunks(listener: TcpListener, chunks: Vec<&'static [u8]>, pause: Duration) {
+        std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("test server: accept failed");
+            let mut buf = [0u8; 4096];
+            let mut received = Vec::new();
+            loop {
+                let n = stream.read(&mut buf).expect("test server: read failed");
+                received.extend_from_slice(&buf[..n]);
+                if received.windows(4).any(|w| w == b"\r\n\r\n") || n == 0 {
+                    break;
+                }
+            }
+            let total: usize = chunks.iter().map(|c| c.len()).sum();
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {total}\r\nConnection: close\r\n\r\n"
+            );
+            if stream.write_all(header.as_bytes()).is_err() {
+                return;
+            }
+            for chunk in chunks {
+                if stream.write_all(chunk).is_err() {
+                    return; // The client closed the connection — expected once cancelled.
+                }
+                let _ = stream.flush();
+                std::thread::sleep(pause);
+            }
+        });
+    }
+
+    fn scratch_dir(label: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "sovereign-edge-desktop-download-cancel-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir_all(&dir).expect("could not create scratch models dir");
+        dir
+    }
+
+    fn scratch_descriptor(url: String) -> ModelDescriptor {
+        ModelDescriptor {
+            id: "scratch-cancel-model".to_string(),
+            name: "Scratch Cancel Model".to_string(),
+            url,
+            // A real checksum value isn't needed — cancellation always
+            // aborts before `verify_file` runs — but `assert_verifiable`
+            // requires *a* checksum to be present at all before the
+            // download starts, so this must be `Some`.
+            size_bytes: 12,
+            md5: None,
+            sha256: Some("0".repeat(64)),
+            quantization: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn a_precancelled_token_stops_the_download_before_any_bytes_land() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("could not bind test server");
+        let addr = listener.local_addr().expect("no local addr");
+        serve_slow_chunks(listener, vec![b"hello world!"], Duration::from_secs(5));
+
+        let models_dir = scratch_dir("precancelled");
+        let descriptor = scratch_descriptor(format!("http://{addr}"));
+        let cancel = CancellationToken::new();
+        cancel.cancel();
+
+        let client = reqwest::Client::new();
+        let options = DownloadOptions {
+            cancel: Some(cancel),
+            ..Default::default()
+        };
+        let result = download_model(&client, &models_dir, &descriptor, options).await;
+
+        let error = result.expect_err("a precancelled download must fail");
+        assert_eq!(error.code, ModelErrorCode::Cancelled);
+        assert!(
+            !part_file(&models_dir, &descriptor.id).exists(),
+            "a cancelled download must not leave a partial file behind"
+        );
+    }
+
+    #[tokio::test]
+    async fn cancelling_mid_stream_stops_the_download_and_deletes_the_partial_file() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("could not bind test server");
+        let addr = listener.local_addr().expect("no local addr");
+        // A slow second chunk gives the test a real window to cancel inside,
+        // proving the cancellation check inside the streaming loop actually
+        // fires mid-transfer, not just before the request is sent.
+        serve_slow_chunks(
+            listener,
+            vec![b"first-chunk-", b"second-chunk"],
+            Duration::from_millis(400),
+        );
+
+        let models_dir = scratch_dir("midstream");
+        let descriptor = scratch_descriptor(format!("http://{addr}"));
+        let cancel = CancellationToken::new();
+        let progress_count = Arc::new(AtomicUsize::new(0));
+        let progress_count_cb = progress_count.clone();
+        let cancel_from_progress = cancel.clone();
+
+        let options = DownloadOptions {
+            on_progress: Some(Box::new(move |_| {
+                // Cancel as soon as the first chunk's progress is reported —
+                // the download is still streaming the second chunk at this
+                // point, since the server sleeps between writes.
+                if progress_count_cb.fetch_add(1, Ordering::SeqCst) == 0 {
+                    cancel_from_progress.cancel();
+                }
+            })),
+            cancel: Some(cancel),
+            ..Default::default()
+        };
+
+        let client = reqwest::Client::new();
+        let result = download_model(&client, &models_dir, &descriptor, options).await;
+
+        let error = result.expect_err("a mid-stream cancel must fail the download");
+        assert_eq!(error.code, ModelErrorCode::Cancelled);
+        assert!(
+            progress_count.load(Ordering::SeqCst) >= 1,
+            "the first chunk's progress callback must have fired for this test to be meaningful"
+        );
+        assert!(
+            !part_file(&models_dir, &descriptor.id).exists(),
+            "a cancelled download must not leave a partial file behind"
+        );
+    }
+}

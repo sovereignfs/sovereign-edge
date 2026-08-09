@@ -342,6 +342,37 @@ frontend, not React Native primitives.
   desktop UI task since 12.5), but unlike a typical frontend-only task,
   the real save/validate/vault/grant logic is covered by real Rust tests
   against the actual production code path, not just typechecking.
+- **Cancel an in-flight model download (13.7).** Closed the stated gap
+  13.2 shipped with. `download.rs`'s `DownloadOptions.cancel:
+  Option<CancellationToken>` was already fully wired (checked every loop
+  iteration, already deleted the partial `.part` file on cancel) — the
+  only real gap was that no caller ever constructed a token. `AppState`
+  gained `downloads: Mutex<HashMap<String, CancellationToken>>` (keyed by
+  model id, mirroring mobile's `Map<string, AbortController>`);
+  `install_model` stashes a token before downloading and removes it once
+  the download settles either way; new command `cancel_install(id)` trips
+  it if present. `ModelsScreen.tsx`'s downloading/verifying rows are now
+  clickable (`CANCEL` accessory, `tap to cancel` subtitle), and a
+  cancelled install drops its row rather than showing a failure —
+  `TauriCommandError` gained a `code` field (from `ModelError`'s own
+  kebab-case `code`) so the frontend can tell a deliberate cancel apart
+  from a real one. **A real gap this task's review caught, beyond its own
+  scope:** `download.rs` had zero tests before this task despite being
+  one of the more failure-prone modules in the app — added two real,
+  unmocked tests (hand-rolled local `TcpListener` server, same pattern
+  `tests/connector_dispatch.rs` uses) proving a precancelled token and a
+  mid-stream cancel both actually stop the transfer and delete the
+  partial file, not just trusting the cleanup branch by reading it.
+  Verified: `cargo fmt`/`clippy`/`test --lib` (72/72) clean;
+  `tsc`/`eslint`/`prettier` clean; real Vite dev server (scratch-seeded
+  row, reverted before commit, confirmed via `git diff`) showed the
+  `CANCEL` label/copy and the click firing `cancelInstall` with no
+  console errors; real debug binary build + `launch-smoke.js`. **Honest
+  gap, narrower than most:** the real native-window click-through (cancel
+  an actual multi-GB download, confirm the `.part` file is gone) can't be
+  driven in this sandbox, but the actual cancellation mechanics are
+  proven by real, unmocked tests against the real code path — only the
+  thin UI-to-IPC glue is unverified here.
 - **Real installer artifacts per platform (14.1).**
   `tauri.conf.json`'s `bundle.targets` names each platform explicitly
   (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —

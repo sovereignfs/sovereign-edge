@@ -89,10 +89,40 @@ function describeCommandError(error: unknown): string {
   return String(error);
 }
 
+/**
+ * `ModelError`'s own `code` (e.g. `"cancelled"`, kebab-case per its manual
+ * `Serialize` impl in `models/types.rs`) — only present on `kind: 'Model'`
+ * errors. Lets a caller tell a deliberate cancel apart from a real failure
+ * without string-matching `message`, the way `ModelsScreen.tsx`'s
+ * install-cancel handling needs to (task 13.7).
+ */
+function extractModelErrorCode(error: unknown): string | undefined {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'kind' in error &&
+    'error' in error &&
+    (error as CommandError).kind === 'Model'
+  ) {
+    const inner = (error as CommandError).error;
+    if (
+      typeof inner === 'object' &&
+      inner !== null &&
+      typeof (inner as Record<string, unknown>).code === 'string'
+    ) {
+      return (inner as Record<string, unknown>).code as string;
+    }
+  }
+  return undefined;
+}
+
 export class TauriCommandError extends Error {
+  readonly code?: string;
+
   constructor(cause: unknown) {
     super(describeCommandError(cause));
     this.name = 'TauriCommandError';
+    this.code = extractModelErrorCode(cause);
   }
 }
 
@@ -117,6 +147,11 @@ export function activeModelId(): Promise<string | null> {
 
 export function installModel(id: string): Promise<void> {
   return call('install_model', { id });
+}
+
+/** Task 13.7: trips `id`'s in-flight download's cancel switch, if any. */
+export function cancelInstall(id: string): Promise<void> {
+  return call('cancel_install', { id });
 }
 
 export function loadModel(id: string): Promise<EngineInfo> {

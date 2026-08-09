@@ -21,6 +21,7 @@ const COMMANDS: &[&str] = &[
     "list_installed_models",
     "active_model_id",
     "install_model",
+    "cancel_install",
     "remove_model",
     "load_model",
     "unload_model",

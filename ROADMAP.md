@@ -152,6 +152,7 @@ section used to flag; future bumps happen the same way, via
 | —       | General settings screen                               | ✅     | Desktop | [13.4](docs/epics/desktop/app-shell.md#-134--general-settings-screen)                                |
 | —       | Chat screen consolidation                             | ✅     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
 | —       | Search connector setup screen                         | ✅     | Desktop | [13.6](docs/epics/desktop/app-shell.md#-136--search-connector-setup-screen)                          |
+| —       | Cancel an in-flight model download                    | ✅     | Desktop | [13.7](docs/epics/desktop/app-shell.md#-137--cancel-an-in-flight-model-download)                     |
 | —       | Real installer artifacts per platform                 | ✅     | Desktop | [14.1](docs/epics/desktop/distribution.md#-141--real-installer-artifacts-per-platform)               |
 | —       | Code signing and notarization                         | 📋     | Desktop | [14.2](docs/epics/desktop/distribution.md#-142--code-signing-and-notarization)                       |
 | —       | Update mechanism                                      | ✅     | Desktop | [14.3](docs/epics/desktop/distribution.md#-143--update-mechanism)                                    |

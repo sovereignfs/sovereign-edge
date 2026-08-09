@@ -17,6 +17,7 @@ pub mod engine;
 pub mod models;
 pub mod secure_storage;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
@@ -30,6 +31,12 @@ struct AppState {
     /// The in-flight generation's cancel switch, if any — `cancel_generation`
     /// trips it; `generate` clears it when done.
     cancel: Mutex<Option<CancellationToken>>,
+    /// One cancel switch per in-flight download, keyed by model id —
+    /// `cancel_install` trips the entry for its id; `install_model` removes
+    /// it once the download settles (success or failure) so a finished
+    /// download never leaves a stale token behind. Keyed, unlike `cancel`
+    /// above, because more than one model row can download at once.
+    downloads: Mutex<HashMap<String, CancellationToken>>,
     /// Where `connectors/grants.json` lives — resolved once in `run()`'s
     /// setup, the same convention `models_dir` already follows.
     connectors_dir: PathBuf,
@@ -117,6 +124,13 @@ async fn install_model(
         (manager.descriptor(&id)?, manager.models_dir().to_path_buf())
     };
 
+    let cancel = CancellationToken::new();
+    state
+        .downloads
+        .lock()
+        .expect("downloads mutex poisoned")
+        .insert(id.clone(), cancel.clone());
+
     let progress_app = app.clone();
     let phase_app = app.clone();
     let options = models::DownloadOptions {
@@ -127,12 +141,35 @@ async fn install_model(
             let _ = phase_app.emit("download-phase", &p);
         })),
         stall_timeout: None,
-        cancel: None,
+        cancel: Some(cancel),
     };
 
     let client = reqwest::Client::new();
-    models::download_model(&client, &models_dir, &descriptor, options).await?;
+    let result = models::download_model(&client, &models_dir, &descriptor, options).await;
+
+    state
+        .downloads
+        .lock()
+        .expect("downloads mutex poisoned")
+        .remove(&id);
+
+    result?;
     Ok(())
+}
+
+/// Trips the cancel switch for `id`'s in-flight download, if any —
+/// mirrors mobile's `cancelInstall(id) => controllers.get(id)?.abort()`:
+/// cancelling an id with nothing in flight is silently harmless.
+#[tauri::command]
+fn cancel_install(state: tauri::State<AppState>, id: String) {
+    if let Some(token) = state
+        .downloads
+        .lock()
+        .expect("downloads mutex poisoned")
+        .get(&id)
+    {
+        token.cancel();
+    }
 }
 
 #[tauri::command]
@@ -653,6 +690,7 @@ pub fn run() {
                 manager: Mutex::new(manager),
                 engine,
                 cancel: Mutex::new(None),
+                downloads: Mutex::new(HashMap::new()),
                 connectors_dir,
                 connector_http_client: connectors::runtime::client(),
             });
@@ -712,6 +750,7 @@ pub fn run() {
             list_installed_models,
             active_model_id,
             install_model,
+            cancel_install,
             remove_model,
             load_model,
             unload_model,

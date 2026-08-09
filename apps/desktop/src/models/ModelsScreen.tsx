@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { ListItem, useTheme } from 'desktop-ui';
 import {
   activeModelId,
+  cancelInstall,
   installModel,
   listModels,
   loadModel,
   onDownloadPhase,
   onDownloadProgress,
   removeModel,
+  TauriCommandError,
   type DownloadPhase,
   type DownloadProgress,
   type Fit,
@@ -23,13 +25,10 @@ import {
  * failed download. `ChatScreen.tsx` keeps its own inline model picker for
  * now — task 13.5 removes it once this screen is the real thing.
  *
- * **Deliberate gap, not an oversight:** mobile's row also cancels an
- * in-flight download on tap. Desktop's `install_model` command has no
- * cancellation wired up yet (`DownloadOptions.cancel` is hardcoded `None`
- * in `lib.rs`) — adding it is backend work outside this task's own
- * deliverables (real download-progress UI, a remove action), so a
- * downloading row is shown read-only (progress, no tap action) rather than
- * silently pretending to support cancel.
+ * Task 13.7 closes the one gap 13.2 shipped with: a downloading/verifying
+ * row is now clickable and cancels the transfer, mirroring mobile's own
+ * "tapping a live download cancels it" behavior exactly, including the
+ * `CANCEL` accessory label and "tap to cancel" subtitle suffix.
  */
 
 type Progress = {
@@ -69,7 +68,9 @@ function subtitleForProgress(
         progress.totalBytes === undefined
           ? `${(progress.bytesWritten / 1e6).toFixed(0)} MB so far`
           : `${(progress.bytesWritten / 1e9).toFixed(2)} of ${(progress.totalBytes / 1e9).toFixed(2)} GB`;
-      return pct ? `Downloading ${pct} · ${size}` : `Downloading · ${size}`;
+      return pct
+        ? `Downloading ${pct} · ${size} · tap to cancel`
+        : `Downloading · ${size} · tap to cancel`;
     }
     case 'verifying':
       return 'Checking the file matches the publisher’s checksum.';
@@ -86,8 +87,9 @@ function accessoryLabel(
   progress: Progress | undefined,
   fit: Fit,
 ): string {
-  if (progress?.phase === 'downloading') return 'DOWNLOADING';
-  if (progress?.phase === 'verifying') return 'VERIFYING';
+  if (progress?.phase === 'downloading' || progress?.phase === 'verifying') {
+    return 'CANCEL';
+  }
   if (progress?.phase === 'failed') return 'RETRY';
   if (!installed) return fit === 'unsupported' ? 'DOWNLOAD ANYWAY' : 'DOWNLOAD';
   return active ? 'IN USE' : 'INSTALLED';
@@ -181,14 +183,25 @@ export function ModelsScreen() {
       });
       await refresh();
     } catch (cause) {
-      setProgressById((prev) => ({
-        ...prev,
-        [id]: {
-          phase: 'failed',
-          bytesWritten: prev[id]?.bytesWritten ?? 0,
-          error: cause instanceof Error ? cause.message : String(cause),
-        },
-      }));
+      // A deliberate cancel is not a failure to report back — drop the row
+      // entirely, same as a successful install's cleanup, mirroring
+      // mobile's `ModelSessionProvider.tsx` handling of `code === 'cancelled'`.
+      if (cause instanceof TauriCommandError && cause.code === 'cancelled') {
+        setProgressById((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      } else {
+        setProgressById((prev) => ({
+          ...prev,
+          [id]: {
+            phase: 'failed',
+            bytesWritten: prev[id]?.bytesWritten ?? 0,
+            error: cause instanceof Error ? cause.message : String(cause),
+          },
+        }));
+      }
     } finally {
       installingIdRef.current = null;
       setInstallingId(null);
@@ -206,6 +219,13 @@ export function ModelsScreen() {
   }
 
   function rowAction(model: ManagedModel): (() => void) | undefined {
+    const progress = progressById[model.id];
+    // Tapping a live download cancels it — the only stop control, so it
+    // must stay reachable for the whole transfer (mirrors mobile's
+    // ModelsScreen.tsx exactly).
+    if (progress?.phase === 'downloading' || progress?.phase === 'verifying') {
+      return () => void cancelInstall(model.id);
+    }
     if (installingId === model.id) return undefined;
     if (!model.installed) return () => void install(model.id);
     return model.id === activeId

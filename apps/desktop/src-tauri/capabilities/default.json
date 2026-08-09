@@ -9,6 +9,7 @@
     "allow-list-installed-models",
     "allow-active-model-id",
     "allow-install-model",
+    "allow-cancel-install",
     "allow-remove-model",
     "allow-load-model",
     "allow-unload-model",
