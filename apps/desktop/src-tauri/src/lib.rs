@@ -64,6 +64,11 @@ enum CommandError {
     /// granted`, task 12.7's own addition) — carried as its message rather
     /// than adding a parallel manual `Serialize` impl for one command.
     Vault(String),
+    /// `connectors::store::StoreError` (task 5.5) likewise carried as a
+    /// message rather than a `Serialize` impl — nothing but a human-
+    /// readable error string reaches the frontend for a failed registry
+    /// fetch/install.
+    Store(String),
 }
 
 impl From<models::ModelError> for CommandError {
@@ -87,6 +92,15 @@ impl From<connectors::runtime::ExecutionFailure> for CommandError {
 impl From<secure_storage::VaultError> for CommandError {
     fn from(e: secure_storage::VaultError) -> Self {
         CommandError::Vault(e.to_string())
+    }
+}
+
+impl From<connectors::store::StoreError> for CommandError {
+    fn from(e: connectors::store::StoreError) -> Self {
+        CommandError::Store(match e {
+            connectors::store::StoreError::Network(detail) => format!("network: {detail}"),
+            connectors::store::StoreError::Malformed(detail) => format!("malformed: {detail}"),
+        })
     }
 }
 
@@ -528,19 +542,104 @@ fn set_search_connector_granted(
     Ok(connector_status_for(&manifest, &state.connectors_dir))
 }
 
-/// Every connector this app currently knows about — today, just Search,
-/// and only once it's been configured (task 13.6); empty otherwise,
-/// mirroring mobile's own `installedConnectors()` returning `[]` when
-/// unconfigured. A real connector-install flow (Phase 3 on mobile) would
-/// add more entries here; until then this is the one place task 13.3's
-/// screen and any future caller look, so there is exactly one list to
-/// keep in sync as connectors are added, not one per command.
+/// Every connector this app currently knows about — Search (task 13.6),
+/// once configured, plus anything installed from the store (task 5.5).
+/// This is the one place `list_connectors`/`set_connector_granted` and any
+/// future caller look, so there is exactly one list to keep in sync as
+/// connectors are added, not one per command.
 fn known_connector_manifests(
     connectors_dir: &std::path::Path,
 ) -> Vec<connectors::manifest::ConnectorManifest> {
     search_connector_manifest(connectors_dir)
         .into_iter()
+        .chain(connectors::installed::read_installed(connectors_dir))
         .collect()
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RegistryConnectorDto {
+    id: String,
+    submitted_by_name: String,
+    manifest: serde_json::Value,
+}
+
+/// Task 5.5: fetches and re-validates the public registry live. The first
+/// command in this app whose whole purpose is a network call that isn't a
+/// specific granted connector's own request — see `connectors::store`'s
+/// own doc comment for why that's worth being explicit about.
+#[tauri::command]
+async fn fetch_connector_registry(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<RegistryConnectorDto>, CommandError> {
+    let connectors = connectors::store::fetch_registry(&state.connector_http_client).await?;
+    Ok(connectors
+        .into_iter()
+        .map(|c| RegistryConnectorDto {
+            id: c.id,
+            submitted_by_name: c.submitted_by_name,
+            manifest: c.manifest.to_json(),
+        })
+        .collect())
+}
+
+/// Task 5.5's install flow: validate → write any declared credentials to
+/// the vault → grant → persist the manifest — epic 2.2's consent model,
+/// reused completely unchanged, the same "install = grant" pattern
+/// `save_search_connector_config` already established for the first-party
+/// Search connector.
+#[tauri::command]
+fn install_connector(
+    state: tauri::State<AppState>,
+    manifest: serde_json::Value,
+    credentials: HashMap<String, String>,
+) -> Result<ConnectorStatus, CommandError> {
+    let validated = match connectors::manifest::validate_manifest(&manifest) {
+        connectors::manifest::ValidationResult::Valid(m) => *m,
+        connectors::manifest::ValidationResult::Invalid(issues) => {
+            let detail = issues
+                .into_iter()
+                .map(|issue| format!("{}: {}", issue.path, issue.message))
+                .collect::<Vec<_>>()
+                .join("; ");
+            return Err(CommandError::Connector(
+                connectors::runtime::ExecutionFailure::with_detail(
+                    connectors::runtime::FailureReason::InvalidArguments,
+                    detail,
+                ),
+            ));
+        }
+    };
+
+    let vault = secure_storage::open_vault(validated.id())?;
+    for (key, value) in &credentials {
+        vault.write(key, value)?;
+    }
+
+    connectors::permissions::grant(&state.connectors_dir, &validated);
+    connectors::installed::save_installed(&state.connectors_dir, validated.id(), &manifest);
+
+    Ok(connector_status_for(&validated, &state.connectors_dir))
+}
+
+/// Task 5.5's "manage" half: revokes (clearing any stored credentials,
+/// same as any other revoke) and drops the persisted manifest. Only
+/// meaningful for a store-installed connector — Search has no "remove",
+/// only reconfigure, since it's built into the app rather than installed.
+#[tauri::command]
+fn remove_connector(state: tauri::State<AppState>, id: String) -> Result<(), CommandError> {
+    let manifest = known_connector_manifests(&state.connectors_dir)
+        .into_iter()
+        .find(|m| m.id() == id)
+        .ok_or_else(|| {
+            CommandError::Connector(connectors::runtime::ExecutionFailure::with_detail(
+                connectors::runtime::FailureReason::InvalidArguments,
+                format!("no known connector with id \"{id}\""),
+            ))
+        })?;
+    connectors::permissions::revoke(&state.connectors_dir, &manifest)?;
+    connectors::installed::remove_installed(&state.connectors_dir, &id);
+    Ok(())
 }
 
 /// Task 13.3's own command: the real Connectors screen reads this instead
@@ -773,6 +872,9 @@ pub fn run() {
             list_connectors,
             set_connector_granted,
             set_search_connector_config,
+            fetch_connector_registry,
+            install_connector,
+            remove_connector,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");

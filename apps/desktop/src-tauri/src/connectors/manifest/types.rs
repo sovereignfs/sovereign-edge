@@ -261,4 +261,39 @@ impl ConnectorManifest {
             Self::Tier3(m) => m.permissions.device.capabilities.clone(),
         }
     }
+
+    /// Needed by `connectors::store` (task 5.5) to filter the registry by
+    /// current OS before offering an install.
+    pub fn platforms(&self) -> &[Platform] {
+        match self {
+            Self::Tier1(m) => &m.platforms,
+            Self::Tier3(m) => &m.platforms,
+        }
+    }
+
+    /// Needed by `connectors::store` (task 5.5) to disable install for a
+    /// `paid` entry — epic 6 (monetization) doesn't exist yet, so there is
+    /// no working purchase path to send the user through.
+    pub fn pricing(&self) -> &Pricing {
+        match self {
+            Self::Tier1(m) => &m.pricing,
+            Self::Tier3(m) => &m.pricing,
+        }
+    }
+
+    /// `ConnectorManifest` itself has no derived `Serialize` (see the
+    /// enum's own doc comment — a hand-rolled two-step parse, not a
+    /// serde-tagged enum), but the `lib.rs` store commands (task 5.5) need
+    /// to send a full manifest to the frontend as JSON. Delegates to
+    /// whichever inner struct actually derives `Serialize`.
+    pub fn to_json(&self) -> serde_json::Value {
+        match self {
+            Self::Tier1(m) => {
+                serde_json::to_value(m).expect("ConnectorManifestTier1 always serializes")
+            }
+            Self::Tier3(m) => {
+                serde_json::to_value(m).expect("ConnectorManifestTier3 always serializes")
+            }
+        }
+    }
 }

@@ -35,6 +35,9 @@ const COMMANDS: &[&str] = &[
     "list_connectors",
     "set_connector_granted",
     "set_search_connector_config",
+    "fetch_connector_registry",
+    "install_connector",
+    "remove_connector",
 ];
 
 fn main() {
