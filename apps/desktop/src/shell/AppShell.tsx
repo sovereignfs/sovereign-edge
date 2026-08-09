@@ -104,7 +104,9 @@ export function AppShell() {
         {destination === 'connectors-setup' ? (
           <SearchSetupScreen onNavigate={setDestination} />
         ) : null}
-        {destination === 'settings' ? <SettingsScreen /> : null}
+        {destination === 'settings' ? (
+          <SettingsScreen onNavigate={setDestination} />
+        ) : null}
       </div>
     </div>
   );

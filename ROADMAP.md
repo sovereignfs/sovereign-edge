@@ -167,6 +167,7 @@ section used to flag; future bumps happen the same way, via
 | —       | Frontend test coverage (Vitest + Testing Library)      | ✅     | Desktop | [13.8](docs/epics/desktop/app-shell.md#-138--frontend-test-coverage-vitest--testing-library)         |
 | —       | Static offline-boundary import-graph check             | ✅     | Desktop | [13.9](docs/epics/desktop/app-shell.md#-139--static-offline-boundary-import-graph-check)             |
 | —       | No-hardcoded-color ESLint rule                         | ✅     | Desktop | [13.10](docs/epics/desktop/app-shell.md#-1310--no-hardcoded-color-eslint-rule)                       |
+| —       | Settings privacy/offline reassurance copy              | ✅     | Desktop | [13.11](docs/epics/desktop/app-shell.md#-1311--settings-privacyoffline-reassurance-copy)             |
 | —       | Real installer artifacts per platform                 | ✅     | Desktop | [14.1](docs/epics/desktop/distribution.md#-141--real-installer-artifacts-per-platform)               |
 | —       | Code signing and notarization                         | 📋     | Desktop | [14.2](docs/epics/desktop/distribution.md#-142--code-signing-and-notarization)                       |
 | —       | Update mechanism                                      | ✅     | Desktop | [14.3](docs/epics/desktop/distribution.md#-143--update-mechanism)                                    |

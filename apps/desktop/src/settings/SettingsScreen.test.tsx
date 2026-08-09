@@ -18,12 +18,13 @@ vi.mock('@tauri-apps/plugin-process', () => ({
   relaunch: () => relaunch(),
 }));
 
-function renderScreen() {
+function renderScreen(onNavigate = vi.fn()) {
   render(
     <ThemeProvider>
-      <SettingsScreen />
+      <SettingsScreen onNavigate={onNavigate} />
     </ThemeProvider>,
   );
+  return { onNavigate };
 }
 
 afterEach(() => {
@@ -111,6 +112,32 @@ describe('SettingsScreen', () => {
 
     expect(
       await screen.findByText('Update check failed: offline'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the Privacy section and navigates to Connectors on click', async () => {
+    getVersion.mockResolvedValue('0.1.5');
+    const { onNavigate } = renderScreen();
+
+    const row = screen.getByText('Connectors');
+    expect(
+      screen.getByText('The only way anything here reaches the network'),
+    ).toBeInTheDocument();
+
+    const button = row.closest('button');
+    if (!button) throw new Error('the Connectors row is not clickable');
+    await userEvent.click(button);
+
+    expect(onNavigate).toHaveBeenCalledWith('connectors');
+  });
+
+  it('shows the offline-by-design reassurance in About', async () => {
+    getVersion.mockResolvedValue('0.1.5');
+    renderScreen();
+
+    expect(screen.getByText('Offline by design')).toBeInTheDocument();
+    expect(
+      screen.getByText('Sovereign Edge has no network code in its chat path.'),
     ).toBeInTheDocument();
   });
 });

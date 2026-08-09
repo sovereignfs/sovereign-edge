@@ -506,6 +506,25 @@ frontend, not React Native primitives.
   Verified: clean on the real, unmodified tree; a scratch-planted
   literal (`'#ff0000'` in `modes.ts`) was confirmed to fire the rule with
   the right message, then reverted before committing.
+- **Settings privacy/offline reassurance copy (13.11).** A second audit
+  pass found desktop's `SettingsScreen.tsx` had no equivalent to mobile's
+  Privacy section ("Connectors — Nothing can reach the network") or its
+  About "Offline by design" item, even though the same guarantee applies
+  to desktop identically. Added a Privacy section (a `ListItem` linking
+  to Connectors) and an "Offline by design" `ListItem` in About;
+  `SettingsScreen` gained an `onNavigate` prop, wired from `AppShell.tsx`
+  the same way `ChatScreen`/`ConnectorsScreen`/`SearchSetupScreen`
+  already are. **Decided: narrower subtitle wording than mobile's literal
+  copy.** Mobile's row reads "Nothing can reach the network" — true only
+  in `docs/network-audit.md`'s own stated scope (model downloads and a
+  granted connector do reach the network); copying it verbatim onto this
+  screen out of context would overclaim. This screen instead says "The
+  only way anything here reaches the network," matching
+  `ChatScreen.tsx`'s own header banner's already-honest phrasing.
+  Verified: `typecheck`/`eslint`/`prettier` clean; `SettingsScreen.test.tsx`
+  gained 2 tests (39/39 suite passing); real Vite dev server confirmed
+  both the copy and the Connectors-row navigation, zero console errors;
+  real debug binary build + `launch-smoke.js`.
 - **Real installer artifacts per platform (14.1).**
   `tauri.conf.json`'s `bundle.targets` names each platform explicitly
   (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —

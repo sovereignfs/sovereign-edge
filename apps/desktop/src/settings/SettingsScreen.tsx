@@ -4,6 +4,7 @@ import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import {
   Button,
+  ListItem,
   useTheme,
   useThemePreference,
   type ThemePreference,
@@ -24,6 +25,18 @@ import {
  * `ThemeProvider` context every other screen already renders under
  * (`App.tsx` wraps `AppShell`, not each screen individually), so a change
  * here is live everywhere immediately — nothing to propagate by hand.
+ *
+ * Task 12.11 adds the Privacy/"Offline by design" section, ported from
+ * mobile's own `SettingsScreen.tsx` — a fresh feature audit found desktop
+ * had no equivalent reassurance copy even though the same offline-by-
+ * design guarantee (`AGENTS.md`'s hard rule, `docs/desktop-network-
+ * audit.md`) applies here identically. Desktop's own subtitle wording is
+ * deliberately narrower than mobile's literal "Nothing can reach the
+ * network" — model downloads and a granted connector *do* reach the
+ * network, same as mobile's own claim really means once you read
+ * `docs/network-audit.md`'s actual scope — so this mirrors the honest
+ * phrasing `ChatScreen.tsx`'s own header banner already uses rather than
+ * repeating mobile's looser sentence verbatim.
  */
 
 const OPTIONS: { id: ThemePreference; label: string }[] = [
@@ -40,7 +53,11 @@ type UpdateState =
   | { kind: 'installing' }
   | { kind: 'error'; message: string };
 
-export function SettingsScreen() {
+export function SettingsScreen({
+  onNavigate,
+}: {
+  onNavigate: (destination: 'connectors') => void;
+}) {
   const theme = useTheme();
   const { preference, setPreference } = useThemePreference();
   const [version, setVersion] = useState<string | null>(null);
@@ -168,6 +185,24 @@ export function SettingsScreen() {
             marginBottom: theme.space[2],
           }}
         >
+          Privacy
+        </h2>
+        <ListItem
+          title="Connectors"
+          subtitle="The only way anything here reaches the network"
+          onClick={() => onNavigate('connectors')}
+        />
+      </section>
+
+      <section style={{ marginTop: theme.space[6] }}>
+        <h2
+          style={{
+            fontSize: theme.fontSize.md,
+            fontWeight: theme.fontWeight.semibold,
+            margin: 0,
+            marginBottom: theme.space[2],
+          }}
+        >
           About
         </h2>
         <p
@@ -175,6 +210,10 @@ export function SettingsScreen() {
         >
           {version ? `Sovereign Edge ${version}` : 'Sovereign Edge'}
         </p>
+        <ListItem
+          title="Offline by design"
+          subtitle="Sovereign Edge has no network code in its chat path."
+        />
 
         <div style={{ marginTop: theme.space[2] }}>
           {updateState.kind === 'available' ? (

@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "✅ Done — tasks 13.1–13.10 all done"
+status: "✅ Done — tasks 13.1–13.11 all done"
 scope: desktop
 ---
 
@@ -776,7 +776,61 @@ before committing (`git diff` confirmed clean). `pnpm typecheck`/`prettier
 
 ---
 
-This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.10 are done.
+---
+
+#### ✅ 13.11 — Settings privacy/offline reassurance copy
+
+**Goal:** Close a second audit pass's finding: mobile's `SettingsScreen`
+has a dedicated Privacy section ("Connectors — Nothing can reach the
+network") and an About "Offline by design" item; desktop's Settings only
+had Theme and About (version/update-check) — no equivalent copy, even
+though the same offline-by-design guarantee (`AGENTS.md`'s hard rule,
+`docs/desktop-network-audit.md`) applies here identically.
+
+**Deliverables:**
+
+- New Privacy section in `SettingsScreen.tsx`: a `ListItem` ("Connectors"
+  / subtitle, clickable) navigating to the Connectors screen, mirroring
+  mobile's row-that-links-out pattern.
+- New "Offline by design" `ListItem` in the existing About section
+  (non-interactive, no `onClick` — mirrors mobile's own, which is also
+  just informational).
+- `SettingsScreen` gained an `onNavigate: (destination: 'connectors') =>
+  void` prop, wired from `AppShell.tsx` the same way `ChatScreen`/
+  `ConnectorsScreen`/`SearchSetupScreen` already are.
+
+**Dependencies:** Task 13.3 (the Connectors screen this links to), Task
+13.4 (the screen this section was added to).
+
+**Review checklist:**
+
+- The Privacy row's copy is accurate for *this* app, and clicking it
+  reaches Connectors; the About item states the same offline claim
+  `ChatScreen.tsx`'s own header banner and `docs/desktop-network-
+  audit.md` already make.
+
+**Decided: narrower subtitle wording than mobile's literal copy, not a
+verbatim port.** Mobile's row reads "Nothing can reach the network" —
+strictly true only once you read `docs/network-audit.md`'s own stated
+scope (model downloads and a granted connector *do* reach the network;
+the claim is about `src/chat/` specifically). Copying that sentence
+onto desktop's Settings screen, out of context, would overclaim. This
+screen's subtitle instead says "The only way anything here reaches the
+network," matching the honest phrasing `ChatScreen.tsx`'s own header
+banner already uses ("nothing you type here leaves this machine unless a
+connector is granted and used") rather than repeating mobile's looser
+sentence out of its original context.
+
+**Verified:** `pnpm typecheck`/`eslint .`/`prettier --check` clean.
+`SettingsScreen.test.tsx` gained 2 tests (Privacy row renders and
+navigates; About shows the offline-by-design text) — full suite 39/39
+passing. Real Vite dev server in a real browser: Privacy and the new
+About row render with the exact intended copy, clicking the Connectors
+row navigates there (confirmed via the sidebar's active-item highlight
+changing), zero console errors. Real debug binary build
+(`pnpm tauri build --debug --no-bundle`) + `scripts/ci/launch-smoke.js`.
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.11 are done.
 
 ## Related Docs
 
