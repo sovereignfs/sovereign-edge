@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "✅ Done — tasks 13.1–13.7 all done"
+status: "✅ Done — tasks 13.1–13.8 all done"
 scope: desktop
 ---
 
@@ -573,7 +573,89 @@ unverified surface is the thin UI-click-to-IPC-call glue, structurally
 identical to every other button-to-command wire-up already proven
 elsewhere in this app.
 
-This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.7 are done.
+---
+
+#### ✅ 13.8 — Frontend test coverage (Vitest + Testing Library)
+
+**Goal:** Close the highest-ranked gap a fresh feature audit found: desktop
+had zero automated frontend test coverage — no `test` script, no
+`*.test.*` files anywhere under `apps/desktop/src` — while mobile has 20
+test files and a `pnpm test --ci` CI gate. Every desktop screen's
+interaction logic (install/activate/remove/cancel dispatch, connector
+grant/revoke, provider validation, theme switching, mode-derived
+`connector_mode`) was verified only by hand in the Browser pane during its
+own task, with nothing left behind to catch a regression.
+
+**Deliverables:**
+
+- Vitest (not Jest, unlike mobile) — desktop already runs on Vite, so
+  reusing its own config for tests is the "don't add a dependency this
+  app doesn't need" call task 12.6 made about a styling library, not a
+  Jest-vs-Vitest preference. `apps/desktop/vite.config.ts` gained a
+  `test` block (`environment: 'jsdom'`, `globals: false` — explicit
+  `import { describe, it, expect } from 'vitest'` everywhere, matching
+  this codebase's own no-implicit-globals style).
+- `src/test/setup.ts`: Testing Library's per-test `cleanup()` wired by
+  hand (its automatic Jest-global hook doesn't fire under
+  `globals: false`), plus two jsdom polyfills found only by running the
+  tests, not by reading docs first — `window.matchMedia` (missing
+  entirely; `ThemeProvider` calls it unconditionally on mount) and
+  `Element.prototype.scrollTo` (missing entirely; `ChatScreen.tsx` calls
+  it to keep the transcript pinned).
+- 37 tests across 7 files: `ModelsScreen`, `ConnectorsScreen`,
+  `SearchSetupScreen`, `SettingsScreen`, `ChatScreen`, `ModeBar`,
+  `modes.ts` — covering each screen's real dispatch logic (which Tauri
+  command fires for which click, not just "it renders"), not an
+  exhaustive port of mobile's own 20 files. Every screen already mocks
+  `../lib/tauri`'s named exports via `vi.importActual` + selective
+  `vi.fn()` overrides, keeping `TauriCommandError`'s real class (needed
+  for `ModelsScreen`'s `cause instanceof TauriCommandError` check from
+  task 13.7 to work under test).
+- `apps/desktop/package.json`'s `test` script is `sh -c 'vitest run'`,
+  not a bare `vitest run` — a deliberate wrapper, not stray shell syntax:
+  root `ci.yml`'s existing `pnpm test --ci` step (mobile's own Jest gate)
+  forwards `--ci` to *every* workspace package's `test` script via
+  `pnpm -r --if-present`, confirmed by actually running it
+  (`apps/mobile test$ jest --ci --filter desktop` when tested with an
+  extra `--filter` flag, showing pnpm appends literally everything after
+  `test` to each package). Vitest's CLI parser rejects unknown flags
+  outright, so a bare `vitest run` would break the shared CI step the
+  moment desktop got a `test` script at all. `sh -c 'vitest run'` runs
+  the quoted command as its own shell invocation; anything appended after
+  it becomes `sh -c`'s own positional parameters (`$0`, `$1`, ...), never
+  reaching the quoted command line — `--ci` is silently absorbed rather
+  than either breaking the build or requiring a change to mobile's own
+  Jest invocation. No `.github/workflows/desktop.yml` change was needed:
+  that workflow only builds/launches the native Tauri binary; the shared
+  `ci.yml`'s `pnpm test --ci` step already fans out to every workspace
+  package `--if-present`, so it started running desktop's suite the
+  moment the script existed.
+
+**Dependencies:** Tasks 13.2–13.7, 12.7, 12.8 (the screens under test).
+
+**Review checklist:**
+
+- `pnpm test` (desktop) and root `pnpm test --ci` (matching the real CI
+  invocation exactly) both pass, testing the actual dispatch logic per
+  screen, not just that components mount without throwing.
+
+**Decided: coverage of real interaction paths, not parity with mobile's
+file count.** Each test asserts on the actual mocked Tauri call and its
+arguments (e.g. `ChatScreen`'s `connector_mode` derivation per mode —
+`'off'`/`'auto'`/`'required'` — and `ModelsScreen`'s cancelled-vs-real-
+failure branch from task 13.7), not just rendered text, since a screen
+that renders correctly but calls the wrong command is the regression this
+task exists to catch.
+
+**Verified:** `pnpm test` (7 files, 37/37 passing) and root `pnpm test
+--ci` (mobile 241/241 + desktop 37/37, the literal CI command) both
+clean. `pnpm typecheck`/`eslint .`/`prettier --check` all clean for the
+new test files and config. No Rust changed, so `cargo` verification was
+skipped — nothing to re-run.
+
+---
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.8 are done.
 
 ## Related Docs
 

@@ -410,6 +410,34 @@ frontend, not React Native primitives.
   driven in this sandbox, but the actual cancellation mechanics are
   proven by real, unmocked tests against the real code path — only the
   thin UI-to-IPC glue is unverified here.
+- **Frontend test coverage (13.8).** Closed desktop's biggest gap from a
+  fresh feature audit: zero frontend tests existed anywhere before this.
+  Vitest, not Jest — desktop already runs on Vite, reusing it is the
+  "don't add a dependency this app doesn't need" call, not a Jest
+  preference. `vite.config.ts` gained a `test` block (`jsdom`,
+  `globals: false`); `src/test/setup.ts` wires Testing Library's
+  `cleanup()` by hand plus two jsdom polyfills found only by running the
+  suite (`window.matchMedia`, `Element.prototype.scrollTo` — both called
+  unconditionally by existing components, both entirely absent from
+  jsdom). 37 tests across `ModelsScreen`/`ConnectorsScreen`/
+  `SearchSetupScreen`/`SettingsScreen`/`ChatScreen`/`ModeBar`/`modes.ts`,
+  each asserting on the real mocked Tauri call and its arguments (e.g.
+  `ChatScreen`'s per-mode `connector_mode` derivation, `ModelsScreen`'s
+  task-13.7 cancelled-vs-real-failure branch), not just that a component
+  renders. **A real, non-obvious fix:** root `ci.yml`'s `pnpm test --ci`
+  forwards `--ci` to every workspace package's own `test` script via
+  `pnpm -r --if-present` — confirmed by actually running it, not
+  assumed — and Vitest's CLI rejects unknown flags outright, so a bare
+  `vitest run` would have broken CI the moment this task's own script
+  existed. Fixed with `"test": "sh -c 'vitest run'"`: `sh -c` runs the
+  quoted command as its own invocation, so anything appended after it
+  (`--ci`) becomes the subshell's own positional parameters, never
+  reaching Vitest's argv. No `desktop.yml` change needed — that workflow
+  only builds/launches the native binary; the shared `ci.yml` step
+  already fans out `--if-present` to every package. Verified: `pnpm test`
+  (37/37) and root `pnpm test --ci` (mobile 241/241 + desktop 37/37, the
+  literal CI invocation) both clean; `typecheck`/`eslint`/`prettier`
+  clean. No Rust touched.
 - **Real installer artifacts per platform (14.1).**
   `tauri.conf.json`'s `bundle.targets` names each platform explicitly
   (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —

@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -28,5 +29,17 @@ export default defineConfig({
     watch: {
       ignored: ['**/src-tauri/**'],
     },
+  },
+
+  // Task 13.8's own scope: `pnpm test` (Vitest, reusing this same Vite
+  // config rather than a parallel Jest setup mobile uses — desktop is
+  // already Vite-based, so a second bundler/config for tests would be the
+  // dependency this app doesn't need, the same call task 12.6 made about
+  // a styling library). `jsdom` because these are DOM-rendering component
+  // tests, not Node-only unit tests.
+  test: {
+    environment: 'jsdom',
+    globals: false,
+    setupFiles: ['./src/test/setup.ts'],
   },
 });
