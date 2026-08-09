@@ -1,7 +1,7 @@
 ---
 epic: 11
 title: Device Connector
-status: "⏳ In Progress — 11.1 (brightness) done; 11.2 (torch) planned as a fast-follow"
+status: "✅ Complete — 11.1 (brightness) and 11.2 (torch) both done, both real-device-verified"
 scope: mobile
 ---
 
@@ -92,40 +92,32 @@ on-device native calls, not network requests — and depends on epic
 
 ---
 
-#### 📋 11.2 — Torch (fast-follow)
+#### ✅ 11.2 — Torch
 
 **Goal:** Let the model turn the flashlight on/off.
 
-**Why this is its own task, not folded into 11.1:** researching the actual
+**Why this shipped separately from 11.1:** researching the actual
 `expo-camera` API before writing code found it has **no imperative
 "toggle the flashlight" function at all** — `enableTorch` only exists as a
 prop on a live, mounted `<CameraView>` (confirmed by reading the package's
-own type declarations). Every Tier 3 handler shipped so far (`device.info`,
-Calendar's four operations, 11.1's brightness) has been a plain function
-with zero UI-tree dependency; a torch handler would be the first one
+own type declarations). Every Tier 3 handler shipped before this
+(`device.info`, Calendar's four operations, 11.1's brightness) had been a
+plain function with zero UI-tree dependency; torch is the first one
 needing an actual camera session mounted somewhere in the app. On top of
-that, neither the iOS Simulator nor any environment available for this
-work has real flash hardware, so even a correct implementation would ship
-completely unverified. Confirmed with the user directly: ship 11.1 now,
-scope this as a real, tracked fast-follow rather than a same-day bolt-on
-of a harder, unverifiable problem — the same treatment Calendar's
-Windows/Linux gap (task 10.3) got.
+that, neither the iOS Simulator nor any environment used for the initial
+implementation pass had real flash hardware. Shipped as its own fast-follow
+once a physical iPhone became available in this environment, the same
+treatment Calendar's Windows/Linux gap (task 10.3) got for being deferred.
 
 **Deliverables:**
 
 - Requires the standard camera permission on both platforms even though
   nothing is captured or stored — a real OS permission step, same shape as
   Calendar's `ensureCalendarAccess()` (check status, prompt once if
-  undetermined, gate the app's own `grant()` on a real `true` result).
-- A concrete design for where the live `<CameraView>` lives: mounted
-  always (accepting a persistent camera-hardware/session cost even for
-  users who never grant this connector) vs. mounted only once granted (and
-  then how a freshly-granted state reaches an already-mounted component,
-  since there's no reactive grant-change notification in this app today —
-  `ConnectorsScreen.tsx`'s own grant state is read imperatively on render,
-  not subscribed to). **Not decided here** — a real fork for whoever picks
-  this up, not a detail to default silently.
-- `device.set_torch` tool, `on: boolean` (required).
+  undetermined, gate the app's own `grant()` on a real `true` result):
+  `permissions/cameraAccess.ts`'s `ensureCameraAccess()`.
+- `device.set_torch` tool, `on: boolean` (required — unlike brightness
+  there is no meaningful "read" state for torch).
 
 **Dependencies:** Task 2.6 (Tier 3 scaffolding); 11.1 (the manifest/handler
 shape to mirror, though torch's handler can't be a plain function the way
@@ -135,9 +127,94 @@ every other one has been — see above).
 
 - Asking the model to turn on/off the flashlight visibly does so on a
   **physical device** — the iOS Simulator has no flash hardware, so this
-  cannot be checked there; whoever picks this up needs a real device.
+  cannot be checked there.
 - Revoking this connector's permission does not affect any other
   connector's permission or vice versa.
+
+**Decided (during implementation):**
+
+- **Where the live `<CameraView>` lives** — the fork task 11.2 originally
+  left open. Resolved as: mounted once, always, at the app root
+  (`App.tsx`, alongside `<StatusBar>`), but only rendering an actual
+  `<CameraView>` once camera permission is known granted — checked once on
+  `TorchHost.tsx`'s own mount (covers a connector granted in an earlier
+  app session) and updated live via a small new bridge module,
+  `connectors/device/torchBridge.ts`, whose `notifyCameraPermissionGranted()`
+  the `setTorch` handler calls right after `ensureCameraAccess()` resolves
+  `granted: true`. This sidesteps needing a general "connector grant
+  changed" event system — nothing else in the app has one, and building
+  one just for this would have been a bigger, separate change — while
+  still keeping the camera session at zero cost for anyone who never
+  grants this connector (no permission, no session, regardless of mount).
+- `torchBridge.ts` also holds the `TorchController`/`setTorchController`
+  pair (`setTorch(on)` → local component state → `enableTorch` prop) —
+  the one genuinely new pattern in this codebase's connector runtime,
+  since every other `NativeHandler` is a pure function with no
+  relationship to anything mounted in the component tree.
+- No torch readback API exists (unlike brightness's `getBrightnessAsync`),
+  so `setTorch`'s reported text is optimistic — it reflects what was
+  requested, not a re-read confirmation.
+
+**Two real bugs found and fixed during physical-device verification** —
+neither was visible in any Simulator run or unit test; both only surfaced
+once this connector was actually installed and launched on real hardware:
+
+1. **The app crashed on launch (`SIGABRT`) on the physical iPhone, before
+   reaching the home screen.** Root cause: `apps/mobile/ios/` — gitignored,
+   generated output — had never been regenerated via `npx expo prebuild`
+   since the `expo-calendar` and `expo-camera` config-plugin entries were
+   added to `app.json`; only `pod install` had been run, which links
+   native code but does not apply config plugins. `Info.plist` was
+   therefore missing `NSCameraUsageDescription` entirely (and, it turned
+   out, `NSCalendarsUsageDescription`/`NSCalendarsFullAccessUsageDescription`
+   too — Calendar's own physical-device verification had only ever run on
+   the Simulator, which tolerates this differently). Mounting `<CameraView>`
+   without the required Info.plist key hard-crashes on real hardware.
+   Fixed with `npx expo prebuild --clean --platform ios` (regenerates
+   `ios/` from `app.json`) followed by the already-established
+   `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install` fix for this
+   environment's CocoaPods Unicode bug.
+2. **The first real grant reported success but the flashlight never lit.**
+   Root cause: with `TorchHost` originally mounting `<CameraView>`
+   unconditionally at app launch — before any camera permission existed —
+   the native capture session did not retroactively start once permission
+   was granted later in the session; nothing told the already-mounted view
+   to reconfigure. Fixed by the permission-gated mount + notify-on-grant
+   bridge described above.
+
+**Observed, explicitly out of scope:** the model sometimes asked for the
+`on` argument more than once in chat before actually calling
+`device_set_torch`, even though the tool call ultimately succeeded and the
+flashlight worked correctly once invoked. This is model tool-calling
+behavior, not a torch defect — confirmed with the user, who has a separate
+plan for that and asked it not be addressed here.
+
+**Verified:**
+
+- `pnpm --filter mobile typecheck`/`lint`/`test` (338 tests, up from 329 —
+  `torchBridge.test.ts`, `permissions/cameraAccess.test.ts`,
+  `device/TorchHost.test.tsx`, extended `device/handlers.test.ts` and
+  `device/manifest.test.ts`, extended `ConnectorsScreen.test.tsx`).
+- Real `pnpm install` + `pod install` linked the new `ExpoCamera` native
+  module (98 dependencies, up from 96).
+- Real physical iPhone (a real device connected to this environment, not
+  the Simulator) build via `xcodebuild ... -destination
+  'id=<udid>' -allowProvisioningUpdates build`, installed and launched via
+  `xcrun devicectl device install app` / `process launch` — the same
+  sequence 11.1 used, extended here because 11.2 specifically needs real
+  flash hardware to mean anything.
+- After fixing both bugs above: a real OS camera-permission dialog
+  appeared on tapping the "Device — Flashlight" row, the row flipped to
+  `ALLOWED`, and — confirmed directly by the user on the physical device,
+  not simulated or assumed — asking the assistant in chat to turn the
+  flashlight on and back off actually toggled the hardware flash both
+  times.
+- **Honest gap:** a live revoke round-trip (tapping the now-`ALLOWED` row
+  back off) was not separately re-confirmed on this physical device after
+  the fixes — it uses the same `revoke()`/`refresh()` path exercised for
+  every other connector and is covered by a passing unit test
+  (`ConnectorsScreen.test.tsx`'s torch `describe` block), the same
+  low-risk gap 11.1 documented for the same reason.
 
 **Explicitly out of scope (both 11.1 and 11.2):** alarm creation, listing,
 or deletion — see research 0009's findings; not a gap to close later, a
