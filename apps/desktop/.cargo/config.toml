@@ -30,5 +30,20 @@
 # file is discoverable from both `apps/desktop` and
 # `apps/desktop/src-tauri` (an ancestor of both), covering every
 # invocation shape this repo actually uses.
+#
+# Task 14.4's second real finding, after relocating the file didn't fix
+# CI either: `force = true` is required. Cargo's own documented `[env]`
+# behavior is to *not* override a variable that's already present in the
+# inherited process environment unless `force` is set. A diagnostic step
+# added directly before the build confirmed the shell's own
+# MACOSX_DEPLOYMENT_TARGET was correctly "11.0" at that point — yet
+# llama-cpp-sys-2's build script (a Cargo-spawned subprocess) still saw
+# "10.13". The only explanation consistent with Cargo's documented
+# behavior: something in the `tauri-apps/tauri-action` -> Tauri CLI ->
+# `cargo build` chain (almost certainly Tauri's own bundler, defaulting
+# `bundle.macOS.minimumSystemVersion` to "10.13" when unset in
+# `tauri.conf.json`) sets this env var itself before spawning cargo, and
+# Cargo's own non-forcing `[env]` semantics silently deferred to that
+# pre-existing value instead of ours.
 [env]
-MACOSX_DEPLOYMENT_TARGET = "11.0"
+MACOSX_DEPLOYMENT_TARGET = { value = "11.0", force = true }
