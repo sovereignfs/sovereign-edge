@@ -316,6 +316,21 @@ invented — which needed a new capability permission,
 the identifier" discipline task 12.5 established for this app's own
 commands).
 
+**Known deviation** (named explicitly here rather than left as an
+undocumented code comment — a fresh feature audit flagged the gap between
+the two): mirroring mobile's own `docs/epics/mobile/design-system.md`
+`Toggle` deviation note, `packages/desktop-ui` has no dedicated
+radio-group component, so this screen's `role="radiogroup"` is three
+styled `<button role="radio">`s built inline rather than a shared
+primitive. Unlike mobile's `Toggle` (a *forced* deviation — two real
+attempts to theme the platform `Switch` made dark mode worse, see that
+file), this one is a scope call: `AppShell.tsx`'s own nav buttons already
+made the identical "no new component for one screen" decision, and this
+screen is still the only caller. Revisit if a second `role="radiogroup"`
+need ever shows up — building the shared component then, not
+speculatively now, is the same discipline task 12.6 applied to every
+other primitive in that package.
+
 **Verified:** `cargo fmt --check`/`clippy`/`test` (62 tests, unaffected)
 and `cargo build` clean (confirms the new capability permission is valid).
 `tsc --noEmit`/`eslint`/`prettier --check` clean. Real Vite dev server in a
