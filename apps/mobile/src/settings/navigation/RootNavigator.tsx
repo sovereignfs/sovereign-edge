@@ -8,9 +8,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { ChatScreen } from '@/chat/screens/ChatScreen';
+import type { ConnectorManifest } from '@/connectors';
 import { useTheme, type Theme } from '@/design-system';
 import { ModelsScreen } from '@/models/screens/ModelsScreen';
 
+import { ConnectorInstallScreen } from '../screens/ConnectorInstallScreen';
+import { ConnectorStoreScreen } from '../screens/ConnectorStoreScreen';
 import { ConnectorsScreen } from '../screens/ConnectorsScreen';
 import { SearchSetupScreen } from '../screens/SearchSetupScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -19,6 +22,11 @@ export type SettingsStackParamList = {
   SettingsHome: undefined;
   Connectors: undefined;
   SearchSetup: undefined;
+  ConnectorStore: undefined;
+  ConnectorInstall: {
+    manifest: ConnectorManifest;
+    submittedBy: { name: string; contact?: string };
+  };
 };
 
 export type RootTabParamList = {
@@ -76,6 +84,16 @@ function SettingsNavigator() {
         name="SearchSetup"
         component={SearchSetupScreen}
         options={{ title: 'Search' }}
+      />
+      <SettingsStack.Screen
+        name="ConnectorStore"
+        component={ConnectorStoreScreen}
+        options={{ title: 'Connector Store' }}
+      />
+      <SettingsStack.Screen
+        name="ConnectorInstall"
+        component={ConnectorInstallScreen}
+        options={{ title: 'Install Connector' }}
       />
     </SettingsStack.Navigator>
   );

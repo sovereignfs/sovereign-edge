@@ -20,6 +20,7 @@ import {
   TAVILY_MANIFEST,
   buildSearxngManifest,
 } from '@/connectors/search/manifest';
+import { readInstalledConnectors } from '@/connectors/store/installed';
 import {
   ModelError,
   ModelManager,
@@ -30,23 +31,29 @@ import {
 import { generateWithConnectors } from './connectorOrchestration';
 
 /**
- * Every connector currently configured and available to route to (task 3.1).
+ * Every connector currently configured and available to route to (task 3.1,
+ * extended by task 5.5's store).
  *
- * Reads `readSearchConfig()` fresh on every call rather than once at mount —
- * the config can change between messages (the user configures and grants
- * Search in Settings, then returns to a chat that was already open), and
- * `generate` only runs at send time, so there is no render in between to
- * pick up a `useState` change. Search is the only connector that can exist
- * today; a second one would join this same list, not replace the pattern.
+ * Reads `readSearchConfig()`/`readInstalledConnectors()` fresh on every call
+ * rather than once at mount — either can change between messages (the user
+ * configures Search, or installs a connector from the store, then returns to
+ * a chat that was already open), and `generate` only runs at send time, so
+ * there is no render in between to pick up a `useState` change. Search is
+ * still handled separately (its manifest is rebuilt from config, not
+ * persisted) because it has no registry entry to install from; every other
+ * connector on the device now comes from `readInstalledConnectors()`, the
+ * first time this function has returned more than Search alone.
  */
 function installedConnectors(): ConnectorManifest[] {
   const config = readSearchConfig();
-  if (!config) return [];
-  return [
-    config.provider === 'searxng'
-      ? buildSearxngManifest(config.searxngUrl)
-      : TAVILY_MANIFEST,
-  ];
+  const search: ConnectorManifest[] = config
+    ? [
+        config.provider === 'searxng'
+          ? buildSearxngManifest(config.searxngUrl)
+          : TAVILY_MANIFEST,
+      ]
+    : [];
+  return [...search, ...readInstalledConnectors()];
 }
 
 /**

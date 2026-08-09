@@ -17,24 +17,28 @@ import {
   TAVILY_MANIFEST,
   buildSearxngManifest,
 } from '@/connectors/search/manifest';
+import {
+  readInstalledConnectors,
+  removeInstalledConnector,
+} from '@/connectors/store/installed';
 import { ListItem, useTheme } from '@/design-system';
 
 import type { SettingsStackParamList } from '../navigation/RootNavigator';
 
 /**
  * Connector permissions (task 2.2), plus the Search connector's own
- * grant/revoke row (task 3.1).
+ * grant/revoke row (task 3.1) and any store-installed connectors (task 5.5).
  *
  * There is deliberately no master switch: research 0001 requires permission
  * to be per-connector, and a single "allow network" toggle is exactly the
  * blanket grant this product exists to avoid.
  *
- * Search is the only connector that can exist here today, and it has no
- * built-in configuration — a fresh install has nothing to grant until the
- * user picks a provider in `SearchSetupScreen`. Reading `readSearchConfig()`
- * at render time (rather than a static list) is what makes "configure once,
- * then it behaves like any other connector row" true without a second data
- * path for Search specifically.
+ * Search has no built-in configuration — a fresh install has nothing to
+ * grant until the user picks a provider in `SearchSetupScreen`. Reading
+ * `readSearchConfig()` at render time (rather than a static list) is what
+ * makes "configure once, then it behaves like any other connector row" true
+ * without a second data path for Search specifically. Store-installed
+ * connectors are read the same way, from `readInstalledConnectors()`.
  */
 
 function stateLabel(state: GrantState, redecide: boolean): string {
@@ -67,15 +71,56 @@ export function ConnectorsScreen() {
   useFocusEffect(refresh);
 
   const searchConfig = readSearchConfig();
-  const installed: ConnectorManifest[] = searchConfig
-    ? [
-        searchConfig.provider === 'searxng'
-          ? buildSearxngManifest(searchConfig.searxngUrl)
-          : TAVILY_MANIFEST,
-      ]
-    : [];
+  const searchManifest: ConnectorManifest | null = searchConfig
+    ? searchConfig.provider === 'searxng'
+      ? buildSearxngManifest(searchConfig.searxngUrl)
+      : TAVILY_MANIFEST
+    : null;
+  const storeConnectors = readInstalledConnectors();
 
-  const empty = installed.length === 0;
+  const empty = searchManifest === null && storeConnectors.length === 0;
+
+  const renderRow = (manifest: ConnectorManifest) => {
+    const state = grantFor(manifest.id).state;
+    const redecide = needsRedecision(manifest);
+    const allowed = state === 'granted' && !redecide;
+
+    return (
+      <ListItem
+        key={manifest.id}
+        title={manifest.name}
+        // The scope is the substance of the grant. Naming it here means
+        // the decision is made against what it actually permits, rather
+        // than against the connector's description of itself.
+        subtitle={`${connectorScope(manifest).join(', ')} · ${
+          allowed ? 'tap to revoke' : 'tap to allow'
+        }`}
+        accessory={
+          <Text
+            style={{
+              color: redecide
+                ? theme.colors.warningText
+                : allowed
+                  ? theme.colors.successText
+                  : theme.colors.textMuted,
+              fontSize: theme.fontSize.label,
+              fontFamily: theme.fontFamily.mono,
+            }}
+          >
+            {stateLabel(state, redecide)}
+          </Text>
+        }
+        onPress={() => {
+          if (allowed) {
+            void revoke(manifest).then(refresh);
+          } else {
+            grant(manifest);
+            refresh();
+          }
+        }}
+      />
+    );
+  };
 
   return (
     <ScrollView style={{ backgroundColor: theme.colors.surface }}>
@@ -99,72 +144,54 @@ export function ConnectorsScreen() {
           }}
         >
           {empty
-            ? 'Nothing in this app can reach the network. Chat runs entirely on device. Set up Search below to let it look things up online — it can only act once you configure and grant it access.'
+            ? 'Nothing in this app can reach the network. Chat runs entirely on device. Set up Search below, or browse the Connector Store — either only acts once you configure and grant it access.'
             : 'Granting one connector never grants another. Revoking a connector also deletes any credential you gave it.'}
         </Text>
       </View>
 
-      {empty ? (
+      {searchManifest === null ? (
         <ListItem
           title="Search"
           subtitle="Not set up — tap to choose a provider"
           onPress={() => navigation.navigate('SearchSetup')}
         />
       ) : (
-        installed.map((manifest) => {
-          const state = grantFor(manifest.id).state;
-          const redecide = needsRedecision(manifest);
-          const allowed = state === 'granted' && !redecide;
-
-          return (
-            <ListItem
-              key={manifest.id}
-              title={manifest.name}
-              // The scope is the substance of the grant. Naming it here
-              // means the decision is made against what it actually permits,
-              // rather than against the connector's description of itself.
-              subtitle={`${connectorScope(manifest).join(', ')} · ${
-                allowed ? 'tap to revoke' : 'tap to allow'
-              }`}
-              accessory={
-                <Text
-                  style={{
-                    color: redecide
-                      ? theme.colors.warningText
-                      : allowed
-                        ? theme.colors.successText
-                        : theme.colors.textMuted,
-                    fontSize: theme.fontSize.label,
-                    fontFamily: theme.fontFamily.mono,
-                  }}
-                >
-                  {stateLabel(state, redecide)}
-                </Text>
-              }
-              onPress={() => {
-                if (allowed) {
-                  void revoke(manifest).then(refresh);
-                } else {
-                  grant(manifest);
-                  refresh();
-                }
-              }}
-            />
-          );
-        })
+        <>
+          {renderRow(searchManifest)}
+          {/* A way back into setup once configured — found missing when a
+              real user needed to fix a mistyped key and had nowhere to go
+              but revoke-then-grant, which re-offers the same (wrong)
+              stored credential rather than letting them enter a new one. */}
+          <ListItem
+            title="Change provider or key"
+            subtitle="Reconfigure Search"
+            onPress={() => navigation.navigate('SearchSetup')}
+          />
+        </>
       )}
 
-      {empty ? null : (
-        // A way back into setup once configured — found missing when a real
-        // user needed to fix a mistyped key and had nowhere to go but
-        // revoke-then-grant, which re-offers the same (wrong) stored
-        // credential rather than letting them enter a new one.
-        <ListItem
-          title="Change provider or key"
-          subtitle="Reconfigure Search"
-          onPress={() => navigation.navigate('SearchSetup')}
-        />
-      )}
+      {storeConnectors.map((manifest) => (
+        <View key={manifest.id}>
+          {renderRow(manifest)}
+          <ListItem
+            title="Remove"
+            subtitle={`Uninstall ${manifest.name}`}
+            destructive
+            onPress={() => {
+              void revoke(manifest).then(() => {
+                removeInstalledConnector(manifest.id);
+                refresh();
+              });
+            }}
+          />
+        </View>
+      ))}
+
+      <ListItem
+        title="Connector Store"
+        subtitle="Browse and install third-party connectors"
+        onPress={() => navigation.navigate('ConnectorStore')}
+      />
     </ScrollView>
   );
 }
