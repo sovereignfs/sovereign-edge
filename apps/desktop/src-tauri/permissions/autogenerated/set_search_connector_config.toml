@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-search-connector-config"
+description = "Enables the set_search_connector_config command without any pre-configured scope."
+commands.allow = ["set_search_connector_config"]
+
+[[permission]]
+identifier = "deny-set-search-connector-config"
+description = "Denies the set_search_connector_config command without any pre-configured scope."
+commands.deny = ["set_search_connector_config"]

@@ -145,13 +145,15 @@ section used to flag; future bumps happen the same way, via
 | —       | `packages/desktop-ui` initial component set           | ✅     | Desktop | [12.6](docs/epics/desktop/core-port.md#-126--packagesdesktop-ui-initial-component-set)               |
 | —       | Grammar-constrained tool-calling in the Rust engine   | ✅     | Desktop | [12.7a](docs/epics/desktop/core-port.md#-127a--grammar-constrained-tool-calling-in-the-rust-engine)  |
 | —       | Minimal offline chat UI                               | ✅     | Desktop | [12.7](docs/epics/desktop/core-port.md#-127--minimal-offline-chat-ui)                                |
+| —       | Writing-assist modes                                  | ✅     | Desktop | [12.8](docs/epics/desktop/core-port.md#-128--writing-assist-modes-desktop-port)                                   |
 | —       | Navigation shell scaffold                             | ✅     | Desktop | [13.1](docs/epics/desktop/app-shell.md#-131--navigation-shell-scaffold)                              |
 | —       | Model manager screen                                  | ✅     | Desktop | [13.2](docs/epics/desktop/app-shell.md#-132--model-manager-screen)                                   |
 | —       | Connectors & permissions screen                       | ✅     | Desktop | [13.3](docs/epics/desktop/app-shell.md#-133--connectors--permissions-screen)                         |
 | —       | General settings screen                               | ✅     | Desktop | [13.4](docs/epics/desktop/app-shell.md#-134--general-settings-screen)                                |
 | —       | Chat screen consolidation                             | ✅     | Desktop | [13.5](docs/epics/desktop/app-shell.md#-135--chat-screen-consolidation)                              |
+| —       | Search connector setup screen                         | ✅     | Desktop | [13.6](docs/epics/desktop/app-shell.md#-136--search-connector-setup-screen)                          |
 | —       | Real installer artifacts per platform                 | ✅     | Desktop | [14.1](docs/epics/desktop/distribution.md#-141--real-installer-artifacts-per-platform)               |
 | —       | Code signing and notarization                         | 📋     | Desktop | [14.2](docs/epics/desktop/distribution.md#-142--code-signing-and-notarization)                       |
-| —       | Update mechanism                                      | 📋     | Desktop | [14.3](docs/epics/desktop/distribution.md#-143--update-mechanism)                                    |
-| —       | Release pipeline                                      | 📋     | Desktop | [14.4](docs/epics/desktop/distribution.md#-144--release-pipeline)                                    |
+| —       | Update mechanism                                      | ✅     | Desktop | [14.3](docs/epics/desktop/distribution.md#-143--update-mechanism)                                    |
+| —       | Release pipeline                                      | ✅     | Desktop | [14.4](docs/epics/desktop/distribution.md#-144--release-pipeline)                                    |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

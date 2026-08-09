@@ -21,6 +21,7 @@
     "allow-set-search-connector-granted",
     "allow-list-connectors",
     "allow-set-connector-granted",
+    "allow-set-search-connector-config",
     "core:app:allow-version",
     "updater:allow-check",
     "updater:allow-download-and-install",

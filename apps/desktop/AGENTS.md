@@ -309,6 +309,39 @@ frontend, not React Native primitives.
   generation/routing, 13.2/13.3's own verification for install/remove and
   grant/revoke); what's unverified is the navigation glue, not the
   underlying operations.
+- **Search connector setup screen (13.6).** Replaced the static,
+  unconfigurable Search fixture (`manifest/fixtures.rs`'s
+  `include_str!`'d `search.manifest.json`, origin
+  `https://searx.example.org` — never dialable) with real user-entered
+  config. New `connectors::search` module (`manifest.rs` builds real
+  SearXNG/Tavily manifests; `config.rs` persists the chosen provider as
+  `search-config.json`, colocated with `grants.json`, mirroring
+  `models::store`'s fail-soft JSON pattern). `search_connector_manifest()`/
+  `known_connector_manifests()` are now config-driven — Search only
+  appears once configured, matching mobile's own `installedConnectors()`
+  returning `[]` when unconfigured. New `set_search_connector_config`
+  command reuses the existing `validate_manifest` (no new validation logic
+  invented) plus a Tavily-key-non-empty check, writes the Tavily
+  credential via `secure_storage::open_vault(...).write(...)` — the first
+  UI-triggered vault write in this codebase, correcting a stale doc
+  comment in `secure_storage/mod.rs` that claimed otherwise.
+  `SearchSetupScreen.tsx` (new) is a direct port of mobile's own screen;
+  `ConnectorsScreen.tsx` gained an empty-state "Not set up" row and a
+  "Change provider or key" reconfigure row, both routing through a new
+  non-sidebar `'connectors-setup'` destination on `AppShell`. **Real
+  flaky-test bug this task's review caught:** two new Rust tests share the
+  literal production `CONNECTOR_ID` against the process-global mock
+  keyring, so parallel `cargo test` execution occasionally let one test's
+  vault write leak into the other's "no vault write" assertion — fixed
+  with a `Mutex<()>` serializing just those two tests. Verified: `cargo
+  fmt`/`clippy`/`test --lib` (70/70) clean; `tsc`/`eslint`/`prettier`
+  clean; real Vite dev server confirmed the provider toggle swaps fields
+  correctly with mobile-mirrored copy; real debug binary build +
+  `launch-smoke.js`. **Honest gap, narrower than most:** the native-window
+  click-through wasn't driven by hand (same sandbox limitation as every
+  desktop UI task since 12.5), but unlike a typical frontend-only task,
+  the real save/validate/vault/grant logic is covered by real Rust tests
+  against the actual production code path, not just typechecking.
 - **Real installer artifacts per platform (14.1).**
   `tauri.conf.json`'s `bundle.targets` names each platform explicitly
   (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —

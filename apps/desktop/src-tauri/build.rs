@@ -33,6 +33,7 @@ const COMMANDS: &[&str] = &[
     "set_search_connector_granted",
     "list_connectors",
     "set_connector_granted",
+    "set_search_connector_config",
 ];
 
 fn main() {

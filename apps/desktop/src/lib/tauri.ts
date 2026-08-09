@@ -149,6 +149,21 @@ export function setConnectorGranted(
   return call('set_connector_granted', { id, granted });
 }
 
+/**
+ * Task 13.6's own command: the real Search setup flow, mirroring mobile's
+ * `SearchSetupScreen.save()`. `request`'s own fields stay snake_case, like
+ * `generateChat`'s `GenerateChatRequest` — the Rust struct has no
+ * `#[serde(rename_all = "camelCase")]`, matching this file's own
+ * documented per-struct-not-blanket casing convention.
+ */
+export function setSearchConnectorConfig(request: {
+  provider: 'searxng' | 'tavily';
+  searxng_url?: string;
+  tavily_key?: string;
+}): Promise<ConnectorStatus> {
+  return call('set_search_connector_config', { request });
+}
+
 export function cancelGeneration(): Promise<void> {
   return call('cancel_generation');
 }

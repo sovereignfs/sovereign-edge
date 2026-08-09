@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "✅ Done — tasks 13.1–13.5 all done"
+status: "✅ Done — tasks 13.1–13.6 all done"
 scope: desktop
 ---
 
@@ -402,7 +402,100 @@ permissions` and `models::ModelManager` code) — what's unverified here is
 specifically the UI-navigation glue connecting them, not the underlying
 operations.
 
-This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.5 are done.
+---
+
+#### ✅ 13.6 — Search connector setup screen
+
+**Goal:** Close the second-ranked gap a mobile/desktop feature audit found:
+`ConnectorsScreen` (13.3) only grants/revokes an existing connector — it has
+no way to actually configure one. Desktop's "Search" connector was a
+**static, unconfigurable fixture** embedded via `include_str!`
+(`https://searx.example.org`, a non-dialable placeholder domain), confirmed
+by reading the code to not even match either of mobile's own two real
+manifest-building functions (`buildSearxngManifest`/`TAVILY_MANIFEST`) — a
+stale, hybrid shape nothing else in the codebase produced. This task
+replaces it with the real thing: user-entered config, mirroring mobile's
+`SearchSetupScreen.tsx` field-for-field, copy-for-copy.
+
+**Deliverables:**
+
+- A new `connectors::search` Rust module (`manifest.rs` + `config.rs`,
+  mirroring mobile's own `connectors/search/{manifest.ts,config.ts}`
+  directory shape) building real SearXNG/Tavily manifests and persisting
+  the chosen provider/URL/key-presence as `search-config.json`, colocated
+  with `grants.json`.
+- `search_connector_manifest()`/`known_connector_manifests()` become
+  config-driven instead of fixture-driven — Search now only appears once
+  configured, exactly mirroring mobile's own `installedConnectors()`
+  returning `[]` when unconfigured.
+- A new `set_search_connector_config` command doing the real save flow:
+  build a candidate manifest, run it through the existing
+  `validate_manifest`, an extra Tavily-key-non-empty check, a vault write
+  for the Tavily credential, then `write_search_config` + `permissions::
+  grant`.
+- `SearchSetupScreen.tsx` (new), a direct port of mobile's screen; `Connectors
+  Screen.tsx` gains an empty-state "Not set up" row and a "Change provider or
+  key" reconfigure row, both navigating to it via a new `onNavigate` prop
+  on `AppShell`'s non-sidebar `'connectors-setup'` destination.
+
+**Real behavior change, stated plainly:** Search stops being an
+always-present (but never actually dialable) connector and instead only
+appears once a user configures it — correct, not a regression.
+
+**Dependencies:** Task 13.3 (`ConnectorsScreen`, extended here rather than
+replaced).
+
+**Review checklist:**
+
+- Submitting an invalid SearXNG URL (empty, non-https) or empty Tavily key
+  is rejected with a real, specific error message, not a generic failure.
+- A valid SearXNG URL saves config and grants without touching the vault; a
+  valid Tavily key writes the vault credential (`apiKey` = `Bearer
+  <key>`) and grants. `ConnectorsScreen` renders the correct empty vs.
+  configured state in both directions.
+
+**Decided: reuse `validate_manifest`, no new validation logic.** The
+Rust-side save flow doesn't invent its own URL/format checks — it builds a
+candidate `ConnectorManifestTier1` from the request and runs the same
+`connectors::manifest::validate::validate_manifest` every other manifest
+already goes through, plus one extra Tavily-specific check
+(`"Enter your Tavily API key."`) mobile's own screen also has no equivalent
+validator for. This is the first Tauri command to call
+`secure_storage::open_vault(...).write(...)` directly from a UI-triggered
+path — `secure_storage/mod.rs`'s doc comment claiming vault is "never
+called from UI code either" was stale and corrected in this task's commit.
+
+**A real flaky-test bug this task's own review checklist caught:** two new
+Rust tests (SearXNG and Tavily save paths) both exercise the literal
+production `CONNECTOR_ID` (both providers share one connector id, by
+design), against the process-global mock keyring `use_test_keyring_backend()`
+installs. Under `cargo test`'s default parallelism, the Tavily test's vault
+write occasionally leaked into the SearXNG test's "no vault write happened"
+assertion. Fixed with a `static VAULT_TEST_LOCK: Mutex<()>` serializing just
+those two tests against each other, plus an explicit vault-clear at the
+start of the SearXNG test as a clean-baseline safeguard — verified stable
+across repeated `cargo test` runs afterward.
+
+**Verified:** `cargo fmt --check`/`clippy --all-targets -- -D warnings`/
+`test --lib` (70/70 passing, including 5 new tests covering both providers'
+reject/accept paths) clean. `pnpm typecheck`/`lint`/`prettier --check`
+clean. Real Vite dev server in a real browser: the provider toggle switches
+between the SearXNG URL field and the Tavily password field correctly,
+with the exact mobile-mirrored copy and hints. Real debug binary build
+(`pnpm tauri build --debug --no-bundle`) + `scripts/ci/launch-smoke.js`
+against the freshly built binary. **Honest gap, same class as every desktop
+UI task since 12.5, but narrower than most:** the actual native-window
+click-through (open Connectors, tap "Not set up", fill in a real SearXNG
+URL, save, confirm it now appears granted) can't be driven in this sandbox
+(no Accessibility/screen access) — but unlike a typical frontend-only task,
+this one's real logic (validation, vault write, config persistence, grant)
+is covered by real Rust tests against the actual production code path, not
+just typechecking, so the untested surface is narrowly the UI-navigation
+glue, not the underlying save/validate/grant behavior.
+
+---
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.6 are done.
 
 ## Related Docs
 

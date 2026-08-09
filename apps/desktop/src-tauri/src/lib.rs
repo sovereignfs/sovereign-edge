@@ -299,21 +299,23 @@ fn default_connector_mode() -> ConnectorMode {
     ConnectorMode::Auto
 }
 
-/// The one connector this app currently knows about — see
-/// `generate_chat`'s own doc comment for why the embedded fixture stands
-/// in for a real connector-install flow. Shared by `generate_chat`,
-/// `connector_status`, and `set_search_connector_granted` so there is one
-/// parse+validate site, not three copies to drift apart.
-fn search_connector_manifest() -> connectors::manifest::ConnectorManifest {
-    let manifest_json: serde_json::Value =
-        serde_json::from_str(connectors::manifest::fixtures::SEARCH_MANIFEST_JSON)
-            .expect("the embedded search fixture is valid JSON");
-    match connectors::manifest::validate_manifest(&manifest_json) {
-        connectors::manifest::ValidationResult::Valid(manifest) => *manifest,
-        connectors::manifest::ValidationResult::Invalid(issues) => {
-            panic!("the embedded search fixture failed validation: {issues:?}")
+/// Task 13.6 replaces the static embedded fixture with a manifest built
+/// from real, user-entered config (`connectors::search::read_search_config`)
+/// — `None` when the user hasn't configured Search yet, mirroring mobile's
+/// own `installedConnectors()` returning `[]` in that case. Shared by
+/// `generate_chat`, `connector_status`, and `set_search_connector_granted`
+/// so there is one read+build site, not three copies to drift apart.
+fn search_connector_manifest(
+    connectors_dir: &std::path::Path,
+) -> Option<connectors::manifest::ConnectorManifest> {
+    let config = connectors::search::read_search_config(connectors_dir)?;
+    let manifest = match config {
+        connectors::search::SearchConfig::Searxng { url } => {
+            connectors::search::build_searxng_manifest(&url)
         }
-    }
+        connectors::search::SearchConfig::Tavily => connectors::search::tavily_manifest(),
+    };
+    Some(connectors::manifest::ConnectorManifest::Tier1(manifest))
 }
 
 #[derive(serde::Deserialize)]
@@ -383,7 +385,9 @@ fn generate_chat(
                     connector: None,
                 })
         } else {
-            let manifests = [search_connector_manifest()];
+            let manifests: Vec<_> = search_connector_manifest(&state.connectors_dir)
+                .into_iter()
+                .collect();
             let tool_choice = match request.connector_mode {
                 ConnectorMode::Required => engine::ToolChoice::Required,
                 _ => engine::ToolChoice::Auto,
@@ -418,7 +422,7 @@ fn generate_chat(
     })
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ConnectorStatus {
     id: String,
@@ -443,9 +447,20 @@ fn connector_status_for(
 /// (`list_connectors`/`set_connector_granted` below); until then, two
 /// small commands is less risk than rewriting a working, already-verified
 /// one to fit a shape it doesn't need yet.
+/// Task 13.6: an unconfigured Search reads as `granted: false`, the same
+/// framing "not configured" and "not granted" already share everywhere
+/// else — `ChatScreen.tsx`'s existing header indicator renders "Search:
+/// Off" correctly for this case with no frontend change needed.
 #[tauri::command]
 fn connector_status(state: tauri::State<AppState>) -> ConnectorStatus {
-    connector_status_for(&search_connector_manifest(), &state.connectors_dir)
+    match search_connector_manifest(&state.connectors_dir) {
+        Some(manifest) => connector_status_for(&manifest, &state.connectors_dir),
+        None => ConnectorStatus {
+            id: connectors::search::CONNECTOR_ID.to_string(),
+            name: "Search".to_string(),
+            granted: false,
+        },
+    }
 }
 
 #[tauri::command]
@@ -453,7 +468,12 @@ fn set_search_connector_granted(
     state: tauri::State<AppState>,
     granted: bool,
 ) -> Result<ConnectorStatus, CommandError> {
-    let manifest = search_connector_manifest();
+    let manifest = search_connector_manifest(&state.connectors_dir).ok_or_else(|| {
+        CommandError::Connector(connectors::runtime::ExecutionFailure::with_detail(
+            connectors::runtime::FailureReason::InvalidArguments,
+            "Search is not configured yet".to_string(),
+        ))
+    })?;
     if granted {
         connectors::permissions::grant(&state.connectors_dir, &manifest);
     } else {
@@ -462,25 +482,31 @@ fn set_search_connector_granted(
     Ok(connector_status_for(&manifest, &state.connectors_dir))
 }
 
-/// Every connector this app currently knows about — today, just the
-/// embedded Search fixture, the same one `search_connector_manifest`
-/// reads. A real connector-install flow (Phase 3 on mobile) would replace
-/// this with something that reads what's actually been installed; until
-/// then this is the one place task 13.3's screen and any future caller
-/// look, so there is exactly one list to keep in sync as connectors are
-/// added, not one per command.
-fn known_connector_manifests() -> Vec<connectors::manifest::ConnectorManifest> {
-    vec![search_connector_manifest()]
+/// Every connector this app currently knows about — today, just Search,
+/// and only once it's been configured (task 13.6); empty otherwise,
+/// mirroring mobile's own `installedConnectors()` returning `[]` when
+/// unconfigured. A real connector-install flow (Phase 3 on mobile) would
+/// add more entries here; until then this is the one place task 13.3's
+/// screen and any future caller look, so there is exactly one list to
+/// keep in sync as connectors are added, not one per command.
+fn known_connector_manifests(
+    connectors_dir: &std::path::Path,
+) -> Vec<connectors::manifest::ConnectorManifest> {
+    search_connector_manifest(connectors_dir)
+        .into_iter()
+        .collect()
 }
 
 /// Task 13.3's own command: the real Connectors screen reads this instead
 /// of `connector_status`'s single hardcoded row — built as a real list
 /// against `known_connector_manifests()` so the screen doesn't need
-/// rewriting when a second connector eventually exists, even though today
-/// it will only ever return one entry.
+/// rewriting when a second connector eventually exists. Empty until
+/// Search is configured (task 13.6) — the frontend's own empty-state row
+/// is what invites the user to fix that, not this command pretending
+/// something exists that doesn't.
 #[tauri::command]
 fn list_connectors(state: tauri::State<AppState>) -> Vec<ConnectorStatus> {
-    known_connector_manifests()
+    known_connector_manifests(&state.connectors_dir)
         .iter()
         .map(|manifest| connector_status_for(manifest, &state.connectors_dir))
         .collect()
@@ -492,7 +518,7 @@ fn set_connector_granted(
     id: String,
     granted: bool,
 ) -> Result<ConnectorStatus, CommandError> {
-    let manifest = known_connector_manifests()
+    let manifest = known_connector_manifests(&state.connectors_dir)
         .into_iter()
         .find(|m| m.id() == id)
         .ok_or_else(|| {
@@ -507,6 +533,95 @@ fn set_connector_granted(
         connectors::permissions::revoke(&state.connectors_dir, &manifest)?;
     }
     Ok(connector_status_for(&manifest, &state.connectors_dir))
+}
+
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum SearchProvider {
+    Searxng,
+    Tavily,
+}
+
+#[derive(serde::Deserialize)]
+struct SearchConnectorConfigRequest {
+    provider: SearchProvider,
+    #[serde(default)]
+    searxng_url: Option<String>,
+    #[serde(default)]
+    tavily_key: Option<String>,
+}
+
+/// Task 13.6's own save flow, mirroring mobile's `SearchSetupScreen.save()`
+/// step-for-step: build the candidate manifest, run the existing
+/// cross-field validator against it (catches a non-https/malformed
+/// SearXNG URL with the same checks mobile relies on — no new validation
+/// logic invented here), an extra Tavily-key-non-empty check matching
+/// mobile's own literal copy, then — only once both pass — the vault
+/// write (Tavily only), the non-secret config write, and the grant.
+/// Extracted from the `#[tauri::command]` wrapper below so it's callable
+/// directly from tests without a full Tauri command context, the same
+/// reason `connector_status_for` is its own function.
+fn save_search_connector_config(
+    connectors_dir: &std::path::Path,
+    request: SearchConnectorConfigRequest,
+) -> Result<ConnectorStatus, CommandError> {
+    let (manifest, config) = match request.provider {
+        SearchProvider::Searxng => {
+            let url = request.searxng_url.unwrap_or_default().trim().to_string();
+            (
+                connectors::search::build_searxng_manifest(&url),
+                connectors::search::SearchConfig::Searxng { url },
+            )
+        }
+        SearchProvider::Tavily => (
+            connectors::search::tavily_manifest(),
+            connectors::search::SearchConfig::Tavily,
+        ),
+    };
+
+    let manifest_json = serde_json::to_value(&manifest).expect("manifest serializes to JSON");
+    if let connectors::manifest::ValidationResult::Invalid(issues) =
+        connectors::manifest::validate_manifest(&manifest_json)
+    {
+        let message = issues
+            .first()
+            .map(|i| i.message.clone())
+            .unwrap_or_else(|| "That configuration is not valid.".to_string());
+        return Err(CommandError::Connector(
+            connectors::runtime::ExecutionFailure::with_detail(
+                connectors::runtime::FailureReason::InvalidArguments,
+                message,
+            ),
+        ));
+    }
+
+    if matches!(config, connectors::search::SearchConfig::Tavily) {
+        let key = request.tavily_key.unwrap_or_default();
+        let key = key.trim();
+        if key.is_empty() {
+            return Err(CommandError::Connector(
+                connectors::runtime::ExecutionFailure::with_detail(
+                    connectors::runtime::FailureReason::InvalidArguments,
+                    "Enter your Tavily API key.".to_string(),
+                ),
+            ));
+        }
+        secure_storage::open_vault(connectors::search::CONNECTOR_ID)?
+            .write("apiKey", &format!("Bearer {key}"))?;
+    }
+
+    connectors::search::write_search_config(connectors_dir, &config);
+    let manifest = connectors::manifest::ConnectorManifest::Tier1(manifest);
+    connectors::permissions::grant(connectors_dir, &manifest);
+    Ok(connector_status_for(&manifest, connectors_dir))
+}
+
+#[tauri::command]
+fn set_search_connector_config(
+    state: tauri::State<AppState>,
+    request: SearchConnectorConfigRequest,
+) -> Result<ConnectorStatus, CommandError> {
+    save_search_connector_config(&state.connectors_dir, request)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -609,7 +724,166 @@ pub fn run() {
             set_search_connector_granted,
             list_connectors,
             set_connector_granted,
+            set_search_connector_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");
+}
+
+#[cfg(test)]
+mod search_connector_config_tests {
+    use super::*;
+
+    // Same hand-rolled scratch-dir pattern `connectors::permissions::grants`'s
+    // and `connectors::search::config`'s own tests use.
+    fn unique_suffix() -> String {
+        static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        format!("{}-{n}", std::process::id())
+    }
+
+    fn scratch_dir() -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "sovereign-edge-desktop-search-connector-config-test-{}",
+            unique_suffix()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn use_mock_keyring() {
+        secure_storage::vault::use_test_keyring_backend();
+    }
+
+    /// The mock keyring backend is process-global, and both providers
+    /// share one real connector id by design (see `connectors::search::
+    /// manifest`'s own doc comment) — unlike `vault.rs`'s own tests, which
+    /// can each open a *fresh* unique id to avoid collisions, these two
+    /// tests must exercise the literal production id, so they're
+    /// serialized against each other instead.
+    static VAULT_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn error_message(err: &CommandError) -> String {
+        match err {
+            CommandError::Connector(failure) => failure
+                .detail
+                .clone()
+                .unwrap_or_else(|| format!("{failure:?}")),
+            other => format!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_empty_searxng_url() {
+        let dir = scratch_dir();
+        let err = save_search_connector_config(
+            &dir,
+            SearchConnectorConfigRequest {
+                provider: SearchProvider::Searxng,
+                searxng_url: None,
+                tavily_key: None,
+            },
+        )
+        .unwrap_err();
+        assert!(
+            error_message(&err).contains("valid URL"),
+            "{}",
+            error_message(&err)
+        );
+        assert_eq!(connectors::search::read_search_config(&dir), None);
+    }
+
+    #[test]
+    fn rejects_non_https_searxng_url() {
+        let dir = scratch_dir();
+        let err = save_search_connector_config(
+            &dir,
+            SearchConnectorConfigRequest {
+                provider: SearchProvider::Searxng,
+                searxng_url: Some("http://searx.example.org".to_string()),
+                tavily_key: None,
+            },
+        )
+        .unwrap_err();
+        assert!(
+            error_message(&err).contains("https"),
+            "{}",
+            error_message(&err)
+        );
+        assert_eq!(connectors::search::read_search_config(&dir), None);
+    }
+
+    #[test]
+    fn valid_searxng_url_saves_config_and_grants_with_no_vault_write() {
+        let _guard = VAULT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        use_mock_keyring();
+        secure_storage::open_vault(connectors::search::CONNECTOR_ID)
+            .unwrap()
+            .clear(&["apiKey".to_string()])
+            .unwrap();
+        let dir = scratch_dir();
+        let status = save_search_connector_config(
+            &dir,
+            SearchConnectorConfigRequest {
+                provider: SearchProvider::Searxng,
+                searxng_url: Some("https://searx.example.org".to_string()),
+                tavily_key: None,
+            },
+        )
+        .expect("valid config saves");
+
+        assert!(status.granted);
+        assert_eq!(
+            connectors::search::read_search_config(&dir),
+            Some(connectors::search::SearchConfig::Searxng {
+                url: "https://searx.example.org".to_string()
+            })
+        );
+        // No vault write for SearXNG — it has no credential at all.
+        let vault = secure_storage::open_vault(connectors::search::CONNECTOR_ID).unwrap();
+        assert_eq!(vault.read("apiKey").unwrap(), None);
+    }
+
+    #[test]
+    fn rejects_empty_tavily_key() {
+        let dir = scratch_dir();
+        let err = save_search_connector_config(
+            &dir,
+            SearchConnectorConfigRequest {
+                provider: SearchProvider::Tavily,
+                searxng_url: None,
+                tavily_key: None,
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error_message(&err), "Enter your Tavily API key.");
+        assert_eq!(connectors::search::read_search_config(&dir), None);
+    }
+
+    #[test]
+    fn valid_tavily_key_writes_vault_and_config() {
+        let _guard = VAULT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        use_mock_keyring();
+        let dir = scratch_dir();
+        let status = save_search_connector_config(
+            &dir,
+            SearchConnectorConfigRequest {
+                provider: SearchProvider::Tavily,
+                searxng_url: None,
+                tavily_key: Some("tvly-abc123".to_string()),
+            },
+        )
+        .expect("valid config saves");
+
+        assert!(status.granted);
+        assert_eq!(
+            connectors::search::read_search_config(&dir),
+            Some(connectors::search::SearchConfig::Tavily)
+        );
+        let vault = secure_storage::open_vault(connectors::search::CONNECTOR_ID).unwrap();
+        assert_eq!(
+            vault.read("apiKey").unwrap(),
+            Some("Bearer tvly-abc123".to_string())
+        );
+    }
 }
