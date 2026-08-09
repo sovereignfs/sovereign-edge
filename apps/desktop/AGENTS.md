@@ -36,9 +36,17 @@ Epics 12 and 13 are both closed — epic 12 briefly reopened for task 12.8
 single largest UX gap a feature audit found between the two apps) and
 closed again once it landed. Epic 14 (Desktop Distribution & Signing —
 real signed/notarized installer artifacts and a self-update mechanism) is
-nearly done: tasks 14.1, 14.3, and 14.4 are all complete — only 14.2 (code
-signing/notarization) remains, explicitly skipped for now (no Apple
-Developer ID certificate available). 14.1 (installer artifacts): real
+nearly done: tasks 14.1, 14.3, and 14.4 are all complete; 14.2 (code
+signing/notarization) has its Windows signing config scaffolded
+(`tauri.conf.json`'s `bundle.windows.{digestAlgorithm,
+certificateThumbprint,timestampUrl}`, all `null` — confirmed against
+`tauri-utils`' real `WindowsConfig` struct, not guessed) but the macOS
+half — the actual certificate, signing, and notarization — remains
+blocked (no Apple Developer ID available, a real financial/account
+prerequisite, not an engineering one). Tauri v2 has no Linux-side signing
+config at all (confirmed by reading `tauri-utils`' `LinuxConfig` — only
+packaging metadata, no signing field anywhere), so there was nothing to
+scaffold there. 14.1 (installer artifacts): real
 macOS/Linux builds. 14.3 (update mechanism): `tauri-plugin-updater`, a
 real Ed25519 signing keypair, GitHub Releases hosting. 14.4 (release
 pipeline): a `workflow_dispatch` CI workflow that bumps versions, tags,

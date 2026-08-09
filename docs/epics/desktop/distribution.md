@@ -1,7 +1,7 @@
 ---
 epic: 14
 title: Desktop Distribution & Signing
-status: "⏳ In Progress — 14.1, 14.3, 14.4 done (real signed macOS/Windows/Linux releases via CI, v0.1.5 published); 14.2 explicitly skipped (no Apple Developer ID)"
+status: "⏳ In Progress — 14.1, 14.3, 14.4 done (real signed macOS/Windows/Linux releases via CI, v0.1.5 published); 14.2's Windows signing config scaffolded, macOS signing/notarization still blocked (no Apple Developer ID)"
 scope: desktop
 ---
 
@@ -220,6 +220,46 @@ baseline trust signal mobile gets for free from App Store review.
   double-click on this machine with no Gatekeeper warning — verified for
   real, the same "run it and look" bar every desktop task has held to
   since 12.2's `engine_smoke.rs`.
+
+**Windows signing config, scaffolded — the macOS-cert half of this task
+still open, but this part done:** `tauri.conf.json`'s `bundle.windows`
+gained explicit `digestAlgorithm`/`certificateThumbprint`/`timestampUrl`
+keys, each `null` — the real fields `tauri-utils`' `WindowsConfig` (Rust
+struct, confirmed by reading `tauri-utils-2.9.3/src/config.rs`, not
+assumed from docs) actually reads, present and named rather than the
+config simply omitting the `windows` block entirely (`null` deserializes
+to the same `None` either way — the point is a future certificate is a
+one-line fill-in in a block that already exists, the same "named, not
+wildcarded" spirit `capabilities/default.json` follows). Left fully inert
+(all three `null`, matching `WindowsConfig::default()` exactly) rather
+than pre-filling `digestAlgorithm: "SHA256"` speculatively: without
+confirming on a real Windows build host whether Tauri's bundler treats a
+digest algorithm with no certificate thumbprint as an error, a
+half-filled scaffold risks being *worse* than an honest, fully-null one —
+and this environment has no Windows host to check that on.
+
+**Linux signing config: no scaffold exists to add — confirmed, not
+assumed.** Read `tauri-utils-2.9.3/src/config.rs`'s `LinuxConfig` (backing
+`bundle.linux` in `tauri.conf.json`) directly: it holds only `appimage`/
+`deb`/`rpm` sub-configs (packaging metadata — file lists, dependencies,
+section/priority for `.deb`; runtime/updater bundling for `.appimage`),
+and *none* of the three has any signing-related field. Tauri v2's bundler
+has no built-in Linux code-signing step at all — Linux package trust
+works at the distribution-channel level instead (a signed `apt`
+repository's `Release` file, or `appimagetool`'s own optional external
+`--sign` via GPG, neither of which Tauri's config surface touches). There
+is nothing to scaffold here without inventing a config key Tauri doesn't
+read, which would silently do nothing — the honest deliverable for Linux
+is this documented finding, not a placeholder JSON block.
+
+**Verified:** `pnpm tauri build --debug --no-bundle` (confirms
+`tauri.conf.json` still parses against Tauri's real schema with the new
+keys present) + `scripts/ci/launch-smoke.js`, both clean. **Honest gap
+still open, unchanged by this scaffolding:** the macOS half of this
+task — a real Developer ID certificate, actual signing, actual
+notarization, verified by a Gatekeeper-free double-click — remains
+blocked on obtaining a paid Apple Developer Program membership, which
+only the project owner can do.
 
 ---
 
