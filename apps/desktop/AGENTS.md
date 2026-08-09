@@ -33,7 +33,9 @@ for what each task delivered.
 
 Epics 12 and 13 are both closed. Epic 14 (Desktop Distribution & Signing —
 real signed/notarized installer artifacts and a self-update mechanism) is
-scoped but not started; see
+in progress: task 14.1 (real installer artifacts) is done; 14.2 (code
+signing/notarization), 14.3 (update mechanism), and 14.4 (release
+pipeline) are next, in that dependency order. See
 [docs/epics/desktop/distribution.md](../../docs/epics/desktop/distribution.md).
 Check `ROADMAP.md` before starting anything here: whether epic 14 continues
 next, mobile's own remaining Phase 1 item (0.1.20), or something else is
@@ -261,6 +263,28 @@ frontend, not React Native primitives.
   generation/routing, 13.2/13.3's own verification for install/remove and
   grant/revoke); what's unverified is the navigation glue, not the
   underlying operations.
+- **Real installer artifacts per platform (14.1).**
+  `tauri.conf.json`'s `bundle.targets` names each platform explicitly
+  (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —
+  replacing the bare `"all"` default. `apps/desktop/src-tauri/
+  .cargo/config.toml` (new) pins `MACOSX_DEPLOYMENT_TARGET = "11.0"`: a
+  real release build (the first one this repo ever ran — every prior task
+  only ran `cargo build`'s debug profile) failed twice on this machine —
+  `cmake` wasn't installed at all, and once it was, `llama-cpp-sys-2`'s
+  vendored `llama.cpp` doesn't compile against its own default deployment
+  target (10.13; Apple's SDK marks `std::filesystem::path` unavailable
+  before 10.15). A plain shell `export` fixed a direct `cargo build
+  --release` but was found not to reliably reach the `cmake` invocation
+  `pnpm tauri build` spawns through its own subprocess chain — the
+  `.cargo/config.toml` `[env]` table is what actually made the fix durable
+  across every invocation shape. Verified from a clean shell with no
+  exported variable: `pnpm tauri build` produced a real `.app` and `.dmg`;
+  the `.app` was copied to `~/Desktop` (confirmed via the running
+  process's own path in `ps aux`, not just build success) and launched for
+  real, and the `.dmg` was mounted with `hdiutil` and confirmed to contain
+  the standard drag-to-install layout. **Honest gap:** Windows/Linux
+  artifacts weren't built or tested — macOS-only, same as every desktop
+  task since 12.1.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.

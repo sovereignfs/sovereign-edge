@@ -1,0 +1,20 @@
+# Task 14.1's own fix, found by actually running a release build, not
+# assumed: `llama-cpp-sys-2`'s vendored `llama.cpp` uses
+# `std::filesystem::path` unconditionally (`ggml-backend-reg.cpp`,
+# `ggml-backend-dl.cpp`), which Apple's SDK marks unavailable before macOS
+# 10.15. The crate's own default deployment target (10.13, when this
+# variable is unset) fails to compile on current Xcode/SDK toolchains as a
+# result. `MACOSX_DEPLOYMENT_TARGET` set here — not merely exported in a
+# shell — is what makes the fix apply to every build (`cargo build`,
+# `pnpm tauri build`, CI), not just an interactive session that happens to
+# have it exported; a plain shell `export` was tried first and found to
+# not reliably reach the `cmake` invocation `pnpm tauri build` spawns
+# through its own subprocess chain.
+#
+# 11.0 is a deliberate, conservative floor, not the oldest version that
+# might still technically compile: Tauri's WKWebView-based WRY and this
+# app's own default Metal GPU offload (task 12.2) already imply a
+# reasonably modern macOS, so there is nothing to preserve by chasing the
+# lowest number that happens to build.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "11.0"

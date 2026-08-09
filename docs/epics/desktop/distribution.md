@@ -1,7 +1,7 @@
 ---
 epic: 14
 title: Desktop Distribution & Signing
-status: "📋 Not Started"
+status: "⏳ In Progress — task 14.1 done"
 scope: desktop
 ---
 
@@ -69,7 +69,7 @@ check — is this epic's own job to build.
 
 ## Tasks
 
-#### 📋 14.1 — Real installer artifacts per platform
+#### ✅ 14.1 — Real installer artifacts per platform
 
 **Goal:** Something a user can actually download and run — not
 `cargo build`'s debug binary — for at least macOS, the platform this can be
@@ -91,6 +91,63 @@ verified on directly.
   equivalent) and launches on this machine from a location outside the
   build directory — proving it's a real relocatable bundle, not an
   artifact of running from `target/`.
+
+**Decided: `["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately
+excluded.** `tauri.conf.json`'s `bundle.targets` names each platform's
+artifact explicitly — macOS gets both the raw `.app` and a `.dmg`
+installer; Windows gets `nsis` (a single modern installer, not also
+`msi`); Linux gets `deb` and `appimage`, skipping `rpm` as a deliberate
+scope cut rather than chasing every package format nothing has asked for
+yet.
+
+**Two real build failures this task's own verification caught — neither
+visible without actually running a release build, not just `cargo
+build`'s already-cached debug one:**
+
+1. **`cmake` was not installed on this machine at all.** Every prior
+   desktop task's `cargo build`/`cargo test` reused an already-configured
+   debug build directory from early in epic 12; a release build is a
+   fresh `target/release/build/llama-cpp-sys-2-*/`, which triggered
+   `llama-cpp-sys-2`'s CMake configure step for the first time and failed
+   immediately with "is `cmake` not installed?". Fixed by installing it —
+   `brew install cmake` itself first needed `sudo chown -R $USER
+   /opt/homebrew` (Homebrew's own directories weren't owned by this user),
+   which needed the user's own terminal since `sudo` needs an interactive
+   password this environment can't supply.
+2. **`llama-cpp-sys-2`'s vendored `llama.cpp` doesn't compile against a
+   release build's actual deployment target.** Once `cmake` worked, the
+   build failed for a different reason: `ggml-backend-reg.cpp`/
+   `ggml-backend-dl.cpp` use `std::filesystem::path` unconditionally,
+   which Apple's SDK marks unavailable before macOS 10.15 — and the
+   crate's own default deployment target, when `MACOSX_DEPLOYMENT_TARGET`
+   is unset, is 10.13. A plain shell `export MACOSX_DEPLOYMENT_TARGET=11.0`
+   fixed a direct `cargo build --release` but was found, by testing it,
+   *not* to reliably reach the `cmake` invocation `pnpm tauri build`
+   spawns through its own subprocess chain — fixed durably instead with
+   `apps/desktop/src-tauri/.cargo/config.toml`'s `[env]` table, which
+   Cargo applies to every build script and subprocess it spawns
+   regardless of how `cargo`/`tauri build` itself was invoked. Re-verified
+   from a clean shell with the exported variable unset: both `cargo build
+   --release` and the full `pnpm tauri build` bundle succeeded relying on
+   the config file alone. 11.0 is a deliberate, conservative floor — Tauri's
+   WKWebView-based WRY and this app's own default Metal GPU offload (task
+   12.2) already imply a reasonably modern macOS — not the oldest version
+   that happens to compile.
+
+**Verified — a real installer artifact, installed and launched for
+real, not just built:** `pnpm tauri build` (clean shell, no manual env)
+produced `target/release/bundle/macos/Sovereign Edge.app` and
+`target/release/bundle/dmg/Sovereign Edge_0.0.0_aarch64.dmg`. Copied the
+`.app` to `~/Desktop` (outside the build tree), launched it with `open`,
+and confirmed the running process's own path
+(`/Users/.../Desktop/Sovereign Edge.app/Contents/MacOS/sovereign-edge-desktop`)
+via `ps aux` — proving a real relocatable bundle, not an artifact of
+running from `target/` — then quit it cleanly. Separately mounted the
+`.dmg` with `hdiutil attach` and confirmed its contents: the `.app` plus
+an `Applications` symlink, the standard drag-to-install layout. **Honest
+gap:** Windows (`nsis`) and Linux (`deb`/`appimage`) artifacts were not
+built or verified — this machine can only produce and test macOS bundles,
+the same platform limitation every desktop task has carried since 12.1.
 
 ---
 
