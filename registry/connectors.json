@@ -14,7 +14,7 @@
         "version": "1.0.0",
         "summary": "Current temperature for a location, from Open-Meteo's free, no-key weather API.",
         "tier": 1,
-        "platforms": ["ios", "android"],
+        "platforms": ["ios", "android", "desktop"],
         "tool": {
           "name": "current_temperature",
           "description": "Get the current temperature at a latitude/longitude.",
@@ -68,7 +68,7 @@
         "version": "1.0.0",
         "summary": "Looks up the GitHub username for the connector's own configured token.",
         "tier": 1,
-        "platforms": ["ios", "android"],
+        "platforms": ["ios", "android", "desktop"],
         "tool": {
           "name": "github_whoami",
           "description": "Returns the GitHub username for the currently configured personal access token.",
