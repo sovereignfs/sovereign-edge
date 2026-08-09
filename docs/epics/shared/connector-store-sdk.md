@@ -1,7 +1,7 @@
 ---
 epic: 5
 title: Connector Store & SDK
-status: "⏳ In Progress — 5.1, 5.2, 5.4 done; 5.3 partially done (free + token-auth examples shipped, Tier 2 script and paid examples blocked on 5.6/epic 6); 5.5, 5.6 still 📋 Planned"
+status: "⏳ In Progress — 5.1, 5.2, 5.4, 5.5 done; 5.3 partially done (free + token-auth examples shipped, Tier 2 script and paid examples blocked on 5.6/epic 6); 5.6 still 📋 Planned"
 scope: shared
 ---
 
@@ -315,7 +315,7 @@ to.
 
 ---
 
-#### 📋 5.5 — In-app Connector Store
+#### ✅ 5.5 — In-app Connector Store
 
 **Goal:** The end-user-facing browse/install surface.
 
@@ -333,6 +333,86 @@ to.
 - Installing a third-party connector from the store goes through the exact
   same permission-grant flow as the first-party Search/Sovereign Tasks
   connectors — no separate, weaker path for third-party connectors.
+
+**Decided:**
+
+- **Live registry fetch**, not a build-time snapshot — the first network
+  access in either app that isn't a specific granted connector's own
+  request. Explicit, user-facing about that: both store screens state
+  plainly that this one screen reaches the internet for its own sake,
+  rather than fetching silently the way every other screen in either app
+  never does. Mobile reuses `allowNetworkForConnector` (already a generic
+  "network access from `src/connectors/`" door, not connector-execution-
+  specific); desktop reuses `AppState`'s existing `connector_http_client`
+  and wraps only the request `.send()` in `net_guard::allow_network`,
+  mirroring `execute.rs`'s own pattern.
+- **Extended the manifest schema to add a `"desktop"` platform value**
+  (`packages/connector-sdk` 0.1.0 → 0.2.0, plus Rust's `Platform` enum)
+  rather than have desktop's store ignore `platforms` — additive, non-
+  breaking. The two already-merged registry entries need a follow-up PR
+  adding `"desktop"` to their `platforms` arrays before they'll actually
+  appear in desktop's own store (both are plain Tier 1 HTTP calls, work
+  identically regardless of OS).
+- **"Install" is exactly "configure and grant," reused unchanged.** Both
+  platforms' `grant()`/`revoke()` already accepted an arbitrary
+  `ConnectorManifest` with no dependency on anything being "installed"
+  first — this task's real, non-obvious cost was elsewhere: neither app
+  had a persisted "which connectors does this device have" concept before
+  this. Mobile's `ConnectorsScreen`/`ModelSessionProvider` and desktop's
+  `known_connector_manifests()` all just rebuilt Search's manifest from
+  its own config on the fly, since Search was the only connector that
+  could ever exist. `connectors/store/installed.ts` (mobile) and
+  `connectors/installed.rs` (desktop) are that persistence, the first
+  time either — mirroring `grants.json`'s own plain-JSON, fail-closed
+  pattern, keyed by connector id, re-validated on every desktop read
+  (`ConnectorManifest` has no derived `Deserialize`, per its own doc
+  comment) so a manifest that no longer validates reads as "not
+  installed" rather than a stale value trusted anyway.
+- Store screens exclude Tier 3 entries (nothing in the store could ever
+  make one work — Tier 3 dispatches to a handler already registered
+  inside the app) and disable install for a `paid` entry (epic 6 doesn't
+  exist yet, so there is no working purchase path).
+- A found-in-passing, unrelated bug fixed while building this: desktop's
+  `connectors/manifest/fixtures.rs` still pointed its `include_str!`s at
+  `apps/mobile/src/connectors/manifest/fixtures/`, which task 5.1 moved
+  to `packages/connector-sdk/src/fixtures/` months earlier without
+  updating this reference (task 5.1 was TS-only work; desktop's own
+  `cargo build` wasn't run as part of it). Fixed in its own commit before
+  this task's real work started.
+
+**Honest gaps:**
+
+- No "update" flow for an already-installed connector whose registry
+  entry later changes shape — re-installing (same id) overwrites, but
+  there's no notification that an update exists.
+- Search is a client-side substring filter over name/summary, not a real
+  search backend — adequate for a registry with a handful of entries, not
+  designed to scale past that.
+- Neither store screen was exercised through a real native Tauri window
+  in this environment (no way to drive one directly here) — see
+  "Verified" below for exactly what was and wasn't proven.
+
+**Verified:**
+
+- Mobile: 258 tests pass (up from 225), including a real loopback-server
+  test proving the fetch+parse+re-validate path against a genuine HTTP
+  response.
+- Desktop: 128 Rust tests pass (up from 117, includes a real-TCP registry
+  fetch test), 49 TS tests pass (up from 39). typecheck/lint/prettier/
+  offline-boundary all clean on both platforms.
+- A real (temporary, not committed) check confirmed `fetch_registry()`
+  genuinely reaches `raw.githubusercontent.com/.../registry/
+  connectors.json` and correctly returns both real merged entries
+  (`fs.sovereign.weather-open-meteo`, `fs.sovereign.github-whoami`).
+- A real desktop debug binary was built and launched (not just compiled)
+  — started cleanly, stayed running, no panic — proving the new commands
+  don't break app startup.
+- Browser-pane verification covered navigation and rendering only:
+  Tauri's IPC bridge only exists inside a real native webview window,
+  which this environment has no way to drive directly, so `invoke()`
+  calls made through the Browser pane's plain-HTTP preview never resolve
+  (confirmed: `ConnectorsScreen` shows "Loading connectors…"
+  indefinitely there, exactly as expected, not a bug).
 
 ---
 
