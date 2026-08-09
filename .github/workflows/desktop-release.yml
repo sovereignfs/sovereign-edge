@@ -1,0 +1,175 @@
+name: Desktop release
+
+# Task 14.4 (Desktop Distribution & Signing, epic 14): the pipeline from a
+# version bump to a signed, published release — the last piece 14.1 (real
+# installer artifacts) and 14.3 (update mechanism) deferred. This is not
+# cosmetic: the running app's updater (task 14.3) checks
+# `releases/latest/download/latest.json` — until this workflow actually
+# publishes a non-prerelease GitHub Release with that asset, every real
+# install's "Check for Updates" 404s forever. Unlike mobile's own
+# release.yml (deliberately upload-artifact-only — no App Store/Play
+# accounts exist yet), desktop's pipeline must actually publish.
+#
+# Proceeds deliberately without task 14.2 (code signing — still skipped,
+# no Apple Developer ID certificate): the pipeline mechanics here (tag,
+# build, bump versions, updater-sign, publish) are orthogonal to whether
+# the macOS binary itself carries an Apple/Microsoft trust signature.
+# Every artifact this produces ships unsigned by the OS vendor, the same
+# Gatekeeper/SmartScreen warning a manual build already carries.
+#
+# Trigger is workflow_dispatch-only, mirroring release.yml (mobile) — no
+# tag-push trigger exists anywhere in this repo yet, and inventing one
+# isn't this task's job when the established convention is manual
+# dispatch. This also closes 14.1's Windows gap for real: a
+# `windows-latest` runner can build a genuine `nsis` installer where the
+# local development machine cannot (no Windows host, no MSVC
+# cross-toolchain, Docker Desktop can't run Windows containers on macOS).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (major.minor.patch, no leading "v"), e.g. 0.1.0'
+        required: true
+        type: string
+
+concurrency:
+  group: desktop-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+# Deliberate deviation from every other workflow's `contents: read`:
+# this pipeline pushes the version-bump commit/tag and creates a GitHub
+# Release, both of which need write access.
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    name: Bump version and tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Validate version input
+        run: |
+          set -euo pipefail
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version input must be major.minor.patch (no leading v), got '${{ inputs.version }}'"
+            exit 1
+          fi
+
+      - name: Fail if tag already exists
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/desktop-v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "::error::Tag desktop-v${{ inputs.version }} already exists — bump to a new version."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Bump version fields
+        run: node apps/desktop/scripts/bump-version.mjs "${{ inputs.version }}"
+
+      - name: Commit and tag
+        id: tag
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/package.json apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/tauri.conf.json
+          git commit -m "Release desktop v${{ inputs.version }}"
+          git tag "desktop-v${{ inputs.version }}"
+          git push origin main
+          git push origin "desktop-v${{ inputs.version }}"
+          echo "tag=desktop-v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.name }} — build and publish
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+          - os: windows-latest
+            name: Windows
+          - os: ubuntu-latest
+            name: Linux
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      # Same list desktop.yml already uses for debug builds — Tauri v2's
+      # own documented Ubuntu requirement (webkit2gtk 4.1, not 4.0). No
+      # `cmake` install needed: GitHub-hosted runner images ship it
+      # preinstalled (confirmed by desktop.yml already building
+      # successfully without installing it).
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check signing key is configured
+        run: |
+          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY secret is not set — see docs/epics/desktop/distribution.md task 14.3/14.4."
+            exit 1
+          fi
+
+      # tauri-action builds, bundles, signs (via the env vars below), and
+      # uploads every platform's artifacts to the same GitHub Release
+      # (identified by tagName) — additive across matrix legs, and
+      # generates/uploads latest.json itself rather than this repo
+      # hand-rolling it the way task 14.3's local-only verification did.
+      # releaseDraft: true is a deliberate safety default — nothing goes
+      # public until a human clicks "Publish release".
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ needs.prepare.outputs.tag }}
+          releaseName: 'Sovereign Edge desktop v${{ inputs.version }}'
+          releaseDraft: true
+          prerelease: false
