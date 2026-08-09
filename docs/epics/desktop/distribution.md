@@ -1,7 +1,7 @@
 ---
 epic: 14
 title: Desktop Distribution & Signing
-status: "⏳ In Progress — 14.1 done (macOS + Linux artifacts; Windows infeasible on this machine); 14.3 done (update mechanism, GitHub Releases hosting); 14.2 explicitly skipped (no Apple Developer ID)"
+status: "⏳ In Progress — 14.1, 14.3, 14.4 done (real signed macOS/Windows/Linux releases via CI, v0.1.5 published); 14.2 explicitly skipped (no Apple Developer ID)"
 scope: desktop
 ---
 
@@ -185,12 +185,12 @@ path the macOS build uses — running the Linux build leaves the host's own
 afterward, which this session did immediately after copying the Linux
 artifacts out.
 
-**Honest gap, deliberately not closed:** Windows (`nsis`) artifacts remain
-unbuilt and unverified — infeasible on this machine specifically, not just
-untested: Docker Desktop cannot run Windows containers on macOS, and there
-is no MSVC cross-toolchain here. A real `.exe`/`.msi` needs an actual
-Windows host or CI runner — task 14.4's job, not something a local
-Docker-based workaround can stand in for.
+**Gap closed by task 14.4, not this task:** Windows (`nsis`) artifacts
+could not be built on this machine specifically — Docker Desktop cannot
+run Windows containers on macOS, and there is no MSVC cross-toolchain
+here. A real `.exe`/`.msi` needed an actual Windows host or CI runner,
+which task 14.4's release pipeline (a `windows-latest` GitHub Actions
+runner) now provides — see that task's own section below.
 
 ---
 
@@ -338,7 +338,7 @@ immediately after (`gh release delete --cleanup-tag`), confirmed gone from
 
 ---
 
-#### 📋 14.4 — Release pipeline
+#### ✅ 14.4 — Release pipeline
 
 **Goal:** A repeatable, automated way to go from a version bump to a
 signed, distributable release — not a sequence of manual steps run once
@@ -357,11 +357,99 @@ and forgotten.
 
 **Dependencies:** Tasks 14.1, 14.2, 14.3.
 
+**Resolved, not skipped — proceeding without 14.2:** same call task 14.3
+already made. The pipeline's own mechanics — tagging, bumping versions,
+building, updater-signing, publishing — are orthogonal to whether the
+macOS binary carries an Apple Developer ID signature. Every artifact this
+pipeline produces ships unsigned by the OS vendor (Apple/Microsoft), the
+same Gatekeeper/SmartScreen warning a manual build already carries.
+
 **Review checklist:**
 
 - Running the pipeline against a tagged commit produces a downloadable,
   signed artifact set whose version matches the tag, without a manual
   signing step run by hand.
+
+**Decided:** `workflow_dispatch`-only trigger with a `version` input,
+mirroring mobile's own `release.yml` (no tag-push trigger exists anywhere
+in this repo; inventing one wasn't this task's job when manual dispatch is
+the established convention). Two jobs:
+`.github/workflows/desktop-release.yml`'s `prepare` (validates the version,
+runs the new `apps/desktop/scripts/bump-version.mjs`, commits
+`Release desktop v$VERSION`, tags `desktop-v$VERSION`, pushes both — a
+**real, permanent** version bump, not the scratch-and-revert pattern
+task 14.3's own verification used) and `build` (matrix macOS/Windows/Linux,
+mirroring `desktop.yml`'s existing matrix, using the official
+`tauri-apps/tauri-action@v0` to build, sign, and publish to a single
+shared GitHub Release per run — additive across the three OS legs,
+generating `latest.json` itself rather than hand-rolling it the way
+task 14.3's *local-only* verification did). `releaseDraft: true` by
+default — nothing goes public until a human publishes it.
+
+**This finally closes 14.1's Windows gap for real**, not just via CI
+theory: a `windows-latest` GitHub-hosted runner produces a genuine `nsis`
+`.exe` installer, something no machine available to this project could do
+locally (no Windows host, no MSVC cross-toolchain, Docker Desktop can't
+run Windows containers on macOS). It also adds a second, independent
+Linux artifact: a real **x86_64** `.deb`/`.AppImage` from `ubuntu-latest`,
+complementing task 14.1's local arm64 Docker build.
+
+**Three real CI bugs found and fixed by actually running this pipeline,
+not assumed from reading the YAML:**
+
+1. **Windows: a full workspace `pnpm install` breaks on Windows runners.**
+   `pnpm install --frozen-lockfile` (this repo's existing convention,
+   copied from `desktop.yml`) also runs mobile's `llama.rn` postinstall,
+   which fails on Windows with `tar (child): Cannot connect to C: resolve
+   failed` (`C:` misparsed as a hostname) — irrelevant to a desktop-only
+   build on any platform regardless. Every recent `desktop.yml` run had
+   in fact been silently failing on Windows for this exact reason, unrelated
+   to this task, only surfaced by looking. Fixed by scoping to
+   `pnpm install --frozen-lockfile --filter desktop...` (verified locally:
+   narrows to 3 of 7 workspace projects), applied to both `desktop.yml`
+   and `desktop-release.yml`.
+2. **macOS: `.cargo/config.toml` was one directory too deep to be found.**
+   Cargo's config-file discovery walks *up* from the current working
+   directory, never down. `src-tauri/.cargo/config.toml` (task 14.1's
+   `MACOSX_DEPLOYMENT_TARGET` fix) was only discoverable when `cargo` ran
+   from within `src-tauri/` itself — true for every local invocation used
+   so far, but `tauri-apps/tauri-action` invokes the build from
+   `apps/desktop` and never reached a file one level further down.
+   Relocated to `apps/desktop/.cargo/config.toml`, an ancestor of both
+   `apps/desktop` and `apps/desktop/src-tauri`.
+3. **macOS, again: relocating the file alone still wasn't enough.**
+   A temporary diagnostic CI step proved the real cause: Cargo's `[env]`
+   config table does **not** override a variable already present in the
+   inherited process environment unless `force = true` is set (documented
+   Cargo behavior) — and something in the
+   `tauri-apps/tauri-action` → Tauri CLI → `cargo build` chain (almost
+   certainly Tauri's own bundler, defaulting
+   `bundle.macOS.minimumSystemVersion` to `10.13` when `tauri.conf.json`
+   doesn't set it) was setting `MACOSX_DEPLOYMENT_TARGET` itself before
+   spawning `cargo`, silently shadowing this repo's own value every time.
+   Fixed with `MACOSX_DEPLOYMENT_TARGET = { value = "11.0", force = true }`
+   — verified locally by explicitly exporting a conflicting
+   `MACOSX_DEPLOYMENT_TARGET=10.13` in the shell and confirming the build
+   still succeeds only with `force = true` present.
+
+**Verified — a real, live, on-device-observable release, not a dry run:**
+uploaded the real Ed25519 private key (generated for real in task 14.3) as
+`TAURI_SIGNING_PRIVATE_KEY`/`_PASSWORD` GitHub Actions secrets. Triggered
+the workflow for real multiple times while debugging the three bugs above
+(each failed attempt's partial draft release and tag cleaned up before the
+next retry); the final run (`v0.1.5`) succeeded on all three platforms.
+Downloaded the real release assets and re-ran the same `minisign-verify`
+check task 14.3 used, confirming the macOS artifact's `.sig` genuinely
+verifies against the pubkey embedded in `tauri.conf.json`. Confirmed via
+`file` that the Windows artifact is a real `PE32 ... Nullsoft Installer`
+and the Linux artifacts are a real Debian package and a real
+`ELF 64-bit ... x86-64` AppImage — not placeholders. **Published the
+release for real** (un-drafted, with your explicit go-ahead) rather than
+deleting it: this is genuinely load-bearing, not just a test — it's what
+makes task 14.3's "Check for Updates" mean something for the first time.
+Confirmed the production updater endpoint
+(`releases/latest/download/latest.json`) now resolves to it via a live
+`curl -sIL`.
 
 ## Related Docs
 

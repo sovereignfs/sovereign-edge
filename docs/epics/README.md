@@ -50,7 +50,7 @@ file lives in; only the path changes.
 | 9   | [Desktop Shell](desktop/shell.md)           | ✅ Complete | Shell technology decision — Tauri v2, over Electron and a React Native shell |
 | 12  | [Desktop Core Port](desktop/core-port.md)   | ✅ Done | Secondary, optional desktop client on Tauri — on-device inference, connector framework, grammar-constrained tool-calling, minimal offline chat UI (12.1–12.7, 12.7a) |
 | 13  | [Desktop App Shell](desktop/app-shell.md)   | ✅ Done | Real navigation, model manager, connectors/permissions, and settings screens — extracted from task 12.7's single chat screen |
-| 14  | [Desktop Distribution & Signing](desktop/distribution.md) | ⏳ In Progress | Real signed/notarized installer artifacts and a self-update mechanism — no app store to piggyback on; macOS/Linux artifacts (14.1) and the update mechanism (14.3, GitHub Releases hosting) done; 14.2 (code signing) skipped for now, Windows deferred to 14.4 |
+| 14  | [Desktop Distribution & Signing](desktop/distribution.md) | ⏳ In Progress | Real signed/notarized installer artifacts and a self-update mechanism — no app store to piggyback on; 14.1/14.3/14.4 done — real macOS/Windows/Linux releases via CI, `v0.1.5` published, update mechanism live; only 14.2 (code signing) remains, skipped for now |
 
 ## Shared
 

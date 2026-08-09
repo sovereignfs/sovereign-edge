@@ -33,15 +33,20 @@ for what each task delivered.
 
 Epics 12 and 13 are both closed. Epic 14 (Desktop Distribution & Signing —
 real signed/notarized installer artifacts and a self-update mechanism) is
-in progress: task 14.1 (real installer artifacts) is done for macOS and
-Linux — Windows is an honest, infeasible-on-this-machine gap deferred to
-14.4. 14.2 (code signing/notarization) is explicitly skipped for now (no
-Apple Developer ID certificate available). Task 14.3 (update mechanism) is
-done — `tauri-plugin-updater`, a real Ed25519 signing keypair, GitHub
-Releases hosting — proceeding deliberately without 14.2 (the two signing
-schemes are independent; an update to this still-unsigned app triggers the
-same Gatekeeper warning a fresh install does). 14.4 (release pipeline) is
-next. See
+nearly done: tasks 14.1, 14.3, and 14.4 are all complete — only 14.2 (code
+signing/notarization) remains, explicitly skipped for now (no Apple
+Developer ID certificate available). 14.1 (installer artifacts): real
+macOS/Linux builds. 14.3 (update mechanism): `tauri-plugin-updater`, a
+real Ed25519 signing keypair, GitHub Releases hosting. 14.4 (release
+pipeline): a `workflow_dispatch` CI workflow that bumps versions, tags,
+builds, signs, and publishes real macOS/Windows/Linux artifacts in one
+run — closing 14.1's Windows gap for real via a `windows-latest` runner.
+**`v0.1.5` is published**, this app's first real release, and
+`releases/latest/download/latest.json` now resolves to it — task 14.3's
+updater is genuinely live, not just built. All of this proceeded
+deliberately without 14.2 (the two signing schemes are independent; an
+update to this still-unsigned app triggers the same Gatekeeper warning a
+fresh install does). See
 [docs/epics/desktop/distribution.md](../../docs/epics/desktop/distribution.md).
 Check `ROADMAP.md` before starting anything here: whether epic 14 continues
 next, mobile's own remaining Phase 1 item (0.1.20), or something else is
@@ -309,11 +314,11 @@ frontend, not React Native primitives.
   running it leaves the host's own `target/release` holding a Linux ELF
   binary until a macOS `pnpm tauri build`/`cargo build --release` runs
   again on the host — do this before trusting `target/release` for local
-  macOS work if you've run the Linux container. **Honest gap, deliberately
-  not closed:** Windows (`nsis`) artifacts remain unbuilt — infeasible on
-  this machine, not just untested: Docker Desktop can't run Windows
-  containers on macOS and there's no MSVC cross-toolchain here. A real
-  `.exe`/`.msi` needs an actual Windows host or CI runner (task 14.4).
+  macOS work if you've run the Linux container. **Windows gap closed by
+  task 14.4, not here:** a real `nsis` `.exe` needed an actual Windows
+  host or CI runner — infeasible on this machine (Docker Desktop can't run
+  Windows containers on macOS, no MSVC cross-toolchain) — which 14.4's
+  `windows-latest` GitHub Actions runner now provides for real.
 - **Icons are real, not placeholders** — generated via `pnpm tauri icon`
   from `apps/mobile/assets/icon.png`, so the desktop and mobile apps share
   one visual identity rather than diverging from day one.
@@ -344,14 +349,44 @@ frontend, not React Native primitives.
   cryptographic signature check (`minisign-verify`, the same crate
   `tauri-plugin-updater` itself uses) confirming the hosted artifact's
   `.sig` verifies against the pubkey — with a tampered-byte negative
-  control confirmed to fail. **Honest gap:** this sandboxed environment
-  has no Accessibility/screen-capture access, so the actual native-window
-  click-through (check → download → install → relaunch → confirm new
-  version) could not be driven interactively here — the crypto/network
-  layer is verified for real, the final GUI step is not. Proceeded
+  control confirmed to fail. **Honest gap, this task's own session:** the
+  sandboxed environment doing the implementation work had no Accessibility/
+  screen-capture access, so the actual native-window click-through (check
+  → download → install → relaunch → confirm new version) couldn't be
+  driven interactively there. Task 14.4 closed the gap that mattered more:
+  a real, live production release (`v0.1.5`) now exists, so this can be
+  verified by hand on any real machine going forward. Proceeded
   deliberately without task 14.2 (code signing) — the two signing schemes
   are independent; updates to this still-unsigned app trigger the same
   Gatekeeper warning a fresh install does.
+- **Release pipeline (14.4).** `.github/workflows/desktop-release.yml`
+  (new): `workflow_dispatch` with a `version` input, mirroring mobile's
+  own `release.yml` convention (no tag-push trigger exists in this repo).
+  `prepare` job bumps the three version fields via the new
+  `apps/desktop/scripts/bump-version.mjs`, commits, tags
+  `desktop-v$VERSION`, pushes — a real, permanent bump each run, not
+  scratch-and-revert. `build` job (matrix macOS/Windows/Linux, mirroring
+  `desktop.yml`) uses `tauri-apps/tauri-action@v0` to build, sign, and
+  publish to one shared GitHub Release across all three legs, generating
+  `latest.json` itself. `TAURI_SIGNING_PRIVATE_KEY`/`_PASSWORD` are real
+  GitHub Actions secrets now (the same key task 14.3 generated), not just
+  a local file. **Three real bugs found by actually running this
+  pipeline, not by reading the YAML:** (1) a full workspace `pnpm install`
+  breaks on Windows via mobile's `llama.rn` postinstall — fixed by scoping
+  to `--filter desktop...` (also fixed in `desktop.yml`, which had been
+  silently red on Windows for a while for the same reason); (2) Cargo's
+  config-file discovery walks up from CWD, never down, so
+  `src-tauri/.cargo/config.toml` was invisible to `tauri-apps/tauri-action`
+  (which builds from `apps/desktop`) — relocated to
+  `apps/desktop/.cargo/config.toml`; (3) relocating alone wasn't enough —
+  Cargo's `[env]` table doesn't override an already-set env var without
+  `force = true`, and something in the Tauri CLI's own build chain
+  (probably `bundle.macOS.minimumSystemVersion` defaulting to `10.13`) was
+  setting `MACOSX_DEPLOYMENT_TARGET` itself before `cargo build` ran —
+  fixed with `{ value = "11.0", force = true }`, verified locally by
+  reproducing the exact conflict. **`v0.1.5` is published** — real signed
+  macOS/Windows/Linux artifacts, cryptographically verified, and the
+  production updater endpoint now resolves to it for real.
 
 ## Native project rules (Tauri's equivalent of mobile's native project)
 

@@ -110,23 +110,26 @@ flagged, previously-unanswered question). Task 14.1 (real installer
 artifacts) is done: explicit `bundle.targets`, a real macOS `.app`/`.dmg`
 built and installed/launched outside the build tree, plus real Linux
 `.deb`/`.AppImage` built and verified via a native (non-cross-compiled)
-Docker container; Windows remains an honest, infeasible-on-this-machine
-gap (no Windows host, no MSVC cross-toolchain, Docker Desktop can't run
-Windows containers on macOS) deferred to task 14.4's CI pipeline. Task 14.3
-(update mechanism) is also done: `tauri-plugin-updater` + a real Ed25519
-signing keypair, hosted via GitHub Releases, verified with a real signed
-build, a real (throwaway, deleted) GitHub prerelease, and a real
-cryptographic signature check — proceeding deliberately without task 14.2
-(code signing, still skipped for lack of an Apple Developer ID
-certificate), since the two signing schemes are independent. See
-[distribution.md](docs/epics/desktop/distribution.md).
+Docker container. Task 14.3 (update mechanism) is done:
+`tauri-plugin-updater` + a real Ed25519 signing keypair, hosted via
+GitHub Releases — proceeding deliberately without task 14.2 (code
+signing, still skipped for lack of an Apple Developer ID certificate),
+since the two signing schemes are independent. Task 14.4 (release
+pipeline) is done too: a `workflow_dispatch` GitHub Actions workflow that
+bumps versions, tags, builds, signs, and publishes real macOS/Windows/
+Linux artifacts in one run — closing 14.1's Windows gap for real via a
+`windows-latest` runner, and adding a second, x86_64 Linux artifact
+alongside 14.1's local arm64 one. **`v0.1.5` is published** — the first
+real desktop release, and the first real proof task 14.3's updater
+actually works end to end (`releases/latest/download/latest.json`
+resolves to it). See [distribution.md](docs/epics/desktop/distribution.md).
 
 ### Non-prioritised tasks
 
-Desktop app code — no version slot assigned yet; `apps/desktop/package.json`
-stays at `0.0.0` until it actually ships a release (epic 14's own job to
-define what that means), per this repo's own per-app versioning
-convention.
+Desktop app code — `apps/desktop/package.json` is now `0.1.5` as of task
+14.4's first real release pipeline run, closing the `0.0.0` gap this
+section used to flag; future bumps happen the same way, via
+`.github/workflows/desktop-release.yml`, not by hand.
 
 | Version | Task                                                | Status | Scope   | Epic task                                                                             |
 | ------- | ------------------------------------------------------ | ------ | ------- | ------------------------------------------------------------------------------------------ |
