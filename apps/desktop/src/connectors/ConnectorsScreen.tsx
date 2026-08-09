@@ -2,9 +2,19 @@ import { useEffect, useState } from 'react';
 import { ListItem, Toggle, useTheme } from 'desktop-ui';
 import {
   listConnectors,
+  removeConnector,
   setConnectorGranted,
   type ConnectorStatus,
 } from '../lib/tauri';
+
+/**
+ * `connectors::search::CONNECTOR_ID` on the Rust side — Search is built
+ * into the app rather than store-installed, so it gets "reconfigure," not
+ * "remove." No shared constant crosses the IPC boundary for this; hardcoded
+ * here the same way mobile's own `ConnectorsScreen.tsx` distinguishes
+ * Search by construction rather than a shared id export.
+ */
+const SEARCH_CONNECTOR_ID = 'fs.sovereign.search';
 
 /**
  * Task 13.3's own scope: a real settings surface listing every installed
@@ -25,16 +35,27 @@ import {
  * `known_connector_manifests` on the Rust side), so the empty state below
  * isn't a placeholder for "no connectors exist yet" anymore — it's the
  * real, reachable "set one up" entry point mobile's screen already has.
+ *
+ * Task 5.5 adds the store entry point and "Remove" for any store-installed
+ * connector — `listConnectors()` itself already includes them, since
+ * `known_connector_manifests()` on the Rust side now reads
+ * `connectors::installed::read_installed` alongside Search.
  */
 export function ConnectorsScreen({
   onNavigate,
 }: {
-  onNavigate: (destination: 'connectors-setup') => void;
+  onNavigate: (destination: 'connectors-setup' | 'connector-store') => void;
 }) {
   const theme = useTheme();
   const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const refresh = async () => {
+    const list = await listConnectors();
+    setConnectors(list);
+    setLoading(false);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +70,16 @@ export function ConnectorsScreen({
       cancelled = true;
     };
   }, []);
+
+  async function remove(id: string) {
+    setPendingId(id);
+    try {
+      await removeConnector(id);
+      await refresh();
+    } finally {
+      setPendingId(null);
+    }
+  }
 
   async function toggle(id: string, next: boolean) {
     setPendingId(id);
@@ -96,23 +127,33 @@ export function ConnectorsScreen({
       ) : (
         <>
           {connectors.map((connector) => (
-            <ListItem
-              key={connector.id}
-              title={connector.name}
-              subtitle={
-                connector.granted
-                  ? 'Granted — this connector may reach the network when used.'
-                  : 'Not granted — this connector cannot reach the network.'
-              }
-              accessory={
-                <Toggle
-                  value={connector.granted}
-                  onValueChange={(next) => void toggle(connector.id, next)}
+            <div key={connector.id}>
+              <ListItem
+                title={connector.name}
+                subtitle={
+                  connector.granted
+                    ? 'Granted — this connector may reach the network when used.'
+                    : 'Not granted — this connector cannot reach the network.'
+                }
+                accessory={
+                  <Toggle
+                    value={connector.granted}
+                    onValueChange={(next) => void toggle(connector.id, next)}
+                    disabled={pendingId === connector.id}
+                    aria-label={connector.name}
+                  />
+                }
+              />
+              {connector.id === SEARCH_CONNECTOR_ID ? null : (
+                <ListItem
+                  title="Remove"
+                  subtitle={`Uninstall ${connector.name}`}
+                  destructive
                   disabled={pendingId === connector.id}
-                  aria-label={connector.name}
+                  onClick={() => void remove(connector.id)}
                 />
-              }
-            />
+              )}
+            </div>
           ))}
           {/* A way back into setup once configured — without this, fixing a
               mistyped URL or key means revoke-then-grant, which re-offers
@@ -124,6 +165,14 @@ export function ConnectorsScreen({
             onClick={() => onNavigate('connectors-setup')}
           />
         </>
+      )}
+
+      {loading ? null : (
+        <ListItem
+          title="Connector Store"
+          subtitle="Browse and install third-party connectors"
+          onClick={() => onNavigate('connector-store')}
+        />
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import { useTheme } from 'desktop-ui';
 import { ChatScreen } from '../chat/ChatScreen';
 import { ModelsScreen } from '../models/ModelsScreen';
 import { ConnectorsScreen } from '../connectors/ConnectorsScreen';
+import { ConnectorStoreScreen } from '../connectors/ConnectorStoreScreen';
 import { SearchSetupScreen } from '../connectors/SearchSetupScreen';
 import { SettingsScreen } from '../settings/SettingsScreen';
 
@@ -21,14 +22,20 @@ import { SettingsScreen } from '../settings/SettingsScreen';
  * 12.6 made about a styling library.
  */
 
-// 'connectors-setup' is deliberately not in `DESTINATIONS`/the sidebar —
-// task 13.6's Search setup screen is reachable only via
-// `ConnectorsScreen`'s own "Not set up"/"Change provider or key" rows
-// calling this same `setDestination`, mirroring how `ChatScreen`'s own
-// out-links already work rather than adding a nested-navigation system
-// for one screen.
+// 'connectors-setup'/'connector-store' are deliberately not in
+// `DESTINATIONS`/the sidebar — reachable only via `ConnectorsScreen`'s own
+// "Not set up"/"Change provider or key"/"Connector Store" rows calling
+// this same `setDestination`, mirroring how `ChatScreen`'s own out-links
+// already work rather than adding a nested-navigation system for what are
+// still flat, non-deep-linked destinations (task 5.5 follows the same
+// precedent task 13.6 set for `connectors-setup`).
 type Destination =
-  'chat' | 'models' | 'connectors' | 'connectors-setup' | 'settings';
+  | 'chat'
+  | 'models'
+  | 'connectors'
+  | 'connectors-setup'
+  | 'connector-store'
+  | 'settings';
 
 const DESTINATIONS: { id: Destination; label: string }[] = [
   { id: 'chat', label: 'Chat' },
@@ -103,6 +110,9 @@ export function AppShell() {
         ) : null}
         {destination === 'connectors-setup' ? (
           <SearchSetupScreen onNavigate={setDestination} />
+        ) : null}
+        {destination === 'connector-store' ? (
+          <ConnectorStoreScreen onNavigate={setDestination} />
         ) : null}
         {destination === 'settings' ? (
           <SettingsScreen onNavigate={setDestination} />

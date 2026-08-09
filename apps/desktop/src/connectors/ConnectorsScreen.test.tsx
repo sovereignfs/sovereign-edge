@@ -12,11 +12,13 @@ vi.mock('../lib/tauri', async () => {
     ...actual,
     listConnectors: vi.fn(),
     setConnectorGranted: vi.fn(),
+    removeConnector: vi.fn(),
   };
 });
 
 const listConnectors = vi.mocked(tauri.listConnectors);
 const setConnectorGranted = vi.mocked(tauri.setConnectorGranted);
+const removeConnector = vi.mocked(tauri.removeConnector);
 
 function renderScreen(onNavigate = vi.fn()) {
   render(
@@ -120,5 +122,63 @@ describe('ConnectorsScreen', () => {
     await userEvent.click(button);
 
     expect(onNavigate).toHaveBeenCalledWith('connectors-setup');
+  });
+
+  it('the store entry point navigates to the connector store', async () => {
+    listConnectors.mockResolvedValue([]);
+    const { onNavigate } = renderScreen();
+
+    const row = await screen.findByText('Connector Store');
+    const button = row.closest('button');
+    if (!button) throw new Error('store entry row is not clickable');
+    await userEvent.click(button);
+
+    expect(onNavigate).toHaveBeenCalledWith('connector-store');
+  });
+
+  it('shows a Remove row for a store-installed connector but not for Search', async () => {
+    listConnectors.mockResolvedValue([
+      { id: 'fs.sovereign.search', name: 'Search', granted: true },
+      {
+        id: 'fs.sovereign.weather-open-meteo',
+        name: 'Open-Meteo Forecast',
+        granted: true,
+      },
+    ]);
+    renderScreen();
+
+    await screen.findByText('Open-Meteo Forecast');
+    expect(
+      screen.getByText('Uninstall Open-Meteo Forecast'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Uninstall Search')).not.toBeInTheDocument();
+  });
+
+  it('removing a store-installed connector calls removeConnector and refreshes', async () => {
+    listConnectors
+      .mockResolvedValueOnce([
+        {
+          id: 'fs.sovereign.weather-open-meteo',
+          name: 'Open-Meteo Forecast',
+          granted: true,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    removeConnector.mockResolvedValue(undefined);
+    renderScreen();
+
+    const remove = await screen.findByText('Uninstall Open-Meteo Forecast');
+    const button = remove.closest('button');
+    if (!button) throw new Error('remove row is not clickable');
+    await userEvent.click(button);
+
+    await waitFor(() =>
+      expect(removeConnector).toHaveBeenCalledWith(
+        'fs.sovereign.weather-open-meteo',
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('Open-Meteo Forecast')).not.toBeInTheDocument(),
+    );
   });
 });

@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
+import type { ConnectorManifest } from '@sovereignfs/connector-sdk';
+
 /**
  * Thin, typed wrappers around the Tauri commands `src-tauri/src/lib.rs`
  * registers (tasks 12.2–12.7a). Field casing here matches each Rust
@@ -66,7 +68,7 @@ export type ConnectorStatus = {
 
 /** Mirrors `CommandError`'s `#[serde(tag = "kind", content = "error")]` shape. */
 export type CommandError = {
-  kind: 'Model' | 'Inference' | 'Connector' | 'Vault';
+  kind: 'Model' | 'Inference' | 'Connector' | 'Vault' | 'Store';
   error: unknown;
 };
 
@@ -242,4 +244,41 @@ export function onDownloadPhase(
   return listen<DownloadPhase>('download-phase', (event) =>
     handler(event.payload),
   );
+}
+
+/** Mirrors `RegistryConnectorDto`'s `#[serde(rename_all = "camelCase")]`. */
+export type RegistryConnectorDto = {
+  id: string;
+  submittedByName: string;
+  manifest: ConnectorManifest;
+};
+
+/**
+ * Task 5.5: fetches and re-validates the public registry live. The Rust
+ * side already re-validates every entry through `validate_manifest`
+ * before it ever reaches here — this is not the app's only check, but the
+ * first line of defense against a tampered network response is already
+ * behind this call, not something the frontend has to redo.
+ */
+export function fetchConnectorRegistry(): Promise<RegistryConnectorDto[]> {
+  return call('fetch_connector_registry');
+}
+
+/**
+ * Installs a connector fetched from the store: validate → write any
+ * declared credentials to the vault → grant → persist — epic 2.2's
+ * consent model, reused unchanged. `credentials` is a flat key→value map
+ * (declared credential key → the value the user entered), empty for a
+ * connector with none.
+ */
+export function installConnector(
+  manifest: ConnectorManifest,
+  credentials: Record<string, string>,
+): Promise<ConnectorStatus> {
+  return call('install_connector', { manifest, credentials });
+}
+
+/** Revokes and un-persists a store-installed connector. */
+export function removeConnector(id: string): Promise<void> {
+  return call('remove_connector', { id });
 }
