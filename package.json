@@ -15,7 +15,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "pnpm -r --if-present lint",
     "lint:fix": "pnpm -r --if-present lint:fix",
-    "check:offline": "pnpm --filter mobile check:offline",
+    "check:offline": "pnpm -r --if-present check:offline",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -1,7 +1,7 @@
 ---
 epic: 13
 title: Desktop App Shell
-status: "✅ Done — tasks 13.1–13.8 all done"
+status: "✅ Done — tasks 13.1–13.9 all done"
 scope: desktop
 ---
 
@@ -655,7 +655,70 @@ skipped — nothing to re-run.
 
 ---
 
-This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.8 are done.
+---
+
+#### ✅ 13.9 — Static offline-boundary import-graph check
+
+**Goal:** Close the third-ranked gap the same audit found: mobile has a
+static CI check (`scripts/ci/check-offline-boundary.js`) walking the
+import graph from `src/chat/` and failing if it transitively reaches
+`src/models/`/`src/connectors/` — a check ESLint's own file-at-a-time
+scope cannot do. Desktop had no equivalent at all.
+
+**Deliverables:**
+
+- `apps/desktop/scripts/ci/check-offline-boundary.js` — a direct port of
+  mobile's script (same BFS-shortest-chain algorithm, same
+  `ts.preProcessFile`-based import reading so `export … from`/type-only
+  imports/`require()` are all seen correctly), adapted for two real
+  differences: converted to ESM (`import`/`fileURLToPath`, not
+  `require`) since `apps/desktop/package.json` sets `"type": "module"`
+  (mobile's does not); and its error message points at the real desktop
+  boundary — `src/chat/` reaches the network only through
+  `src/lib/tauri.ts`'s `invoke()` calls into the Rust backend (task
+  12.9's `net_guard.rs` guards those at runtime), not through any
+  frontend HTTP client, so the fix instruction says "add a wrapper to
+  `src/lib/tauri.ts`," not mobile's "invert through `ChatSessionContext`."
+- New `check:offline` script in `apps/desktop/package.json`; root
+  `package.json`'s own `check:offline` script changed from
+  `pnpm --filter mobile check:offline` (mobile-only) to
+  `pnpm -r --if-present check:offline`, matching the existing
+  `lint`/`typecheck`/`test` fan-out pattern — picks up desktop
+  automatically, and any future workspace package too.
+
+**Dependencies:** None new — reuses the existing `typescript` compiler
+dependency already present for `tsc --noEmit`.
+
+**Review checklist:**
+
+- The check passes on the real, unmodified `src/chat/` tree, and
+  correctly fails with the right chain when a violation is planted.
+
+**Decided: same algorithm, narrower scope than mobile's, stated
+honestly.** Desktop's frontend has no direct network layer of its own —
+every real network call happens in the already-guarded Rust backend
+(task 12.9) — so this check's actual job is narrower than mobile's own
+(which guards a JS runtime that really can call `fetch` directly): it
+exists to stop `src/chat/` from bypassing `src/lib/tauri.ts` by importing
+`src/models/`/`src/connectors/` directly, and to catch a browser HTTP
+client package if one is ever added to `src/chat/`, not one that exists
+today.
+
+**Verified:** ran against the real, unmodified `src/chat/` tree —
+`Offline boundary intact: 3 files under src/chat/...`. Planted a real
+scratch violation (a throwaway `import { listModels } from
+'../models/ModelsScreen'` appended to `modes.ts`) and confirmed the
+script reported the exact chain and exited non-zero, then reverted it
+before committing (confirmed via `git diff` showing no leftover change).
+`pnpm typecheck`/`eslint .`/`prettier --check` clean for the new script.
+Root `pnpm check:offline` confirmed to run both apps' checks in one
+invocation, matching what `ci.yml`'s existing step will now exercise
+with no workflow-file change needed (`ci.yml`'s "Check the offline
+boundary" step already just calls `pnpm check:offline`).
+
+---
+
+This closes epic 13 (Desktop App Shell) — all of tasks 13.1–13.9 are done.
 
 ## Related Docs
 

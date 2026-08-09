@@ -438,6 +438,27 @@ frontend, not React Native primitives.
   (37/37) and root `pnpm test --ci` (mobile 241/241 + desktop 37/37, the
   literal CI invocation) both clean; `typecheck`/`eslint`/`prettier`
   clean. No Rust touched.
+- **Static offline-boundary import-graph check (13.9).**
+  `scripts/ci/check-offline-boundary.js` — a direct port of mobile's own
+  `check-offline-boundary.js` (same BFS-shortest-chain algorithm, same
+  `ts.preProcessFile`-based import reading), converted to ESM (this
+  package is `"type": "module"`, mobile's is not) and re-pointed at
+  desktop's real boundary: `src/chat/` reaches the network only through
+  `src/lib/tauri.ts`'s `invoke()` into the Rust backend (already guarded
+  at runtime by task 12.9's `net_guard.rs`), so the check's job is
+  narrower than mobile's — stop `src/chat/` from importing
+  `src/models/`/`src/connectors/` directly, and catch a frontend HTTP
+  client package if one is ever added. Root `package.json`'s
+  `check:offline` script changed from mobile-only
+  (`pnpm --filter mobile check:offline`) to `pnpm -r --if-present
+  check:offline`, matching the existing `lint`/`typecheck`/`test`
+  fan-out — no `ci.yml` change needed, its step already just calls
+  `pnpm check:offline`. Verified: real, unmodified `src/chat/` tree
+  passes (`3 files ... intact`); a scratch-planted violation (a
+  throwaway import from `models/ModelsScreen.tsx` appended to
+  `modes.ts`) was confirmed to report the exact import chain and exit
+  non-zero, then reverted before committing (`git diff` confirmed clean).
+  `typecheck`/`eslint`/`prettier` clean.
 - **Real installer artifacts per platform (14.1).**
   `tauri.conf.json`'s `bundle.targets` names each platform explicitly
   (`["app", "dmg", "nsis", "deb", "appimage"]`, `rpm` deliberately cut) —
