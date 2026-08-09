@@ -16,5 +16,19 @@
 # app's own default Metal GPU offload (task 12.2) already imply a
 # reasonably modern macOS, so there is nothing to preserve by chasing the
 # lowest number that happens to build.
+#
+# Task 14.4's own relocation: this file originally lived at
+# `src-tauri/.cargo/config.toml`. Cargo's config-file discovery walks
+# *up* from the current working directory, never down — so it's only
+# found if `cargo` is actually invoked from within `src-tauri/` or one of
+# its own subdirectories. That held for every local invocation this repo
+# had used so far, but `tauri-apps/tauri-action` (the release pipeline's
+# own builder, task 14.4) runs from `apps/desktop` and never reached the
+# file at its old location — confirmed by an actual CI failure showing
+# the un-fixed `-mmacosx-version-min=10.13` flag despite the file
+# existing and being correct. One directory up, at `apps/desktop/`, this
+# file is discoverable from both `apps/desktop` and
+# `apps/desktop/src-tauri` (an ancestor of both), covering every
+# invocation shape this repo actually uses.
 [env]
 MACOSX_DEPLOYMENT_TARGET = "11.0"
