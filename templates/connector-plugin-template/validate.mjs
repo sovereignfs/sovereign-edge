@@ -9,7 +9,9 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const result = validateManifest(manifest);
 
 if (result.valid) {
-  console.log(`${manifestPath} is a valid Tier ${result.manifest.tier} manifest.`);
+  console.log(
+    `${manifestPath} is a valid Tier ${result.manifest.tier} manifest.`,
+  );
   process.exit(0);
 }
 
