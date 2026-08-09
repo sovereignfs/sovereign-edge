@@ -17,15 +17,19 @@ import { executeConnectorCall } from './execute';
  * (apps/desktop/src-tauri/src/connectors/orchestration.rs).
  *
  * `isAllowed`/`openVault` are mocked, same as execute.test.ts, since grant
- * and credential persistence are exercised elsewhere (tasks 2.2, 2.4). The
- * HTTP layer is not mocked: this test opens a real loopback TCP listener
- * and lets the manifest's own `executeConnectorCall` path make a real
- * request against it.
+ * and credential persistence are exercised elsewhere (tasks 2.2, 2.4).
+ * `isConnectorUsable` runs for real (task 6.1) rather than being mocked:
+ * both example manifests are free, so it reduces to `pricing.model ===
+ * 'free'` and never touches entitlement storage. The HTTP layer is not
+ * mocked: this test opens a real loopback TCP listener and lets the
+ * manifest's own `executeConnectorCall` path make a real request against
+ * it.
  */
 
 const mockIsAllowed = jest.fn();
 const mockVaultRead = jest.fn();
 jest.mock('../permissions', () => ({
+  ...jest.requireActual('../permissions'),
   isAllowed: (...args: unknown[]) => mockIsAllowed(...args),
   openVault: () => ({ read: (...args: unknown[]) => mockVaultRead(...args) }),
 }));

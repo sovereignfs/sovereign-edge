@@ -151,7 +151,7 @@ pub fn is_allowed(grants_dir: &Path, manifest: &ConnectorManifest) -> bool {
 /// No date/time crate dependency for one timestamp format — the
 /// days-since-epoch → civil date conversion is Howard Hinnant's public
 /// domain `civil_from_days` algorithm (http://howardhinnant.github.io/date_algorithms.html).
-fn iso_now() -> String {
+pub(super) fn iso_now() -> String {
     let since_epoch = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or(std::time::Duration::ZERO);

@@ -4,9 +4,14 @@
 //! (task 12.3) — this module is the state machine that decides *whether*
 //! a connector may run and calls into that vault on revoke.
 
+pub mod entitlements;
 pub mod grants;
 pub mod types;
 
+pub use entitlements::{
+    grant_entitlement, has_entitlement, is_connector_usable, list_entitlements, revoke_entitlement,
+    EntitlementRecord,
+};
 pub use grants::{
     deny, grant, grant_for, grants_directory, is_allowed, list_grants, needs_redecision, revoke,
 };

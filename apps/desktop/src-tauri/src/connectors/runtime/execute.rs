@@ -343,12 +343,21 @@ async fn dispatch(
 /// Executes a validated tool call against a connector's manifest.
 /// Dispatches on tier — Tier 1's HTTP request/response mapping, Tier 3's
 /// native handler registry lookup (task 12.5), mirroring `executeConnectorCall`.
+///
+/// Checks `is_connector_usable` once here rather than in each tier's own
+/// dispatch function (task 6.1) — a paid connector with no entitlement has
+/// nothing to run regardless of tier, and the store/install commands
+/// already guard against this defensively, but this function must not
+/// assume its caller did.
 pub async fn execute_connector_call(
     client: &reqwest::Client,
     manifest: &ConnectorManifest,
     args: &serde_json::Value,
     grants_dir: &Path,
 ) -> ExecutionResult {
+    if !permissions::is_connector_usable(grants_dir, manifest) {
+        return ExecutionResult::Err(ExecutionFailure::new(FailureReason::NotEntitled));
+    }
     match manifest {
         ConnectorManifest::Tier1(tier1) => {
             dispatch(client, manifest, tier1, args, grants_dir).await
@@ -658,6 +667,69 @@ mod tests {
         match result {
             ExecutionResult::Err(f) => assert_eq!(f.reason, FailureReason::NotPermitted),
             other => panic!("expected not-permitted, got {other:?}"),
+        }
+    }
+
+    /// Task 6.1: a paid connector with no recorded entitlement is refused
+    /// before the grant check would even matter — real end-to-end proof
+    /// that `execute_connector_call` consults `permissions::entitlements`
+    /// via a real on-disk grant *and* a real on-disk entitlement, not just
+    /// `entitlements.rs`'s own unit tests in isolation.
+    #[tokio::test]
+    async fn refuses_an_unentitled_paid_connector_even_when_granted() {
+        use_mock_keyring();
+        let mut manifest_tier1 = search_manifest();
+        manifest_tier1.id = format!("fs.sovereign.paid.gate-test-{}", uuid_like());
+        manifest_tier1.pricing = crate::connectors::manifest::Pricing::Paid {
+            product_id: "fs.sovereign.paid.gate-test.unlock".to_string(),
+        };
+        let manifest = ConnectorManifest::Tier1(manifest_tier1);
+        let grants_dir = tempfile_dir();
+        permissions::grant(&grants_dir, &manifest);
+
+        let before = execute_connector_call(
+            &client(),
+            &manifest,
+            &serde_json::json!({ "query": "chili" }),
+            &grants_dir,
+        )
+        .await;
+        match before {
+            ExecutionResult::Err(f) => assert_eq!(f.reason, FailureReason::NotEntitled),
+            other => panic!("expected not-entitled, got {other:?}"),
+        }
+
+        // No real purchase rail exists yet (6.2/6.3) — this is the same
+        // "grant it for real, then confirm the gate reacts" a future IAP/
+        // direct-sale success handler would do, exercised here since
+        // nothing else in the app can trigger it yet.
+        permissions::grant_entitlement(&grants_dir, manifest.id(), "dev-override");
+        let after_grant = execute_connector_call(
+            &client(),
+            &manifest,
+            &serde_json::json!({ "query": "chili" }),
+            &grants_dir,
+        )
+        .await;
+        // Past the entitlement gate now — fails on the real network call
+        // instead (the fixture's origin isn't a real server), proving the
+        // gate itself, not the whole request, was what changed.
+        match after_grant {
+            ExecutionResult::Err(f) => assert_ne!(f.reason, FailureReason::NotEntitled),
+            ExecutionResult::Ok { .. } => {}
+        }
+
+        permissions::revoke_entitlement(&grants_dir, manifest.id());
+        let after_revoke = execute_connector_call(
+            &client(),
+            &manifest,
+            &serde_json::json!({ "query": "chili" }),
+            &grants_dir,
+        )
+        .await;
+        match after_revoke {
+            ExecutionResult::Err(f) => assert_eq!(f.reason, FailureReason::NotEntitled),
+            other => panic!("expected not-entitled after revoke, got {other:?}"),
         }
     }
 

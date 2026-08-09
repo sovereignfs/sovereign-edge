@@ -78,7 +78,7 @@ store, and turn on monetization.
 | 0.3.4   | Public connector registry and submission process | ✅ | Shared | [5.4](docs/epics/shared/connector-store-sdk.md#-54--public-connector-registry-and-submission-process) |
 | 0.3.5   | In-app Connector Store                       | ✅     | Shared | [5.5](docs/epics/shared/connector-store-sdk.md#-55--in-app-connector-store)                            |
 | 0.3.6   | Tier 2 sandboxed script runtime              | 📋     | Shared | [5.6](docs/epics/shared/connector-store-sdk.md#-56--tier-2-sandboxed-script-runtime)                   |
-| 0.3.7   | Entitlement model                            | 📋     | Shared | [6.1](docs/epics/shared/monetization.md#-61--entitlement-model)                                        |
+| 0.3.7   | Entitlement model                            | ✅     | Shared | [6.1](docs/epics/shared/monetization.md#-61--entitlement-model)                                        |
 | 0.3.8   | Mobile in-app purchase integration           | 📋     | Shared | [6.2](docs/epics/shared/monetization.md#-62--mobile-in-app-purchase-integration)                       |
 
 ---

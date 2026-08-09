@@ -109,6 +109,8 @@ function executionFailureMessage(
         `This would use ${name}, which hasn't been granted access. ` +
         'Open Settings → Connectors to allow it.'
       );
+    case 'not-entitled':
+      return `${name} isn't unlocked yet.`;
     case 'missing-credential':
       return `${name} needs a credential that hasn't been set up yet.`;
     case 'invalid-arguments':

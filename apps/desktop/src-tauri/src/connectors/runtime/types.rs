@@ -7,6 +7,11 @@ use serde::Serialize;
 #[serde(rename_all = "kebab-case")]
 pub enum FailureReason {
     NotPermitted,
+    /// `is_connector_usable` failed: a paid connector with no recorded
+    /// entitlement (task 6.1). Checked before the grant check would ever
+    /// matter — an unentitled paid connector has nothing to dispatch to,
+    /// grant or no grant.
+    NotEntitled,
     MissingCredential,
     InvalidArguments,
     NetworkError,

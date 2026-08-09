@@ -89,6 +89,7 @@ fn execution_failure_message(failure: &ExecutionFailure, name: &str) -> String {
         FailureReason::NotPermitted => format!(
             "This would use {name}, which hasn't been granted access. Open Settings → Connectors to allow it."
         ),
+        FailureReason::NotEntitled => format!("{name} isn't unlocked yet."),
         FailureReason::MissingCredential => {
             format!("{name} needs a credential that hasn't been set up yet.")
         }

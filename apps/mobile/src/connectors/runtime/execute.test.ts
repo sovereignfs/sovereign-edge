@@ -7,14 +7,17 @@ import searchManifest from '@sovereignfs/connector-sdk/src/fixtures/search.manif
 import { executeConnectorCall } from './execute';
 
 /**
- * `isAllowed` and `openVault` read from on-disk/keychain state (tasks
- * 2.1–2.2); mocked here so the request/response mapping under test isn't
- * entangled with permission or credential persistence.
+ * `isAllowed`, `isConnectorUsable`, and `openVault` read from on-disk/
+ * keychain state (tasks 2.1–2.2, 6.1); mocked here so the request/response
+ * mapping under test isn't entangled with permission, entitlement, or
+ * credential persistence.
  */
 const mockIsAllowed = jest.fn();
+const mockIsConnectorUsable = jest.fn();
 const mockVaultRead = jest.fn();
 jest.mock('../permissions', () => ({
   isAllowed: (...args: unknown[]) => mockIsAllowed(...args),
+  isConnectorUsable: (...args: unknown[]) => mockIsConnectorUsable(...args),
   openVault: () => ({ read: (...args: unknown[]) => mockVaultRead(...args) }),
 }));
 
@@ -62,8 +65,16 @@ function fakeResponse(opts: {
 describe('executeConnectorCall', () => {
   beforeEach(() => {
     mockIsAllowed.mockReset().mockReturnValue(true);
+    mockIsConnectorUsable.mockReset().mockReturnValue(true);
     mockVaultRead.mockReset().mockResolvedValue('secret-token');
     (globalThis.fetch as jest.Mock) = jest.fn();
+  });
+
+  it('refuses to run an unentitled paid connector without touching the network', async () => {
+    mockIsConnectorUsable.mockReturnValue(false);
+    const result = await executeConnectorCall(search, { query: 'chili' });
+    expect(result).toEqual({ ok: false, reason: 'not-entitled' });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('refuses to run an unpermitted connector without touching the network', async () => {

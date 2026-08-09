@@ -5,7 +5,7 @@ import type {
   ConnectorManifestTier3,
   ValueSource,
 } from '@sovereignfs/connector-sdk';
-import { isAllowed, openVault } from '../permissions';
+import { isAllowed, isConnectorUsable, openVault } from '../permissions';
 import { nativeHandlerFor } from './nativeHandlers';
 import type { ExecutionResult } from './types';
 
@@ -257,11 +257,20 @@ async function executeTier3(
  * Dispatches on `manifest.tier` — Tier 1's HTTP request/response mapping,
  * Tier 3's native handler registry lookup (task 2.6). Epic 5 (Tier 2,
  * sandboxed scripts) is the one tier still reserved but unimplemented.
+ *
+ * Checks `isConnectorUsable()` once here rather than in each tier's own
+ * dispatch function (task 6.1) — a paid connector with no entitlement has
+ * nothing to run regardless of tier, and the store/install screens already
+ * disable this path defensively, but this function must not assume its
+ * caller did.
  */
 export async function executeConnectorCall(
   manifest: ConnectorManifest,
   args: unknown,
 ): Promise<ExecutionResult> {
+  if (!isConnectorUsable(manifest)) {
+    return { ok: false, reason: 'not-entitled' };
+  }
   switch (manifest.tier) {
     case 1:
       return executeTier1(manifest, args);

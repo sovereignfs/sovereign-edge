@@ -15,6 +15,11 @@ export type ExecutionResult =
          * routing layer already checked it — this function must not assume
          * its caller did. */
         | 'not-permitted'
+        /** `isConnectorUsable()` failed: a paid connector with no recorded
+         * entitlement (task 6.1). Checked before the grant check would ever
+         * matter — an unentitled paid connector has nothing to dispatch to,
+         * grant or no grant. */
+        | 'not-entitled'
         /** The manifest needs a credential the vault has never stored. */
         | 'missing-credential'
         /** The model's arguments can't fill the manifest's request — most

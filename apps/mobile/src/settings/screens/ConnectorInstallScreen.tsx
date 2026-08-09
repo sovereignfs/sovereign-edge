@@ -9,6 +9,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import {
   grant,
+  isConnectorUsable,
   openVault,
   validateManifest,
   type ConnectorManifestTier1,
@@ -55,6 +56,15 @@ export function ConnectorInstallScreen() {
       setError(
         result.issues[0]?.message ?? 'This connector is not a valid manifest.',
       );
+      return;
+    }
+
+    // Defense in depth (task 6.1): the store screen already disables the
+    // tap-through to this screen for a paid entry, but this function must
+    // not assume its caller did — the same posture `executeConnectorCall`
+    // takes for `isAllowed`.
+    if (!isConnectorUsable(result.manifest)) {
+      setError('This connector is not yet supported.');
       return;
     }
 

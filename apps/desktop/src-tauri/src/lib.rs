@@ -611,6 +611,18 @@ fn install_connector(
         }
     };
 
+    // Defense in depth (task 6.1): the store screen already disables the
+    // install button for a paid entry, but this command must not assume
+    // its caller did — the same posture `execute_connector_call` takes for
+    // `is_allowed`.
+    if !connectors::permissions::is_connector_usable(&state.connectors_dir, &validated) {
+        return Err(CommandError::Connector(
+            connectors::runtime::ExecutionFailure::new(
+                connectors::runtime::FailureReason::NotEntitled,
+            ),
+        ));
+    }
+
     let vault = secure_storage::open_vault(validated.id())?;
     for (key, value) in &credentials {
         vault.write(key, value)?;
