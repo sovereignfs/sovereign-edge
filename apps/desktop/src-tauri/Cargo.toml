@@ -1,6 +1,6 @@
 [package]
 name = "sovereign-edge-desktop"
-version = "0.1.2"
+version = "0.1.3"
 description = "Sovereign Edge desktop app — a privacy-first, fully offline on-device AI companion"
 license = "AGPL-3.0-or-later"
 edition = "2021"
