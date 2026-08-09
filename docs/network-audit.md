@@ -14,9 +14,10 @@ that was never earned. Where the guarantee stops, this document says so.
 against so far. All commands below assume `cd apps/mobile` first — this repo
 became a pnpm workspace partway through this audit's history, and `src/`,
 `ios/`, `android/`, and `node_modules/` below are all relative to that
-directory, not the repo root. If `apps/desktop` ever implements its own
-chat/model path, it needs this same audit written against its own mechanisms
-— nothing here covers it by extension.
+directory, not the repo root. `apps/desktop` has its own chat/model path as
+of task 12.7, and its own audit — see
+[desktop-network-audit.md](desktop-network-audit.md) — nothing here covers
+it by extension.
 
 ## What is actually claimed
 

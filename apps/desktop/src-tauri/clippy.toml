@@ -1,0 +1,7 @@
+# Task 12.9: pairs with `lib.rs`'s `#![warn(clippy::disallowed_methods)]`.
+# Every real network client in this app must go through
+# `net_guard::guarded_client_builder()` so the debug-only offline tripwire
+# actually sees it — a raw `reqwest::Client::new()`/`::builder()` call
+# anywhere else in the crate bypasses the guard silently, so this lint is
+# what catches that instead of trusting reviewers to notice.
+disallowed-methods = ["reqwest::Client::new", "reqwest::Client::builder"]

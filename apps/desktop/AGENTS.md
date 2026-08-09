@@ -238,6 +238,43 @@ frontend, not React Native primitives.
   by testing it). The exact per-mode `connector_mode`/`temperature`/
   system-prompt-and-history request shape was verified by code review and
   typechecking, not a captured live request — flagged, not claimed.
+- **Debug-only runtime offline tripwire (12.9).** `src-tauri/src/net_guard.rs`
+  — a real defense-in-depth gap a feature audit found: mobile has a
+  runtime check (`offlineTripwire.ts`, dev-only) that catches a network
+  violation the static checks miss; desktop had only structural
+  guarantees. Rust has no ambient global to monkey-patch, so the
+  interception point is DNS resolution instead:
+  `net_guard::guarded_client_builder()` attaches a custom resolver that
+  refuses to resolve any hostname unless the calling task is inside an
+  `allow_network(...)` scope (`tokio::task_local`-backed). Both real
+  egress points (`connectors::runtime::execute::client()`'s dispatch,
+  `models::download`'s `run_download`) are wired through it. New
+  `clippy.toml` (`disallowed-methods` banning `reqwest::Client::new`/
+  `::builder()` outside `net_guard.rs`) plus `lib.rs`'s
+  `#![warn(clippy::disallowed_methods)]` close, partially, the gap that
+  the guard only protects code that opts in. **Two honest blind spots,
+  stated in both the module doc and the new
+  [desktop-network-audit.md](../../docs/desktop-network-audit.md):** IP
+  literals skip DNS resolution entirely (reproduced, not hypothetical —
+  the existing `tests/connector_dispatch.rs` and `download.rs`'s own
+  cancellation tests both use `127.0.0.1` and pass regardless); and the
+  guard only protects opted-in clients, unlike a monkey-patched global. A
+  real discovery mid-implementation: reqwest's own default resolver
+  (`GaiResolver`) is `pub(crate)`, not usable from outside its crate —
+  the allowed path delegates to `tokio::net::lookup_host` instead (same
+  underlying OS mechanism). Armed only in debug builds, the same
+  deliberate choice mobile made (a Release-build crash from a boundary
+  violation punishes the user for a bug the static checks should have
+  caught). Verified: `cargo fmt`/`clippy --all-targets -- -D warnings`
+  clean (confirmed the lint actually fires by temporarily adding a stray
+  `reqwest::Client::new()` and watching clippy name it, then removing the
+  scratch line); `cargo test --lib` (75/75, including 3 new tests against
+  a real local server reached via `localhost` — not `127.0.0.1` — to
+  actually exercise DNS resolution: blocked-outside-the-scope,
+  succeeds-inside-the-scope, re-arms-after-the-scope-ends); real debug
+  binary build + `launch-smoke.js`. **Honest gap:** does not achieve
+  mobile's coverage — a real, executable check where there was none, not
+  full parity with an interception primitive Rust doesn't have.
 - **Navigation shell scaffold (13.1).** `src/shell/AppShell.tsx` — plain
   `useState` destination switch, no routing-library dependency (four flat
   destinations, no deep-linking need). Chat unchanged behind its own

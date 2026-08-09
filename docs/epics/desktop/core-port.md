@@ -1,7 +1,7 @@
 ---
 epic: 12
 title: Desktop Core Port
-status: "✅ Done — tasks 12.1–12.7, 12.7a, 12.8 all done"
+status: "✅ Done — tasks 12.1–12.7, 12.7a, 12.8, 12.9 all done"
 scope: desktop
 ---
 
@@ -753,10 +753,90 @@ request — a genuine gap from the review checklist's own bar, not silently
 skipped. The UI-rendering, selection-state, and build/launch verification
 above is the strongest chain available without that.
 
+---
+
+#### ✅ 12.9 — Debug-only runtime offline tripwire
+
+**Goal:** Close a real defense-in-depth asymmetry a feature audit found:
+mobile has a *runtime* check (`offlineTripwire.ts`, replaces the network
+globals with throwing stubs, dev-only) that catches a network violation
+the static checks miss; desktop had only structural guarantees (Tier 1's
+origin allowlist) proven by tests, nothing that runs and actively fails
+against a *new* unsanctioned code path.
+
+**Deliverables:**
+
+- New `net_guard.rs`: a debug-only guard hooking `reqwest`'s DNS
+  resolution (the closest real interception point Rust offers — there is
+  no ambient global like `fetch` to monkey-patch). `guarded_client_builder()`
+  attaches a custom resolver that refuses to resolve any hostname unless
+  the calling task is inside an `allow_network(...)` scope
+  (`tokio::task_local`-backed — the direct analogue of mobile's own
+  `allowNetworkForConnector`).
+- Both real network egress points in the app wired through it:
+  `connectors::runtime::execute::client()`/its one `.execute()` call, and
+  `models::download`'s `run_download`/`lib.rs`'s `install_model`.
+- New `clippy.toml` (`disallowed-methods` banning
+  `reqwest::Client::new`/`::builder()` outside `net_guard.rs`) plus
+  `lib.rs`'s `#![warn(clippy::disallowed_methods)]` — the closest
+  available analogue to mobile's ESLint restricted-globals rule, closing
+  (partially, not fully) the gap that the guard only protects code that
+  opts in.
+- New [`docs/desktop-network-audit.md`](../../desktop-network-audit.md),
+  structured like mobile's own `docs/network-audit.md`, honestly scoped
+  to what desktop actually has.
+
+**Dependencies:** Task 12.4 (the connector runtime this wraps), Task 12.2
+(the model download path this wraps).
+
+**Review checklist:**
+
+- A request outside `allow_network(...)` is actually blocked, with the
+  guard's own error, not a generic connection failure; a request inside
+  the scope actually reaches a real server; the guard re-arms after a
+  scope ends rather than becoming a one-way latch.
+
+**Decided: an honest, narrower mechanism, not a claimed port.** Rust's
+lack of an ambient network global means this cannot match mobile's
+coverage, and the docs say so rather than implying otherwise. Two blind
+spots stated plainly in both `net_guard.rs`'s own doc comment and the new
+audit doc: a request to a literal IP address skips DNS resolution
+entirely (reproduced, not hypothetical — the existing
+`tests/connector_dispatch.rs` and `download.rs`'s own cancellation tests
+both use `127.0.0.1` and pass regardless of `allow_network`, which is
+exactly this blind spot in practice); and the guard only protects
+`reqwest::Client`s built via `guarded_client_builder()` — nothing catches
+a stray `reqwest::Client::new()` except the clippy lint, which can be
+silenced at the call site. reqwest's own default resolver (`GaiResolver`)
+turned out to be `pub(crate)`, not reachable from outside its own crate —
+discovered only by attempting to use it, not by reading the docs first —
+so the allowed path delegates to `tokio::net::lookup_host` instead, the
+same underlying OS resolution mechanism called directly.
+
+**Verified:** `cargo fmt --check`/`clippy --all-targets -- -D warnings`
+clean (confirmed the lint actually fires: a scratch `reqwest::Client::new()`
+call was temporarily added, clippy flagged it by name, then it was
+removed before committing). `cargo test --lib` (75/75, including 3 new
+`net_guard` tests against a real local `TcpListener` server reached via
+`localhost` — not `127.0.0.1` — to actually exercise DNS resolution: one
+proving an unguarded request is blocked with the tripwire's own error
+text pulled from the full `source()` chain, one proving a guarded request
+reaches the real server, one proving the guard re-arms after the scope
+ends). `cargo test --test connector_dispatch` still passes — its own
+IP-literal request is unaffected by the guard, confirming that documented
+blind spot in practice. Real debug binary build
+(`pnpm tauri build --debug --no-bundle`) + `scripts/ci/launch-smoke.js`
+confirm the guard doesn't break real model loading at startup. **Honest
+gap:** this mechanism does not achieve mobile's coverage — it is a real,
+executable check where there was previously none, not full parity with
+an ambient-global interception Rust has no equivalent primitive for.
+
 ## Related Docs
 
 - [CONCEPT.md](../../../CONCEPT.md)
 - [research 0001](../../research/0001-concept-and-connector-architecture.md)
+- [Desktop network audit](../../desktop-network-audit.md) — task 12.9's
+  own audit document, mirroring mobile's `network-audit.md`
 - [Desktop Shell](shell.md) — epic 9, the shell-technology decision this
   depends on
 - [research 0010](../../research/0010-desktop-shell-technology.md)

@@ -312,7 +312,7 @@ async fn dispatch(
         Err(failure) => return ExecutionResult::Err(failure),
     };
 
-    let response = match client.execute(request).await {
+    let response = match crate::net_guard::allow_network(client.execute(request)).await {
         Ok(r) => r,
         Err(cause) => {
             return ExecutionResult::Err(ExecutionFailure::with_detail(
@@ -400,7 +400,7 @@ fn dispatch_tier3(
 /// never follows redirects (see `map_response`'s own comment) and applies
 /// the runtime's fixed request timeout.
 pub fn client() -> reqwest::Client {
-    reqwest::Client::builder()
+    crate::net_guard::guarded_client_builder()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(Duration::from_millis(TIMEOUT_MS))
         .build()

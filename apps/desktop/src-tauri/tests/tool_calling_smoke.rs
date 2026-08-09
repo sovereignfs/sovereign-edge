@@ -127,7 +127,9 @@ async fn a_granted_connector_is_called_and_the_reply_is_tagged() {
         .descriptor;
 
     eprintln!("downloading/verifying {}...", descriptor.name);
-    let client = reqwest::Client::new();
+    let client = sovereign_edge_desktop_lib::net_guard::guarded_client_builder()
+        .build()
+        .expect("client builds");
     let model_path = download_model(
         &client,
         &models_dir,

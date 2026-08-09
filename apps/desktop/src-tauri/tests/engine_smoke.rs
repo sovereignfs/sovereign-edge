@@ -38,7 +38,9 @@ async fn loads_and_generates_a_reply_on_device() {
         "downloading/verifying {} ({})...",
         descriptor.name, descriptor.id
     );
-    let client = reqwest::Client::new();
+    let client = sovereign_edge_desktop_lib::net_guard::guarded_client_builder()
+        .build()
+        .expect("client builds");
     let model_path = download_model(
         &client,
         &models_dir,

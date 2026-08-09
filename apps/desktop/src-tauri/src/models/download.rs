@@ -123,14 +123,16 @@ async fn run_download(
         request = request.header(reqwest::header::RANGE, format!("bytes={already_written}-"));
     }
 
-    let response = request.send().await.map_err(|cause| {
-        ModelError::with_cause(
-            ModelErrorCode::Network,
-            &descriptor.id,
-            format!("Download failed: {cause}"),
-            cause,
-        )
-    })?;
+    let response = crate::net_guard::allow_network(request.send())
+        .await
+        .map_err(|cause| {
+            ModelError::with_cause(
+                ModelErrorCode::Network,
+                &descriptor.id,
+                format!("Download failed: {cause}"),
+                cause,
+            )
+        })?;
 
     // The server may not support ranges and send the whole file back with a
     // 200 instead of a 206 — in that case the bytes we already have are for
@@ -315,7 +317,9 @@ mod tests {
         let cancel = CancellationToken::new();
         cancel.cancel();
 
-        let client = reqwest::Client::new();
+        let client = crate::net_guard::guarded_client_builder()
+            .build()
+            .expect("client builds");
         let options = DownloadOptions {
             cancel: Some(cancel),
             ..Default::default()
@@ -363,7 +367,9 @@ mod tests {
             ..Default::default()
         };
 
-        let client = reqwest::Client::new();
+        let client = crate::net_guard::guarded_client_builder()
+            .build()
+            .expect("client builds");
         let result = download_model(&client, &models_dir, &descriptor, options).await;
 
         let error = result.expect_err("a mid-stream cancel must fail the download");

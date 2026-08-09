@@ -6,6 +6,12 @@
 //! named permission in `capabilities/default.json` (task 12.5 closed the
 //! gap where that gating wasn't actually wired up yet).
 
+// Task 12.9: every `reqwest::Client` in this crate must be built via
+// `net_guard::guarded_client_builder()`, not `reqwest::Client::new`/
+// `::builder()` directly — those two raw constructors are the only
+// sanctioned exception, inside `net_guard.rs` itself.
+#![warn(clippy::disallowed_methods)]
+
 // `pub` so `tests/engine_smoke.rs`/`tests/vault_smoke.rs`/
 // `tests/connector_dispatch.rs` (external crates, per Cargo's
 // integration-test convention) can exercise the real
@@ -15,6 +21,7 @@
 pub mod connectors;
 pub mod engine;
 pub mod models;
+pub mod net_guard;
 pub mod secure_storage;
 
 use std::collections::HashMap;
@@ -144,7 +151,9 @@ async fn install_model(
         cancel: Some(cancel),
     };
 
-    let client = reqwest::Client::new();
+    let client = net_guard::guarded_client_builder()
+        .build()
+        .expect("a bare reqwest client builder cannot fail");
     let result = models::download_model(&client, &models_dir, &descriptor, options).await;
 
     state
