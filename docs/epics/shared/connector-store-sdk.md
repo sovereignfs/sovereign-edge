@@ -1,7 +1,7 @@
 ---
 epic: 5
 title: Connector Store & SDK
-status: "📋 Planned"
+status: "⏳ In Progress — 5.1, 5.2 done; 5.3 partially done (free + token-auth examples shipped, Tier 2 script and paid examples blocked on 5.6/epic 6); 5.4–5.6 still 📋 Planned"
 scope: shared
 ---
 
@@ -156,7 +156,7 @@ connector.
 
 ---
 
-#### 📋 5.3 — First-party example connectors
+#### ⏳ 5.3 — First-party example connectors (in progress — free + token-auth done)
 
 **Goal:** A reference set demonstrating the range of what a connector can
 be, mirroring `sovereign-plugins-examples`.
@@ -173,6 +173,60 @@ be, mirroring `sovereign-plugins-examples`.
 
 - Each example validates against the SDK and installs/runs in the app
   unmodified.
+
+**Decided:**
+
+- `examples/connectors/` in-repo (same reasoning as 5.2's template: a
+  separate `sovereign-plugins-examples`-style repo is a real, visible
+  action left for the project owner, not something to create unprompted).
+- Two of the four deliverables shipped now: `simple-rest-open-meteo/` (no
+  credentials — every value comes from the model's own tool arguments)
+  and `token-auth-github/` (a stored credential injected into a request
+  header). Both call real, recognizable public APIs (Open-Meteo's free
+  weather API; GitHub's `GET /user`) rather than fabricated endpoints, so
+  the manifests read as genuine examples, not placeholders.
+- **"Installs/runs in the app unmodified"** doesn't have a literal path to
+  exercise yet: neither app has a generic "install an arbitrary manifest"
+  feature (that's task 5.5, the in-app store, itself blocked on 5.4's
+  registry) — both apps' own connector lists are still hardcoded to the
+  first-party Search connector (mobile: `installedConnectors()` in
+  `apps/mobile/src/settings/ModelSessionProvider.tsx`; desktop:
+  `known_connector_manifests()` in `apps/desktop/src-tauri/src/lib.rs`).
+  Read literally, the checklist can't be satisfied by either app today,
+  for any connector. Read for what it's actually checking — that a
+  manifest runs through the real, connector-agnostic runtime code
+  unmodified, not a special-cased reimplementation — it's provable now:
+  `apps/mobile/src/connectors/runtime/examples.smoke.test.ts` calls the
+  same `executeConnectorCall` the app itself calls, against a real local
+  TCP listener (mirroring the Rust side's own real-socket test in
+  `apps/desktop/src-tauri/src/connectors/orchestration.rs`), not a mocked
+  `fetch`.
+
+**Honest gaps:**
+
+- The Tier 2 transform-script example and the paid/entitlement example
+  remain undone, blocked on task 5.6 (no sandboxed runtime exists) and
+  epic 6 (monetization) respectively — the user explicitly asked to skip
+  the paid example and do only the free/token-auth pair for now.
+- The token-auth example surfaces a real schema constraint worth stating
+  plainly: manifests have no string interpolation, so a stored credential
+  must already be the complete header value (e.g. `Bearer <token>`) — a
+  connector can't declare a prefix. Documented in the example's own
+  README rather than hidden.
+
+**Verified:**
+
+- Both example manifests pass `validateManifest()` from the real,
+  installed `@sovereignfs/connector-sdk`.
+- `apps/mobile/src/connectors/runtime/examples.smoke.test.ts`: both
+  examples pass through `executeConnectorCall` against a real loopback
+  HTTP server (no mocked `fetch`) — the free example's slot-filled query
+  parameters reach the server correctly, and the token-auth example's
+  `Authorization` header carries the exact credential value read from the
+  (mocked) vault, proving the credential-injection path works end to end.
+- `pnpm --filter mobile typecheck` / `lint` / `test` (225 tests, full
+  suite, up from 223 — the two new smoke tests) all pass.
+- `pnpm check:offline` (root) stays clean.
 
 ---
 

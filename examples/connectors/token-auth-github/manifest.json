@@ -1,0 +1,42 @@
+{
+  "manifestVersion": 1,
+  "id": "com.example.github-whoami",
+  "name": "GitHub Who Am I",
+  "version": "1.0.0",
+  "summary": "Looks up the GitHub username for the connector's own configured token.",
+  "tier": 1,
+  "platforms": ["ios", "android"],
+  "tool": {
+    "name": "github_whoami",
+    "description": "Returns the GitHub username for the currently configured personal access token.",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  "permissions": {
+    "network": {
+      "origins": ["https://api.github.com"]
+    },
+    "credentials": [
+      {
+        "key": "authHeader",
+        "label": "GitHub personal access token (full Authorization header value, e.g. \"Bearer ghp_...\")"
+      }
+    ]
+  },
+  "request": {
+    "method": "GET",
+    "origin": "https://api.github.com",
+    "path": [{ "literal": "user" }],
+    "headers": {
+      "Authorization": { "credential": "authHeader" },
+      "Accept": { "literal": "application/vnd.github+json" }
+    }
+  },
+  "response": {
+    "textFrom": "login",
+    "maxBytes": 65536
+  },
+  "pricing": { "model": "free" }
+}

@@ -1,0 +1,47 @@
+{
+  "manifestVersion": 1,
+  "id": "com.example.open-meteo",
+  "name": "Open-Meteo Forecast",
+  "version": "1.0.0",
+  "summary": "Current temperature for a location, from Open-Meteo's free, no-key weather API.",
+  "tier": 1,
+  "platforms": ["ios", "android"],
+  "tool": {
+    "name": "current_temperature",
+    "description": "Get the current temperature at a latitude/longitude.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "description": "Latitude in decimal degrees."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude in decimal degrees."
+        }
+      },
+      "required": ["latitude", "longitude"]
+    }
+  },
+  "permissions": {
+    "network": {
+      "origins": ["https://api.open-meteo.com"]
+    }
+  },
+  "request": {
+    "method": "GET",
+    "origin": "https://api.open-meteo.com",
+    "path": [{ "literal": "v1" }, { "literal": "forecast" }],
+    "query": {
+      "latitude": { "slot": "latitude" },
+      "longitude": { "slot": "longitude" },
+      "current": { "literal": "temperature_2m" }
+    }
+  },
+  "response": {
+    "textFrom": "current.temperature_2m",
+    "maxBytes": 65536
+  },
+  "pricing": { "model": "free" }
+}

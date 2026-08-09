@@ -56,7 +56,7 @@ file lives in; only the path changes.
 
 | ID  | Epic                                                     | Status     | Summary                                                                 |
 | --- | ----------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| 5   | [Connector Store & SDK](shared/connector-store-sdk.md)      | 📋 Planned | Public SDK, plugin template, examples, registry, in-app connector store |
+| 5   | [Connector Store & SDK](shared/connector-store-sdk.md)      | ⏳ In Progress | Public SDK, plugin template, examples, registry, in-app connector store |
 | 6   | [Monetization](shared/monetization.md)                      | 📋 Planned | Paid connectors — platform IAP (mobile), direct sale (desktop)          |
 
 _Status key: ✅ Complete · ⏳ In Progress · 📋 Planned_
