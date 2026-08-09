@@ -38,6 +38,7 @@ const COMMANDS: &[&str] = &[
     "fetch_connector_registry",
     "install_connector",
     "remove_connector",
+    "request_calendar_access",
 ];
 
 fn main() {

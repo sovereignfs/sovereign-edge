@@ -13,12 +13,14 @@ vi.mock('../lib/tauri', async () => {
     listConnectors: vi.fn(),
     setConnectorGranted: vi.fn(),
     removeConnector: vi.fn(),
+    requestCalendarAccess: vi.fn(),
   };
 });
 
 const listConnectors = vi.mocked(tauri.listConnectors);
 const setConnectorGranted = vi.mocked(tauri.setConnectorGranted);
 const removeConnector = vi.mocked(tauri.removeConnector);
+const requestCalendarAccess = vi.mocked(tauri.requestCalendarAccess);
 
 function renderScreen(onNavigate = vi.fn()) {
   render(
@@ -180,5 +182,105 @@ describe('ConnectorsScreen', () => {
     await waitFor(() =>
       expect(screen.queryByText('Open-Meteo Forecast')).not.toBeInTheDocument(),
     );
+  });
+
+  describe('Calendar (task 10.2)', () => {
+    it('requests real OS calendar access before granting, and grants on success', async () => {
+      listConnectors.mockResolvedValue([
+        {
+          id: 'fs.sovereign.calendar.create-event',
+          name: 'Calendar — Create Event',
+          granted: false,
+        },
+      ]);
+      requestCalendarAccess.mockResolvedValue(true);
+      setConnectorGranted.mockResolvedValue({
+        id: 'fs.sovereign.calendar.create-event',
+        name: 'Calendar — Create Event',
+        granted: true,
+      });
+      renderScreen();
+
+      const toggle = await screen.findByRole('switch', {
+        name: 'Calendar — Create Event',
+      });
+      await userEvent.click(toggle);
+
+      await waitFor(() => expect(requestCalendarAccess).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(setConnectorGranted).toHaveBeenCalledWith(
+          'fs.sovereign.calendar.create-event',
+          true,
+        ),
+      );
+    });
+
+    it('does not grant, and shows a message, when the OS refuses calendar access', async () => {
+      listConnectors.mockResolvedValue([
+        {
+          id: 'fs.sovereign.calendar.create-event',
+          name: 'Calendar — Create Event',
+          granted: false,
+        },
+      ]);
+      requestCalendarAccess.mockResolvedValue(false);
+      renderScreen();
+
+      const toggle = await screen.findByRole('switch', {
+        name: 'Calendar — Create Event',
+      });
+      await userEvent.click(toggle);
+
+      await waitFor(() => expect(requestCalendarAccess).toHaveBeenCalled());
+      expect(setConnectorGranted).not.toHaveBeenCalled();
+      expect(
+        await screen.findByText(/Calendar access wasn't allowed/),
+      ).toBeInTheDocument();
+    });
+
+    it('revoking a granted calendar connector does not request OS access again', async () => {
+      listConnectors.mockResolvedValue([
+        {
+          id: 'fs.sovereign.calendar.create-event',
+          name: 'Calendar — Create Event',
+          granted: true,
+        },
+      ]);
+      setConnectorGranted.mockResolvedValue({
+        id: 'fs.sovereign.calendar.create-event',
+        name: 'Calendar — Create Event',
+        granted: false,
+      });
+      renderScreen();
+
+      const toggle = await screen.findByRole('switch', {
+        name: 'Calendar — Create Event',
+      });
+      await userEvent.click(toggle);
+
+      await waitFor(() =>
+        expect(setConnectorGranted).toHaveBeenCalledWith(
+          'fs.sovereign.calendar.create-event',
+          false,
+        ),
+      );
+      expect(requestCalendarAccess).not.toHaveBeenCalled();
+    });
+
+    it('shows no Remove row for a calendar connector', async () => {
+      listConnectors.mockResolvedValue([
+        {
+          id: 'fs.sovereign.calendar.create-event',
+          name: 'Calendar — Create Event',
+          granted: true,
+        },
+      ]);
+      renderScreen();
+
+      await screen.findByText('Calendar — Create Event');
+      expect(
+        screen.queryByText('Uninstall Calendar — Create Event'),
+      ).not.toBeInTheDocument();
+    });
   });
 });

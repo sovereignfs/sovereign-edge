@@ -3,6 +3,7 @@ import { ListItem, Toggle, useTheme } from 'desktop-ui';
 import {
   listConnectors,
   removeConnector,
+  requestCalendarAccess,
   setConnectorGranted,
   type ConnectorStatus,
 } from '../lib/tauri';
@@ -15,6 +16,14 @@ import {
  * Search by construction rather than a shared id export.
  */
 const SEARCH_CONNECTOR_ID = 'fs.sovereign.search';
+
+/**
+ * `fs.sovereign.calendar.*` (task 10.2, macOS only) — also built-in, same
+ * "reconfigure/no remove" treatment as Search, and additionally needs the
+ * real OS permission request (`requestCalendarAccess`) before a grant, per
+ * this file's own `toggle()` below.
+ */
+const CALENDAR_CONNECTOR_ID_PREFIX = 'fs.sovereign.calendar.';
 
 /**
  * Task 13.3's own scope: a real settings surface listing every installed
@@ -50,6 +59,7 @@ export function ConnectorsScreen({
   const [connectors, setConnectors] = useState<ConnectorStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
 
   const refresh = async () => {
     const list = await listConnectors();
@@ -82,6 +92,21 @@ export function ConnectorsScreen({
   }
 
   async function toggle(id: string, next: boolean) {
+    // Calendar connectors need the real OS permission before this app's
+    // own grant is allowed to record "granted" — requested once for all
+    // four (see `requestCalendarAccess`'s own doc comment), and only on
+    // the way to `true`; revoking never needs it.
+    if (next && id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX)) {
+      const granted = await requestCalendarAccess();
+      if (!granted) {
+        setCalendarError(
+          "Calendar access wasn't allowed. Check this Mac's System Settings to allow it.",
+        );
+        return;
+      }
+      setCalendarError(null);
+    }
+
     setPendingId(id);
     setConnectors((prev) =>
       prev.map((c) => (c.id === id ? { ...c, granted: next } : c)),
@@ -116,6 +141,18 @@ export function ConnectorsScreen({
         Nothing reaches the network unless a connector below is granted access.
       </p>
 
+      {calendarError ? (
+        <p
+          style={{
+            color: theme.colors.warningText,
+            fontSize: theme.fontSize.sm,
+            margin: `0 0 ${theme.space[3]}px`,
+          }}
+        >
+          {calendarError}
+        </p>
+      ) : null}
+
       {loading ? (
         <p style={{ fontSize: theme.fontSize.sm }}>Loading connectors…</p>
       ) : empty ? (
@@ -144,7 +181,8 @@ export function ConnectorsScreen({
                   />
                 }
               />
-              {connector.id === SEARCH_CONNECTOR_ID ? null : (
+              {connector.id === SEARCH_CONNECTOR_ID ||
+              connector.id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX) ? null : (
                 <ListItem
                   title="Remove"
                   subtitle={`Uninstall ${connector.name}`}

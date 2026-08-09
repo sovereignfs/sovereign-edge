@@ -187,6 +187,23 @@ export function setConnectorGranted(
 }
 
 /**
+ * The real macOS system Calendar-access permission (task 10.2), requested
+ * once for all four calendar connectors — mirrors mobile's
+ * `ensureCalendarAccess()`. Must be called and resolve `true` before
+ * `setConnectorGranted(id, true)` for a calendar connector id, never the
+ * other way around: calling `setConnectorGranted` first would record
+ * "granted" in this app's own state for a connector EventKit will
+ * actually refuse to run. Off macOS this always resolves `false` (the
+ * Rust command's own stub — see `connectors::calendar`'s doc comment) but
+ * calendar connectors are never offered there in the first place
+ * (`known_connector_manifests()` only includes them on macOS), so the
+ * frontend never has occasion to call this outside macOS.
+ */
+export function requestCalendarAccess(): Promise<boolean> {
+  return call('request_calendar_access');
+}
+
+/**
  * Task 13.6's own command: the real Search setup flow, mirroring mobile's
  * `SearchSetupScreen.save()`. `request`'s own fields stay snake_case, like
  * `generateChat`'s `GenerateChatRequest` — the Rust struct has no

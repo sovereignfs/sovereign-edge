@@ -543,17 +543,33 @@ fn set_search_connector_granted(
 }
 
 /// Every connector this app currently knows about — Search (task 13.6),
-/// once configured, plus anything installed from the store (task 5.5).
-/// This is the one place `list_connectors`/`set_connector_granted` and any
-/// future caller look, so there is exactly one list to keep in sync as
-/// connectors are added, not one per command.
+/// once configured, plus anything installed from the store (task 5.5),
+/// plus the four Calendar connectors (task 10.2, macOS only —
+/// `calendar::calendar_manifests()` returns an empty `Vec` on every other
+/// OS, so this needs no `cfg!` here). This is the one place
+/// `list_connectors`/`set_connector_granted` and any future caller look,
+/// so there is exactly one list to keep in sync as connectors are added,
+/// not one per command.
 fn known_connector_manifests(
     connectors_dir: &std::path::Path,
 ) -> Vec<connectors::manifest::ConnectorManifest> {
     search_connector_manifest(connectors_dir)
         .into_iter()
         .chain(connectors::installed::read_installed(connectors_dir))
+        .chain(connectors::calendar::calendar_manifests())
         .collect()
+}
+
+/// The real macOS system Calendar-access permission (task 10.2), requested
+/// once for all four calendar connectors — see
+/// `connectors::calendar::access`'s own doc comment. `ConnectorsScreen.tsx`
+/// calls this *before* `set_connector_granted(id, true)` for a calendar
+/// connector id, never the other way around: calling `set_connector_
+/// granted` first would record "granted" in this app's own state for a
+/// connector EventKit will actually refuse to run.
+#[tauri::command]
+async fn request_calendar_access() -> bool {
+    connectors::calendar::request_access().await
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -887,6 +903,7 @@ pub fn run() {
             fetch_connector_registry,
             install_connector,
             remove_connector,
+            request_calendar_access,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");

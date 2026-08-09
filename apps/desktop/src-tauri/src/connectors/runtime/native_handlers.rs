@@ -27,6 +27,12 @@
 //! `osVersion` via `expo-device`; desktop has no exact equivalent, so this
 //! reads hostname + OS name + OS version via `sysinfo` instead, the
 //! cross-platform proxy research 0010 itself suggested for this task.
+//!
+//! Calendar (task 10.2, `../calendar/`) is the first real one — its four
+//! capabilities are resolved by falling through to
+//! `calendar::native_handler_for`, a real macOS-only lookup on macOS and
+//! always `None` elsewhere (see that module's own doc comment), so this
+//! function needs no `#[cfg(target_os = ...)]` of its own.
 
 pub type NativeHandler = fn(&serde_json::Map<String, serde_json::Value>) -> Result<String, String>;
 
@@ -51,6 +57,6 @@ fn device_info(_args: &serde_json::Map<String, serde_json::Value>) -> Result<Str
 pub fn native_handler_for(capability: &str) -> Option<NativeHandler> {
     match capability {
         "device.info" => Some(device_info),
-        _ => None,
+        _ => crate::connectors::calendar::native_handler_for(capability),
     }
 }

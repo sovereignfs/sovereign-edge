@@ -26,6 +26,7 @@
     "allow-fetch-connector-registry",
     "allow-install-connector",
     "allow-remove-connector",
+    "allow-request-calendar-access",
     "core:app:allow-version",
     "updater:allow-check",
     "updater:allow-download-and-install",
