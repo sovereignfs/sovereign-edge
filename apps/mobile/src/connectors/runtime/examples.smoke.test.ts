@@ -80,8 +80,7 @@ function realLoopbackFetch(
             type: 'basic',
             headers: {
               get: (key: string) =>
-                (res.headers[key.toLowerCase()] as string | undefined) ??
-                null,
+                (res.headers[key.toLowerCase()] as string | undefined) ?? null,
             },
             text: async () => text,
           } as unknown as Response);
