@@ -16,6 +16,9 @@
     "lint": "pnpm -r --if-present lint",
     "lint:fix": "pnpm -r --if-present lint:fix",
     "check:offline": "pnpm -r --if-present check:offline",
+    "registry:validate": "pnpm --filter @sovereignfs/connector-sdk build && node registry/validate.mjs",
+    "registry:test": "node --test registry/*.test.mjs",
+    "registry:check": "pnpm registry:validate && pnpm registry:test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

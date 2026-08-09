@@ -68,5 +68,12 @@ jobs:
       - name: Check the offline boundary
         run: pnpm check:offline
 
+      # Task 5.4. Every registry/connectors.json entry embeds its manifest
+      # directly, so validation is local (no external repos to clone) —
+      # schema/cross-field validity via @sovereignfs/connector-sdk, plus
+      # id-uniqueness and submission-shape checks.
+      - name: Validate connector registry
+        run: pnpm registry:check
+
       - name: Test
         run: pnpm test --ci

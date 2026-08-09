@@ -1,7 +1,7 @@
 ---
 epic: 5
 title: Connector Store & SDK
-status: "⏳ In Progress — 5.1, 5.2 done; 5.3 partially done (free + token-auth examples shipped, Tier 2 script and paid examples blocked on 5.6/epic 6); 5.4–5.6 still 📋 Planned"
+status: "⏳ In Progress — 5.1, 5.2, 5.4 done; 5.3 partially done (free + token-auth examples shipped, Tier 2 script and paid examples blocked on 5.6/epic 6); 5.5, 5.6 still 📋 Planned"
 scope: shared
 ---
 
@@ -230,7 +230,7 @@ be, mirroring `sovereign-plugins-examples`.
 
 ---
 
-#### 📋 5.4 — Public connector registry and submission process
+#### ✅ 5.4 — Public connector registry and submission process
 
 **Goal:** A reviewable, public index of connectors third parties can submit
 to.
@@ -250,6 +250,68 @@ to.
 
 - A submitted connector manifest that lies about its declared network domain
   is caught by the review process before publication.
+
+**Decided:**
+
+- `registry/connectors.json` — a real deviation from `sovereign`'s own
+  `registry/plugins.json` pattern, made deliberately: `sovereign` plugin
+  entries point at external git repositories shipping real code, so
+  validating one means cloning the source, checking its manifest/LICENSE,
+  and pinning a content hash against later drift. A Tier 1/2 connector has
+  no code at all — "no connector-specific code exists in the runtime; a
+  manifest is the whole of a Tier 1 connector" (the Connector Framework
+  epic's own words). So a registry entry here **embeds the manifest
+  directly** (`{ id, submittedBy, manifest }`) instead of pointing at one.
+  There's nothing external to fetch and nothing that can drift after
+  review — the manifest in the PR diff is exactly what ships — so no
+  content-hash provenance step exists here; `registry/CONTRIBUTING.md`
+  explains why, explicitly, rather than silently doing less than the
+  pattern it mirrors.
+- **The network-domain-lying check is not a manual review step — it's
+  structural**, and already existed before this task: `validateManifest`
+  (task 2.1/5.1, unchanged) already rejects a manifest whose
+  `request.origin` isn't a member of its own declared
+  `permissions.network.origins`. `registry/validate.mjs` calls that exact
+  function against every entry's embedded manifest, so the review
+  checklist's own example is satisfied by construction, not by a
+  reviewer's judgment call.
+- Pricing-honesty and tool-schema-sanity are **not** machine-checkable
+  from the manifest alone (the schema requires *a* `pricing` value, not a
+  true one) — `registry/CONTRIBUTING.md` and the new
+  `.github/PULL_REQUEST_TEMPLATE/registry-submission.md` say so plainly,
+  rather than implying automated validation covers more than it does.
+- The registry starts genuinely empty (`"connectors": []`) rather than
+  seeded with the task 5.3 example connectors — those are documentation
+  examples (`com.example.*` ids), not real submissions, and mixing
+  placeholder entries into a "public, reviewable index" would misrepresent
+  what's actually been submitted and reviewed. Nothing has, yet.
+- Wired into CI (`.github/workflows/ci.yml`, `pnpm registry:check`) rather
+  than left as a local-only script — a submission's validity is checked on
+  every PR touching it, the same as every other correctness gate in this
+  repo.
+
+**Honest gap:**
+
+- The registry has no consumer. Neither app has a "browse/install from the
+  registry" feature yet — that's task 5.5, itself blocked on this task,
+  still 📋 Planned. A merged entry here is real (reviewed, validated,
+  version-controlled) but nothing reads from it yet. Stated explicitly in
+  `registry/CONTRIBUTING.md`'s own "Status" section.
+
+**Verified:**
+
+- `pnpm registry:validate` (builds `@sovereignfs/connector-sdk`, then
+  validates the real committed `registry/connectors.json`) passes.
+- `pnpm registry:test` (`node --test`, no external test framework needed
+  for a script this small): 7 real assertions, including — the one that
+  matters most for this task's review checklist — a manifest whose
+  `request.origin` doesn't match its declared `permissions.network.origins`
+  is rejected with an explicit `permissions.network.origins` error, proving
+  the "lying about its network domain" case is actually caught, not just
+  assumed to be.
+- `pnpm lint` / `pnpm typecheck` / `pnpm check:offline` (root, all
+  workspace packages) stay clean.
+- `.github/workflows/ci.yml`'s new step and YAML syntax verified valid.
 
 ---
 
