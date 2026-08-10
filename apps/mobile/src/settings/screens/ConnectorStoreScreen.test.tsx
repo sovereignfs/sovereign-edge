@@ -21,7 +21,8 @@ function entry(overrides: Record<string, unknown> = {}) {
   // from `overrides.id` here keeps that true for fixtures too, instead of
   // silently leaving two entries sharing the same top-level `id` (which
   // React then rightly complains about as a duplicate list key).
-  const id = (overrides.id as string | undefined) ?? 'fs.sovereign.weather-open-meteo';
+  const id =
+    (overrides.id as string | undefined) ?? 'fs.sovereign.weather-open-meteo';
   return {
     id,
     submittedBy: { name: 'kasunben' },

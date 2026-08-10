@@ -54,9 +54,9 @@ describe('device manifests', () => {
     });
 
     it('declares its handler capability as its permission scope', () => {
-      expect(
-        DEVICE_SET_TORCH_MANIFEST.permissions.device.capabilities,
-      ).toEqual([DEVICE_SET_TORCH_MANIFEST.handler.capability]);
+      expect(DEVICE_SET_TORCH_MANIFEST.permissions.device.capabilities).toEqual(
+        [DEVICE_SET_TORCH_MANIFEST.handler.capability],
+      );
     });
 
     it('declares itself mobile-only', () => {

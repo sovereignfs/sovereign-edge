@@ -2,7 +2,10 @@ import * as Brightness from 'expo-brightness';
 
 import { ensureCameraAccess } from '../permissions/cameraAccess';
 import type { NativeHandler } from '../runtime/nativeHandlers';
-import { getTorchController, notifyCameraPermissionGranted } from './torchBridge';
+import {
+  getTorchController,
+  notifyCameraPermissionGranted,
+} from './torchBridge';
 
 /**
  * The Device connector's native handlers (tasks 11.1/11.2).
@@ -73,7 +76,8 @@ export const setTorch: NativeHandler = async (args) => {
     return {
       ok: false,
       reason: 'handler-error',
-      detail: 'Camera access was not allowed, so the flashlight cannot be controlled.',
+      detail:
+        'Camera access was not allowed, so the flashlight cannot be controlled.',
     };
   }
   // Tells `TorchHost` to mount a real `<CameraView>` if it hasn't already —
