@@ -1,0 +1,2097 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sovereign Edge — Design System Reference</title>
+<!--
+  Static, dependency-free reference for the proposed Sovereign Edge token set
+  (warm cream + clay palette). Not part of any shipped app bundle — pure
+  design documentation, open directly in a browser, no build step.
+
+  The Google Fonts <link> below is ONLY so this reference page can preview
+  what Hanken Grotesk / JetBrains Mono actually look like. Neither app
+  bundles or links these at runtime — apps/mobile and apps/desktop stay
+  fully offline; fontFamily tokens just name the font first in the stack and
+  fall back to the system font when it isn't loaded, same as Sovereign's own
+  `--sv-font-family` convention.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    /* ---- primitives: warm neutral scale ---- */
+    --sv-white: #ffffff;
+    --sv-black: #000000;
+    --sv-grey-50: #f7f5f0;
+    --sv-grey-100: #edeae1;
+    --sv-grey-200: #ddd7c9;
+    --sv-grey-300: #c7beab;
+    --sv-grey-400: #a79c86;
+    --sv-grey-500: #8b8069;
+    --sv-grey-600: #6e6452;
+    --sv-grey-700: #52493a;
+    --sv-grey-800: #382f24;
+    --sv-grey-900: #241d15;
+    --sv-grey-950: #15100a;
+
+    /* ---- primitives: clay accent scale ---- */
+    --sv-clay-100: #f7e4db;
+    --sv-clay-200: #efc3ae;
+    --sv-clay-300: #e6a183;
+    --sv-clay-400: #de8067;
+    --sv-clay-500: #d97757;
+    --sv-clay-600: #c15f3e;
+    --sv-clay-700: #a54b2e;
+    --sv-clay-800: #7c3820;
+    --sv-clay-900: #542613;
+
+    /* ---- primitives: status ---- */
+    --sv-amber-100: #fff7ed;
+    --sv-amber-200: #fed7aa;
+    --sv-amber-800: #b45309;
+    --sv-amber-900: #92400e;
+    --sv-green-100: #ecfdf3;
+    --sv-green-200: #bbf7d0;
+    --sv-green-800: #167c4a;
+    --sv-green-900: #14532d;
+    --sv-red-100: #fef2f2;
+    --sv-red-200: #fecaca;
+    --sv-red-700: #b91c1c;
+    --sv-red-800: #991b1b;
+    --sv-red-900: #7f1d1d;
+    --sv-blue-100: #eff6ff;
+    --sv-blue-200: #dbeafe;
+    --sv-blue-800: #1d4ed8;
+    --sv-blue-900: #1e3a8a;
+
+    /* ---- primitives: spacing / radius / type / motion ---- */
+    --sv-space-1: 4px;
+    --sv-space-2: 8px;
+    --sv-space-3: 12px;
+    --sv-space-4: 16px;
+    --sv-space-5: 20px;
+    --sv-space-6: 24px;
+    --sv-space-8: 32px;
+    --sv-space-10: 40px;
+    --sv-space-12: 48px;
+    --sv-space-16: 64px;
+
+    --sv-radius-sm: 6px;
+    --sv-radius-md: 8px;
+    --sv-radius-lg: 11px;
+    --sv-radius-xl: 12px;
+    --sv-radius-2xl: 14px;
+    --sv-radius-3xl: 20px;
+    --sv-radius-full: 9999px;
+
+    --sv-font-family-body: 'Hanken Grotesk', -apple-system, 'Segoe UI', system-ui, sans-serif;
+    --sv-font-family-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+    --sv-font-size-label: 11px;
+    --sv-font-size-xs: 12px;
+    --sv-font-size-caption: 13px;
+    --sv-font-size-sm: 14px;
+    --sv-font-size-md: 16px;
+    --sv-font-size-lg: 18px;
+    --sv-font-size-xl: 20px;
+    --sv-font-size-2xl: 24px;
+
+    --sv-font-weight-regular: 400;
+    --sv-font-weight-medium: 500;
+    --sv-font-weight-semibold: 600;
+    --sv-font-weight-bold: 700;
+
+    --sv-touch-target-min: 44px;
+    --sv-motion-duration-fast: 150ms;
+
+    /* ---- semantic: light (default) ---- */
+    --sv-color-surface: var(--sv-grey-50);
+    --sv-color-surface-sunken: var(--sv-grey-100);
+    --sv-color-surface-raised: var(--sv-white);
+    --sv-color-text-primary: var(--sv-grey-800);
+    --sv-color-text-muted: var(--sv-grey-500);
+    --sv-color-text-subtle: var(--sv-grey-400);
+    --sv-color-text-on-accent: var(--sv-white);
+    --sv-color-border: var(--sv-grey-200);
+    --sv-color-border-strong: var(--sv-grey-300);
+    --sv-color-accent: var(--sv-clay-700);
+    --sv-color-accent-hover: var(--sv-clay-800);
+    --sv-color-accent-subtle: rgba(165, 75, 46, 0.12);
+    --sv-color-focus-ring: var(--sv-clay-700);
+    --sv-color-scrim: rgba(21, 16, 10, 0.5);
+
+    --sv-color-error-surface: var(--sv-red-100);
+    --sv-color-error-text: var(--sv-red-800);
+    --sv-color-error-border: var(--sv-red-200);
+    --sv-color-error-solid: var(--sv-red-700);
+    --sv-color-warning-surface: var(--sv-amber-100);
+    --sv-color-warning-text: var(--sv-amber-800);
+    --sv-color-warning-border: var(--sv-amber-200);
+    --sv-color-success-surface: var(--sv-green-100);
+    --sv-color-success-text: var(--sv-green-800);
+    --sv-color-success-border: var(--sv-green-200);
+    --sv-color-info-surface: var(--sv-blue-100);
+    --sv-color-info-text: var(--sv-blue-800);
+    --sv-color-info-border: var(--sv-blue-200);
+
+    --sv-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --sv-shadow-popover: 0 10px 38px rgba(0, 0, 0, 0.18);
+  }
+
+  html[data-theme='dark'] {
+    --sv-color-surface: var(--sv-grey-950);
+    --sv-color-surface-sunken: var(--sv-grey-900);
+    --sv-color-surface-raised: var(--sv-grey-900);
+    --sv-color-text-primary: var(--sv-grey-50);
+    --sv-color-text-muted: var(--sv-grey-400);
+    --sv-color-text-subtle: var(--sv-grey-600);
+    --sv-color-text-on-accent: var(--sv-grey-950);
+    --sv-color-border: var(--sv-grey-800);
+    --sv-color-border-strong: var(--sv-grey-700);
+    --sv-color-accent: var(--sv-clay-300);
+    --sv-color-accent-hover: var(--sv-clay-400);
+    --sv-color-accent-subtle: rgba(230, 161, 131, 0.16);
+    --sv-color-focus-ring: var(--sv-clay-200);
+    --sv-color-scrim: rgba(0, 0, 0, 0.5);
+
+    --sv-color-error-surface: var(--sv-red-900);
+    --sv-color-error-text: var(--sv-red-200);
+    --sv-color-error-border: var(--sv-red-700);
+    --sv-color-error-solid: var(--sv-red-700);
+    --sv-color-warning-surface: var(--sv-amber-900);
+    --sv-color-warning-text: var(--sv-amber-200);
+    --sv-color-warning-border: var(--sv-amber-800);
+    --sv-color-success-surface: var(--sv-green-900);
+    --sv-color-success-text: var(--sv-green-200);
+    --sv-color-success-border: var(--sv-green-800);
+    --sv-color-info-surface: var(--sv-blue-900);
+    --sv-color-info-text: var(--sv-blue-100);
+    --sv-color-info-border: var(--sv-blue-800);
+
+    --sv-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --sv-shadow-popover: 0 10px 38px rgba(0, 0, 0, 0.6);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--sv-color-surface);
+    color: var(--sv-color-text-primary);
+    font-family: var(--sv-font-family-body);
+    font-size: var(--sv-font-size-md);
+    line-height: 1.5;
+    transition:
+      background var(--sv-motion-duration-fast) ease,
+      color var(--sv-motion-duration-fast) ease;
+  }
+
+  .page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: var(--sv-space-8) var(--sv-space-6) var(--sv-space-16);
+  }
+
+  header.top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sv-space-4) var(--sv-space-6);
+    background: var(--sv-color-surface-raised);
+    border-bottom: 1px solid var(--sv-color-border);
+  }
+
+  header.top h1 {
+    font-size: var(--sv-font-size-lg);
+    font-weight: var(--sv-font-weight-semibold);
+    margin: 0;
+  }
+
+  header.top p {
+    margin: 2px 0 0;
+    font-size: var(--sv-font-size-caption);
+    color: var(--sv-color-text-muted);
+  }
+
+  #theme-toggle {
+    font-family: var(--sv-font-family-body);
+    font-weight: var(--sv-font-weight-medium);
+    font-size: var(--sv-font-size-caption);
+    background: var(--sv-color-surface);
+    color: var(--sv-color-text-primary);
+    border: 1px solid var(--sv-color-border-strong);
+    border-radius: var(--sv-radius-md);
+    padding: var(--sv-space-2) var(--sv-space-4);
+    cursor: pointer;
+  }
+
+  #theme-toggle:hover {
+    background: var(--sv-color-surface-sunken);
+  }
+
+  section {
+    margin-top: var(--sv-space-12);
+  }
+
+  section > h2 {
+    font-size: var(--sv-font-size-xl);
+    font-weight: var(--sv-font-weight-semibold);
+    margin: 0 0 var(--sv-space-1);
+  }
+
+  section > p.desc {
+    margin: 0 0 var(--sv-space-6);
+    color: var(--sv-color-text-muted);
+    font-size: var(--sv-font-size-sm);
+    max-width: 640px;
+  }
+
+  h3.sub {
+    font-size: var(--sv-font-size-sm);
+    font-weight: var(--sv-font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sv-color-text-muted);
+    margin: var(--sv-space-6) 0 var(--sv-space-3);
+  }
+
+  /* ---- swatches ---- */
+  .scale {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    border-radius: var(--sv-radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--sv-color-border);
+  }
+
+  .swatch {
+    height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: var(--sv-space-2);
+    font-size: var(--sv-font-size-label);
+    font-family: var(--sv-font-family-mono);
+  }
+
+  .swatch .name {
+    font-weight: var(--sv-font-weight-semibold);
+  }
+
+  .semantic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--sv-space-3);
+  }
+
+  .semantic-card {
+    border: 1px solid var(--sv-color-border);
+    border-radius: var(--sv-radius-xl);
+    overflow: hidden;
+    background: var(--sv-color-surface-raised);
+  }
+
+  .semantic-card .fill {
+    height: 56px;
+  }
+
+  .semantic-card .label {
+    padding: var(--sv-space-2) var(--sv-space-3);
+    font-size: var(--sv-font-size-caption);
+  }
+
+  .semantic-card .label .token {
+    display: block;
+    font-family: var(--sv-font-family-mono);
+    font-size: 11px;
+    color: var(--sv-color-text-muted);
+    margin-top: 2px;
+  }
+
+  /* ---- typography ---- */
+  .type-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sv-space-4);
+    padding: var(--sv-space-2) 0;
+    border-bottom: 1px solid var(--sv-color-border);
+  }
+
+  .type-row .tag {
+    width: 90px;
+    flex-shrink: 0;
+    font-family: var(--sv-font-family-mono);
+    font-size: 11px;
+    color: var(--sv-color-text-muted);
+  }
+
+  .font-sample {
+    border: 1px solid var(--sv-color-border);
+    border-radius: var(--sv-radius-xl);
+    padding: var(--sv-space-5);
+    background: var(--sv-color-surface-raised);
+    margin-bottom: var(--sv-space-3);
+  }
+
+  .font-sample .sample-heading {
+    font-size: var(--sv-font-size-caption);
+    color: var(--sv-color-text-muted);
+    margin: 0 0 var(--sv-space-2);
+  }
+
+  .font-sample .sample-text {
+    font-size: var(--sv-font-size-xl);
+    margin: 0;
+  }
+
+  .font-sample.mono .sample-text {
+    font-family: var(--sv-font-family-mono);
+    font-size: var(--sv-font-size-md);
+  }
+
+  /* ---- scale bars ---- */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sv-space-3);
+    margin-bottom: var(--sv-space-2);
+  }
+
+  .bar-row .tag {
+    width: 70px;
+    flex-shrink: 0;
+    font-family: var(--sv-font-family-mono);
+    font-size: 11px;
+    color: var(--sv-color-text-muted);
+  }
+
+  .bar {
+    height: 20px;
+    background: var(--sv-color-accent);
+    border-radius: var(--sv-radius-sm);
+  }
+
+  .radius-row {
+    display: flex;
+    gap: var(--sv-space-4);
+    flex-wrap: wrap;
+  }
+
+  .radius-box {
+    width: 72px;
+    height: 72px;
+    background: var(--sv-color-surface-raised);
+    border: 1px solid var(--sv-color-border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sv-font-family-mono);
+    font-size: 11px;
+    color: var(--sv-color-text-muted);
+  }
+
+  /* ---- components ---- */
+  .component-block {
+    border: 1px solid var(--sv-color-border);
+    border-radius: var(--sv-radius-xl);
+    padding: var(--sv-space-6);
+    background: var(--sv-color-surface-raised);
+    margin-bottom: var(--sv-space-4);
+  }
+
+  .component-block h4 {
+    margin: 0 0 var(--sv-space-4);
+    font-size: var(--sv-font-size-sm);
+    font-weight: var(--sv-font-weight-semibold);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--sv-space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--sv-space-3);
+  }
+
+  .row:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Button */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: var(--sv-radius-md);
+    font-family: var(--sv-font-family-body);
+    font-weight: var(--sv-font-weight-medium);
+    cursor: pointer;
+    transition: background-color var(--sv-motion-duration-fast) ease;
+    height: var(--sv-touch-target-min);
+    padding: 0 var(--sv-space-4);
+    font-size: var(--sv-font-size-sm);
+  }
+
+  .btn.sm {
+    height: var(--sv-space-8);
+    padding: 0 var(--sv-space-3);
+    font-size: var(--sv-font-size-caption);
+  }
+
+  .btn.primary {
+    background: var(--sv-color-accent);
+    border-color: transparent;
+    color: var(--sv-color-text-on-accent);
+  }
+  .btn.primary:hover {
+    background: var(--sv-color-accent-hover);
+  }
+
+  .btn.secondary {
+    background: var(--sv-color-surface-raised);
+    border-color: var(--sv-color-border-strong);
+    color: var(--sv-color-text-primary);
+  }
+  .btn.secondary:hover {
+    background: var(--sv-color-surface-sunken);
+  }
+
+  .btn.ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--sv-color-text-primary);
+  }
+  .btn.ghost:hover {
+    background: var(--sv-color-accent-subtle);
+  }
+
+  .btn.danger {
+    background: var(--sv-color-error-solid);
+    border-color: transparent;
+    color: var(--sv-white);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* TextField */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 220px;
+  }
+
+  .field label {
+    font-size: var(--sv-font-size-caption);
+    font-weight: var(--sv-font-weight-medium);
+    color: var(--sv-color-text-primary);
+  }
+
+  .field input,
+  .field textarea {
+    font-family: var(--sv-font-family-body);
+    font-size: var(--sv-font-size-sm);
+    height: 40px;
+    padding: 0 var(--sv-space-3);
+    border-radius: var(--sv-radius-md);
+    border: 1px solid var(--sv-color-border-strong);
+    background: var(--sv-color-surface-raised);
+    color: var(--sv-color-text-primary);
+    outline: none;
+  }
+
+  .field textarea {
+    height: auto;
+    min-height: 40px;
+    padding: 10px var(--sv-space-3);
+    resize: none;
+    line-height: 1.4;
+  }
+
+  .field input:focus,
+  .field textarea:focus {
+    border-color: var(--sv-color-focus-ring);
+    box-shadow: 0 0 0 2px var(--sv-color-accent-subtle);
+  }
+
+  .field.error input,
+  .field.error textarea {
+    border-color: var(--sv-color-error-solid);
+  }
+
+  .field .hint {
+    font-size: 11px;
+    color: var(--sv-color-text-muted);
+  }
+
+  .field.error .hint {
+    color: var(--sv-color-error-text);
+  }
+
+  /* Toggle */
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    border-radius: var(--sv-radius-full);
+    background: var(--sv-color-border-strong);
+    cursor: pointer;
+    display: inline-block;
+  }
+
+  .toggle .thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--sv-white);
+    box-shadow: var(--sv-shadow-card);
+    transition: transform var(--sv-motion-duration-fast) ease;
+  }
+
+  .toggle.on {
+    background: var(--sv-color-accent);
+  }
+
+  .toggle.on .thumb {
+    transform: translateX(18px);
+  }
+
+  /* ListItem */
+  .list {
+    border: 1px solid var(--sv-color-border);
+    border-radius: var(--sv-radius-xl);
+    overflow: hidden;
+    background: var(--sv-color-surface-raised);
+  }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sv-space-3) var(--sv-space-4);
+    border-bottom: 1px solid var(--sv-color-border);
+  }
+
+  .list-item:last-child {
+    border-bottom: none;
+  }
+
+  .list-item .title {
+    font-size: var(--sv-font-size-sm);
+    font-weight: var(--sv-font-weight-medium);
+  }
+
+  .list-item .subtitle {
+    font-size: var(--sv-font-size-caption);
+    color: var(--sv-color-text-muted);
+  }
+
+  .list-item .chevron {
+    color: var(--sv-color-text-subtle);
+    font-size: var(--sv-font-size-md);
+  }
+
+  /* ChatBubble */
+  .chat-thread {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sv-space-3);
+  }
+
+  .bubble {
+    max-width: 70%;
+    padding: var(--sv-space-3) var(--sv-space-4);
+    border-radius: var(--sv-radius-2xl);
+    font-size: var(--sv-font-size-sm);
+    line-height: 1.5;
+  }
+
+  .bubble.assistant {
+    align-self: flex-start;
+    background: var(--sv-color-surface-sunken);
+    color: var(--sv-color-text-primary);
+    border-bottom-left-radius: var(--sv-radius-sm);
+  }
+
+  .bubble.user {
+    align-self: flex-end;
+    background: var(--sv-color-accent);
+    color: var(--sv-color-text-on-accent);
+    border-bottom-right-radius: var(--sv-radius-sm);
+  }
+
+  /* Connector provenance — the concept paper requires every reply that used
+     a connector to say so. The open-gate ring (the app mark's own motif)
+     is the universal "this crossed the boundary, with permission" glyph;
+     the label names the connector, and the provider when one has several. */
+  .provenance {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start;
+    margin: -6px 0 0 10px;
+    font-size: 11px;
+    color: var(--sv-color-text-subtle);
+    font-family: var(--sv-font-family-body);
+  }
+
+  .provenance svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+  }
+
+  /* Status banners */
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: var(--sv-space-2);
+    padding: var(--sv-space-3) var(--sv-space-4);
+    border-radius: var(--sv-radius-lg);
+    border: 1px solid;
+    font-size: var(--sv-font-size-caption);
+    margin-bottom: var(--sv-space-2);
+  }
+
+  .banner.error {
+    background: var(--sv-color-error-surface);
+    color: var(--sv-color-error-text);
+    border-color: var(--sv-color-error-border);
+  }
+  .banner.warning {
+    background: var(--sv-color-warning-surface);
+    color: var(--sv-color-warning-text);
+    border-color: var(--sv-color-warning-border);
+  }
+  .banner.success {
+    background: var(--sv-color-success-surface);
+    color: var(--sv-color-success-text);
+    border-color: var(--sv-color-success-border);
+  }
+  .banner.info {
+    background: var(--sv-color-info-surface);
+    color: var(--sv-color-info-text);
+    border-color: var(--sv-color-info-border);
+  }
+
+  footer {
+    margin-top: var(--sv-space-16);
+    padding-top: var(--sv-space-6);
+    border-top: 1px solid var(--sv-color-border);
+    font-size: var(--sv-font-size-caption);
+    color: var(--sv-color-text-muted);
+  }
+
+  /* ---- screens ---- */
+  .screen-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: var(--sv-space-3);
+    margin-bottom: var(--sv-space-6);
+  }
+
+  .screen-tab {
+    flex-shrink: 0;
+    font-family: var(--sv-font-family-body);
+    font-size: var(--sv-font-size-caption);
+    font-weight: var(--sv-font-weight-medium);
+    padding: var(--sv-space-2) var(--sv-space-3);
+    border-radius: var(--sv-radius-full);
+    border: 1px solid var(--sv-color-border-strong);
+    background: var(--sv-color-surface-raised);
+    color: var(--sv-color-text-muted);
+    cursor: pointer;
+  }
+
+  .screen-tab.active {
+    background: var(--sv-color-accent);
+    border-color: transparent;
+    color: var(--sv-color-text-on-accent);
+  }
+
+  .phone {
+    width: 375px;
+    max-width: 100%;
+    height: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    /* Fixed black, not grey-950: in dark mode the screen surface IS
+       grey-950, and a grey-950 bezel would dissolve into it. */
+    border: 8px solid var(--sv-black);
+    border-radius: 40px;
+    overflow: hidden;
+    background: var(--sv-color-surface);
+    box-shadow: var(--sv-shadow-popover);
+  }
+
+  .phone-statusbar {
+    flex-shrink: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sv-space-4);
+    font-size: 11px;
+    font-family: var(--sv-font-family-body);
+    font-weight: var(--sv-font-weight-medium);
+    background: var(--sv-color-surface);
+    color: var(--sv-color-text-primary);
+  }
+
+  .phone-screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .phone-screen.active {
+    display: flex;
+  }
+
+  .phone-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px var(--sv-space-4);
+    border-bottom: 1px solid var(--sv-color-border);
+    font-size: var(--sv-font-size-md);
+    font-weight: var(--sv-font-weight-semibold);
+    color: var(--sv-color-text-primary);
+    background: var(--sv-color-surface);
+  }
+
+  .phone-header .back {
+    color: var(--sv-color-accent);
+    display: flex;
+  }
+
+  .phone-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--sv-color-surface);
+  }
+
+  .phone-tabbar {
+    flex-shrink: 0;
+    display: flex;
+    border-top: 1px solid var(--sv-color-border);
+    background: var(--sv-color-surface);
+  }
+
+  .phone-tabbar .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--sv-space-2) 0 var(--sv-space-3);
+    font-size: 10px;
+    font-family: var(--sv-font-family-body);
+    color: var(--sv-color-text-subtle);
+  }
+
+  .phone-tabbar .tab.active {
+    color: var(--sv-color-text-primary);
+  }
+
+  .phone-tabbar .tab svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--sv-radius-full);
+    font-size: 11px;
+    font-weight: var(--sv-font-weight-medium);
+    white-space: nowrap;
+  }
+
+  .pill.allowed {
+    background: var(--sv-color-success-surface);
+    color: var(--sv-color-success-text);
+  }
+  .pill.blocked {
+    background: var(--sv-color-error-surface);
+    color: var(--sv-color-error-text);
+  }
+  .pill.notasked {
+    background: var(--sv-color-surface-sunken);
+    color: var(--sv-color-text-muted);
+  }
+  .pill.review {
+    background: var(--sv-color-warning-surface);
+    color: var(--sv-color-warning-text);
+  }
+
+  .fit-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--sv-radius-full);
+    font-size: 11px;
+    font-weight: var(--sv-font-weight-medium);
+  }
+  .fit-badge.good {
+    background: var(--sv-color-success-surface);
+    color: var(--sv-color-success-text);
+  }
+  .fit-badge.tight {
+    background: var(--sv-color-warning-surface);
+    color: var(--sv-color-warning-text);
+  }
+  .fit-badge.bad {
+    background: var(--sv-color-error-surface);
+    color: var(--sv-color-error-text);
+  }
+
+  .progress-track {
+    height: 6px;
+    border-radius: var(--sv-radius-full);
+    background: var(--sv-color-surface-sunken);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--sv-color-accent);
+  }
+
+  .section-label {
+    padding: var(--sv-space-3) var(--sv-space-4) var(--sv-space-1);
+    font-size: 11px;
+    font-weight: var(--sv-font-weight-semibold);
+    letter-spacing: 0.06em;
+    color: var(--sv-color-text-muted);
+  }
+
+  .segmented {
+    display: flex;
+    background: var(--sv-color-surface-sunken);
+    border-radius: var(--sv-radius-md);
+    padding: 2px;
+    gap: 2px;
+  }
+  .segmented .seg {
+    flex: 1;
+    text-align: center;
+    padding: 6px 0;
+    font-size: var(--sv-font-size-caption);
+    font-weight: var(--sv-font-weight-medium);
+    border-radius: calc(var(--sv-radius-md) - 2px);
+    color: var(--sv-color-text-muted);
+  }
+  .segmented .seg.active {
+    background: var(--sv-color-surface-raised);
+    color: var(--sv-color-text-primary);
+    box-shadow: var(--sv-shadow-card);
+  }
+
+  .send-btn {
+    /* --sv-touch-target-min: the one icon-only control on the chat screen
+       must not be the one control under the 44px floor. */
+    width: var(--sv-touch-target-min);
+    height: var(--sv-touch-target-min);
+    border-radius: 50%;
+    background: var(--sv-color-accent);
+    color: var(--sv-color-text-on-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .mode-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border-radius: var(--sv-radius-full);
+    font-size: var(--sv-font-size-xs);
+    border: 1px solid var(--sv-color-border);
+    color: var(--sv-color-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .mode-chip.active {
+    background: var(--sv-color-accent);
+    border-color: transparent;
+    color: var(--sv-color-text-on-accent);
+  }
+
+  .screen-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: var(--sv-space-3) var(--sv-space-4);
+    border-bottom: 1px solid var(--sv-color-border);
+  }
+  .screen-row .title {
+    font-size: var(--sv-font-size-sm);
+    font-weight: var(--sv-font-weight-medium);
+    color: var(--sv-color-text-primary);
+  }
+  .screen-row .subtitle {
+    font-size: var(--sv-font-size-caption);
+    color: var(--sv-color-text-muted);
+    margin-top: 2px;
+  }
+
+  /* ---- desktop frame ---- */
+  .desktop-frame {
+    display: flex;
+    flex-direction: column;
+    height: 640px;
+    border: 1px solid var(--sv-color-border-strong);
+    border-radius: var(--sv-radius-xl);
+    overflow: hidden;
+    background: var(--sv-color-surface);
+    box-shadow: var(--sv-shadow-popover);
+  }
+
+  .desktop-titlebar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 var(--sv-space-3);
+    background: var(--sv-color-surface-sunken);
+    border-bottom: 1px solid var(--sv-color-border);
+  }
+
+  .desktop-titlebar .lights {
+    display: flex;
+    gap: 6px;
+  }
+
+  .desktop-titlebar .lights span {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--sv-color-border-strong);
+  }
+
+  .desktop-titlebar .title {
+    flex: 1;
+    text-align: center;
+    font-size: var(--sv-font-size-xs);
+    color: var(--sv-color-text-muted);
+    /* offset the traffic-light cluster so the title optically centers */
+    margin-right: 45px;
+  }
+
+  .desktop-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .desktop-sidebar {
+    flex-shrink: 0;
+    width: 210px;
+    display: flex;
+    flex-direction: column;
+    background: var(--sv-color-surface-sunken);
+    border-right: 1px solid var(--sv-color-border);
+  }
+
+  .desktop-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: var(--sv-space-4);
+    font-size: var(--sv-font-size-sm);
+    font-weight: var(--sv-font-weight-semibold);
+    color: var(--sv-color-text-primary);
+  }
+
+  .desktop-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 var(--sv-space-2);
+  }
+
+  .desktop-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: var(--sv-radius-md);
+    font-size: var(--sv-font-size-sm);
+    color: var(--sv-color-text-muted);
+    cursor: pointer;
+  }
+
+  .desktop-nav-item:hover {
+    background: var(--sv-color-accent-subtle);
+  }
+
+  .desktop-nav-item.active {
+    background: var(--sv-color-surface-raised);
+    color: var(--sv-color-text-primary);
+    font-weight: var(--sv-font-weight-medium);
+    box-shadow: var(--sv-shadow-card);
+  }
+
+  .desktop-nav-item svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .desktop-trust {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--sv-space-3) var(--sv-space-4);
+    border-top: 1px solid var(--sv-color-border);
+    font-size: 11px;
+    color: var(--sv-color-text-muted);
+  }
+
+  .desktop-content {
+    flex: 1;
+    min-width: 0;
+    display: none;
+    flex-direction: column;
+    background: var(--sv-color-surface);
+  }
+
+  .desktop-content.active {
+    display: flex;
+  }
+
+  .desktop-content .inner {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .desktop-screen-header {
+    flex-shrink: 0;
+    padding: var(--sv-space-4) var(--sv-space-6) var(--sv-space-2);
+    font-size: var(--sv-font-size-lg);
+    font-weight: var(--sv-font-weight-semibold);
+    color: var(--sv-color-text-primary);
+  }
+
+  .desktop-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 var(--sv-space-6);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>Sovereign Edge — Design System Reference</h1>
+    <p>Warm cream + clay palette · proposal · not yet implemented in-app</p>
+  </div>
+  <button id="theme-toggle" onclick="toggleTheme()">Switch to dark</button>
+</header>
+
+<div class="page">
+
+  <section id="colors">
+    <h2>Color</h2>
+    <p class="desc">
+      Primitive scales are fixed; the semantic layer below is what components
+      actually reference and is the only thing that changes between light and
+      dark.
+    </p>
+
+    <h3 class="sub">Grey scale (warm neutral)</h3>
+    <div class="scale">
+      <div class="swatch" style="background:var(--sv-grey-50); color:var(--sv-grey-800);"><span class="name">grey50</span>#F7F5F0</div>
+      <div class="swatch" style="background:var(--sv-grey-100); color:var(--sv-grey-800);"><span class="name">grey100</span>#EDEAE1</div>
+      <div class="swatch" style="background:var(--sv-grey-200); color:var(--sv-grey-800);"><span class="name">grey200</span>#DDD7C9</div>
+      <div class="swatch" style="background:var(--sv-grey-300); color:var(--sv-grey-800);"><span class="name">grey300</span>#C7BEAB</div>
+      <div class="swatch" style="background:var(--sv-grey-400); color:var(--sv-grey-950);"><span class="name">grey400</span>#A79C86</div>
+      <div class="swatch" style="background:var(--sv-grey-500); color:var(--sv-white);"><span class="name">grey500</span>#8B8069</div>
+      <div class="swatch" style="background:var(--sv-grey-600); color:var(--sv-white);"><span class="name">grey600</span>#6E6452</div>
+      <div class="swatch" style="background:var(--sv-grey-700); color:var(--sv-white);"><span class="name">grey700</span>#52493A</div>
+      <div class="swatch" style="background:var(--sv-grey-800); color:var(--sv-white);"><span class="name">grey800</span>#382F24</div>
+      <div class="swatch" style="background:var(--sv-grey-900); color:var(--sv-white);"><span class="name">grey900</span>#241D15</div>
+      <div class="swatch" style="background:var(--sv-grey-950); color:var(--sv-white);"><span class="name">grey950</span>#15100A</div>
+    </div>
+
+    <h3 class="sub">Clay scale (accent)</h3>
+    <div class="scale">
+      <div class="swatch" style="background:var(--sv-clay-100); color:var(--sv-clay-900);"><span class="name">clay100</span>#F7E4DB</div>
+      <div class="swatch" style="background:var(--sv-clay-200); color:var(--sv-clay-900);"><span class="name">clay200</span>#EFC3AE</div>
+      <div class="swatch" style="background:var(--sv-clay-300); color:var(--sv-clay-900);"><span class="name">clay300</span>#E6A183</div>
+      <div class="swatch" style="background:var(--sv-clay-400); color:var(--sv-white);"><span class="name">clay400</span>#DE8067</div>
+      <div class="swatch" style="background:var(--sv-clay-500); color:var(--sv-white);"><span class="name">clay500</span>#D97757</div>
+      <div class="swatch" style="background:var(--sv-clay-600); color:var(--sv-white);"><span class="name">clay600</span>#C15F3E</div>
+      <div class="swatch" style="background:var(--sv-clay-700); color:var(--sv-white);"><span class="name">clay700</span>#A54B2E</div>
+      <div class="swatch" style="background:var(--sv-clay-800); color:var(--sv-white);"><span class="name">clay800</span>#7C3820</div>
+      <div class="swatch" style="background:var(--sv-clay-900); color:var(--sv-white);"><span class="name">clay900</span>#542613</div>
+    </div>
+
+    <h3 class="sub">Semantic tokens (current theme)</h3>
+    <div class="semantic-grid">
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-surface);"></div><div class="label">surface<span class="token">--sv-color-surface</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-surface-sunken);"></div><div class="label">surface-sunken<span class="token">--sv-color-surface-sunken</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-surface-raised);"></div><div class="label">surface-raised<span class="token">--sv-color-surface-raised</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-accent);"></div><div class="label">accent<span class="token">--sv-color-accent</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-accent-hover);"></div><div class="label">accent-hover<span class="token">--sv-color-accent-hover</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-accent-subtle);"></div><div class="label">accent-subtle<span class="token">--sv-color-accent-subtle</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-text-primary);"></div><div class="label">text-primary<span class="token">--sv-color-text-primary</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-text-muted);"></div><div class="label">text-muted<span class="token">--sv-color-text-muted</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-text-subtle);"></div><div class="label">text-subtle<span class="token">--sv-color-text-subtle</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-border);"></div><div class="label">border<span class="token">--sv-color-border</span></div></div>
+      <div class="semantic-card"><div class="fill" style="background:var(--sv-color-border-strong);"></div><div class="label">border-strong<span class="token">--sv-color-border-strong</span></div></div>
+    </div>
+
+    <h3 class="sub">Status</h3>
+    <div class="banner error">Error — that name's already taken.</div>
+    <div class="banner warning">Warning — this connector hasn't synced in 3 days.</div>
+    <div class="banner success">Success — model downloaded.</div>
+    <div class="banner info">Info — running fully on-device.</div>
+  </section>
+
+  <section id="typography">
+    <h2>Typography</h2>
+    <p class="desc">
+      Hanken Grotesk (body) · JetBrains Mono (code). Fallback stacks apply
+      when the web font isn't loaded — neither app bundles these files today.
+    </p>
+
+    <div class="font-sample">
+      <p class="sample-heading">--sv-font-family-body</p>
+      <p class="sample-text" style="font-weight:600;">Sovereign Edge runs entirely on your device.</p>
+      <p class="sample-text" style="font-weight:400; font-size:var(--sv-font-size-md);">The quick brown fox jumps over the lazy dog. 0123456789</p>
+    </div>
+    <div class="font-sample mono">
+      <p class="sample-heading">--sv-font-family-mono</p>
+      <p class="sample-text">const model = await loadGGUF(path);</p>
+    </div>
+
+    <h3 class="sub">Type scale</h3>
+    <div class="type-row"><span class="tag">label · 11</span><span style="font-size:11px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">xs · 12</span><span style="font-size:12px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">caption · 13</span><span style="font-size:13px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">sm · 14</span><span style="font-size:14px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">md · 16</span><span style="font-size:16px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">lg · 18</span><span style="font-size:18px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">xl · 20</span><span style="font-size:20px;">The quick brown fox</span></div>
+    <div class="type-row"><span class="tag">2xl · 24</span><span style="font-size:24px; font-weight:600;">The quick brown fox</span></div>
+  </section>
+
+  <section id="spacing">
+    <h2>Spacing &amp; radius</h2>
+    <p class="desc">4px base scale, unchanged from the current tokens.</p>
+
+    <h3 class="sub">Spacing</h3>
+    <div class="bar-row"><span class="tag">space-1 · 4</span><div class="bar" style="width:4px;"></div></div>
+    <div class="bar-row"><span class="tag">space-2 · 8</span><div class="bar" style="width:8px;"></div></div>
+    <div class="bar-row"><span class="tag">space-3 · 12</span><div class="bar" style="width:12px;"></div></div>
+    <div class="bar-row"><span class="tag">space-4 · 16</span><div class="bar" style="width:16px;"></div></div>
+    <div class="bar-row"><span class="tag">space-5 · 20</span><div class="bar" style="width:20px;"></div></div>
+    <div class="bar-row"><span class="tag">space-6 · 24</span><div class="bar" style="width:24px;"></div></div>
+    <div class="bar-row"><span class="tag">space-8 · 32</span><div class="bar" style="width:32px;"></div></div>
+    <div class="bar-row"><span class="tag">space-10 · 40</span><div class="bar" style="width:40px;"></div></div>
+    <div class="bar-row"><span class="tag">space-12 · 48</span><div class="bar" style="width:48px;"></div></div>
+    <div class="bar-row"><span class="tag">space-16 · 64</span><div class="bar" style="width:64px;"></div></div>
+
+    <h3 class="sub">Radius</h3>
+    <div class="radius-row">
+      <div class="radius-box" style="border-radius:var(--sv-radius-sm);">sm · 6</div>
+      <div class="radius-box" style="border-radius:var(--sv-radius-md);">md · 8</div>
+      <div class="radius-box" style="border-radius:var(--sv-radius-lg);">lg · 11</div>
+      <div class="radius-box" style="border-radius:var(--sv-radius-xl);">xl · 12</div>
+      <div class="radius-box" style="border-radius:var(--sv-radius-2xl);">2xl · 14</div>
+      <div class="radius-box" style="border-radius:var(--sv-radius-3xl);">3xl · 20</div>
+      <div class="radius-box" style="border-radius:var(--sv-radius-full);">full</div>
+    </div>
+  </section>
+
+  <section id="components">
+    <h2>Components</h2>
+    <p class="desc">Visual reference only — actual RN/DOM implementations will match this.</p>
+
+    <div class="component-block">
+      <h4>Button</h4>
+      <div class="row">
+        <button class="btn primary">Send</button>
+        <button class="btn secondary">Cancel</button>
+        <button class="btn ghost">Skip</button>
+        <button class="btn danger">Delete</button>
+        <button class="btn primary" disabled>Disabled</button>
+      </div>
+      <div class="row">
+        <button class="btn primary sm">Send</button>
+        <button class="btn secondary sm">Cancel</button>
+      </div>
+    </div>
+
+    <div class="component-block">
+      <h4>TextField</h4>
+      <div class="row">
+        <div class="field">
+          <label>Instance URL</label>
+          <input type="text" placeholder="https://…" />
+          <span class="hint">Where your model files live.</span>
+        </div>
+        <div class="field">
+          <label>Instance URL</label>
+          <input type="text" value="focused" />
+        </div>
+        <div class="field error">
+          <label>Instance URL</label>
+          <input type="text" value="not a url" />
+          <span class="hint">Enter a valid URL.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="component-block">
+      <h4>Toggle</h4>
+      <div class="row">
+        <span class="toggle on"><span class="thumb"></span></span>
+        <span class="toggle"><span class="thumb"></span></span>
+      </div>
+    </div>
+
+    <div class="component-block">
+      <h4>ListItem</h4>
+      <div class="list">
+        <div class="list-item">
+          <div><div class="title">Search connector</div><div class="subtitle">Last synced 2 minutes ago</div></div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="list-item">
+          <div><div class="title">Calendar connector</div><div class="subtitle">Not connected</div></div>
+          <span class="chevron">›</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="component-block">
+      <h4>ChatBubble</h4>
+      <div class="chat-thread">
+        <div class="bubble assistant">I can help with that — do you want me to check your calendar first?</div>
+        <div class="bubble user">Yes, tomorrow afternoon.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens">
+    <h2>Screens (mobile)</h2>
+    <p class="desc">
+      Reflects the 7 screens implemented today, with a few structural changes
+      layered in: icon send button + iconified banners/chips on Chat, a
+      progress bar + fit badge on Models, a segmented control replacing the
+      3-toggle theme picker on Settings, and section headers + status pills
+      on Connectors (previously a flat, header-less list).
+    </p>
+
+    <div class="screen-tabs">
+      <button class="screen-tab" data-screen="splash" onclick="showScreen('splash')">Splash</button>
+      <button class="screen-tab active" data-screen="chat" onclick="showScreen('chat')">Chat</button>
+      <button class="screen-tab" data-screen="models" onclick="showScreen('models')">Models</button>
+      <button class="screen-tab" data-screen="settings" onclick="showScreen('settings')">Settings</button>
+      <button class="screen-tab" data-screen="connectors" onclick="showScreen('connectors')">Connectors</button>
+      <button class="screen-tab" data-screen="connector-detail" onclick="showScreen('connector-detail')">Connector detail</button>
+      <button class="screen-tab" data-screen="connector-first-run" onclick="showScreen('connector-first-run')">Detail (first run)</button>
+      <button class="screen-tab" data-screen="connector-store" onclick="showScreen('connector-store')">Connector store</button>
+      <button class="screen-tab" data-screen="connector-install" onclick="showScreen('connector-install')">Connector install</button>
+    </div>
+
+    <div class="phone">
+      <div class="phone-statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679;&#9679;</span></div>
+
+      <!-- SPLASH -->
+      <div class="phone-screen" id="screen-splash" style="align-items:center; justify-content:center; position:relative;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:20px;">
+          <!-- The "One gate" mark: a sealed ring opened at exactly one point,
+               a dot at the threshold (the permissioned connector), the spark
+               of the companion inside. -->
+          <svg viewBox="0 0 24 24" width="88" height="88" fill="none">
+            <path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="var(--sv-color-accent)" stroke-width="1.7" stroke-linecap="round"/>
+            <circle cx="18.2" cy="4.6" r="1.6" fill="var(--sv-color-accent)"/>
+            <path d="M12 8.2l1.1 2.7 2.7 1.1-2.7 1.1-1.1 2.7-1.1-2.7-2.7-1.1 2.7-1.1 1.1-2.7z" fill="var(--sv-color-accent)"/>
+          </svg>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+            <div style="font-size:var(--sv-font-size-2xl); font-weight:var(--sv-font-weight-semibold); color:var(--sv-color-text-primary); font-family:var(--sv-font-family-body); letter-spacing:-0.01em;">Sovereign Edge</div>
+            <div style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); font-family:var(--sv-font-family-body);">Private by design.</div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:28px; left:0; right:0; display:flex; justify-content:center;">
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--sv-color-text-subtle); font-family:var(--sv-font-family-body);">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/><path d="M5 12.55a10.94 10.94 0 015.17-2.39"/><path d="M10.71 5.05A16 16 0 0122.58 9"/><path d="M1.42 9a15.91 15.91 0 014.7-2.88"/><path d="M8.53 16.11a6 6 0 016.95 0"/><path d="M12 20h.01"/></svg>
+            No network in the chat path — by construction
+          </span>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="phone-screen active" id="screen-chat">
+        <div class="phone-header">Chat</div>
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 16px; background:var(--sv-color-surface-sunken); border-bottom:1px solid var(--sv-color-border); flex-shrink:0;">
+          <svg class="icon" style="color:var(--sv-color-text-muted); width:13px; height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/><path d="M5 12.55a10.94 10.94 0 015.17-2.39"/><path d="M10.71 5.05A16 16 0 0122.58 9"/><path d="M1.42 9a15.91 15.91 0 014.7-2.88"/><path d="M8.53 16.11a6 6 0 016.95 0"/><path d="M12 20h.01"/></svg>
+          <span style="font-size:var(--sv-font-size-xs); color:var(--sv-color-text-muted);">On-device &middot; Hermes 3B</span>
+        </div>
+        <div class="phone-body">
+          <div class="chat-thread" style="padding:12px 16px;">
+            <div class="bubble assistant">I can help with that &mdash; do you want me to check your calendar first?</div>
+            <div class="bubble user">Yes, tomorrow afternoon.</div>
+            <div class="bubble assistant">You're free after 2pm. Want me to draft an invite?</div>
+            <span class="provenance">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="2.2" fill="currentColor"/></svg>
+              Calendar &middot; Read events
+            </span>
+            <div class="bubble user">Also, is the ferry running this weekend?</div>
+            <div class="bubble assistant">Yes &mdash; the harbour ferry runs Saturday and Sunday, every 40 minutes from 9am.</div>
+            <span class="provenance">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="2.2" fill="currentColor"/></svg>
+              Search &middot; Tavily
+            </span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; padding:8px 16px; border-top:1px solid var(--sv-color-border); overflow-x:auto; flex-shrink:0;">
+          <span class="mode-chip active">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+            Chat
+          </span>
+          <span class="mode-chip">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            Search
+          </span>
+          <span class="mode-chip">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Brainstorm
+          </span>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:8px; padding:12px 16px; border-top:1px solid var(--sv-color-border); flex-shrink:0;">
+          <div class="field" style="flex:1; width:auto;">
+            <textarea rows="2" placeholder="Message"></textarea>
+          </div>
+          <button class="send-btn" aria-label="Send">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- MODELS -->
+      <div class="phone-screen" id="screen-models">
+        <div class="phone-header">Models</div>
+        <div class="phone-body">
+          <p style="padding:16px; font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin:0;">Models run entirely on this device. Larger ones answer better and need more memory.</p>
+
+          <div class="section-label">Installed</div>
+          <div class="screen-row">
+            <div>
+              <div class="title">Hermes 3B</div>
+              <div class="subtitle">2.1 GB &middot; Fits comfortably</div>
+            </div>
+            <span class="fit-badge good">In use</span>
+          </div>
+          <div class="screen-row" style="flex-direction:column; align-items:stretch;">
+            <div style="display:flex; justify-content:space-between;">
+              <div>
+                <div class="title">Llama 3 8B</div>
+                <div class="subtitle">Downloading &middot; 1.2 of 3.4 GB</div>
+              </div>
+              <span class="fit-badge tight">67%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:67%;"></div></div>
+          </div>
+
+          <div class="section-label">Available</div>
+          <div class="screen-row">
+            <div>
+              <div class="title">Phi-3 Mini</div>
+              <div class="subtitle">1.8 GB &middot; Fits comfortably</div>
+            </div>
+            <span class="fit-badge good">Download</span>
+          </div>
+          <div class="screen-row">
+            <div>
+              <div class="title">Mixtral 47B</div>
+              <div class="subtitle">26 GB &middot; tap to download anyway</div>
+            </div>
+            <span class="fit-badge bad">Too large</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="phone-screen" id="screen-settings">
+        <div class="phone-header">Settings</div>
+        <div class="phone-body">
+          <div class="section-label">Appearance</div>
+          <div style="padding:0 16px 16px;">
+            <div class="segmented">
+              <div class="seg active">System</div>
+              <div class="seg">Light</div>
+              <div class="seg">Dark</div>
+            </div>
+          </div>
+          <div class="section-label">Privacy</div>
+          <div class="screen-row" style="cursor:pointer;" onclick="showScreen('connectors')">
+            <div>
+              <div class="title">Connectors</div>
+              <div class="subtitle">Nothing can reach the network</div>
+            </div>
+            <svg class="icon" style="color:var(--sv-color-text-subtle);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="section-label">About</div>
+          <div class="screen-row">
+            <div class="title">Version</div>
+            <div class="subtitle">0.1.19</div>
+          </div>
+          <div class="screen-row">
+            <div>
+              <div class="title">Offline by design</div>
+              <div class="subtitle">Sovereign Edge has no network code in its chat path.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONNECTORS -->
+      <div class="phone-screen" id="screen-connectors">
+        <div class="phone-header">
+          <span class="back" style="cursor:pointer;" onclick="showScreen('settings')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          Connectors
+        </div>
+        <div class="phone-body">
+          <p style="padding:16px; font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin:0;">Granting one connector never grants another.</p>
+
+          <div class="section-label">Search</div>
+          <div class="screen-row" style="cursor:pointer;" onclick="showScreen('connector-detail')">
+            <div>
+              <div class="title">Search</div>
+              <div class="subtitle">SearXNG &middot; Tavily</div>
+            </div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill allowed">Allowed</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+
+          <div class="section-label">Calendar</div>
+          <div class="screen-row">
+            <div><div class="title">Read events</div></div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill allowed">Allowed</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+          <div class="screen-row">
+            <div><div class="title">Create events</div></div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill notasked">Not asked</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+          <div class="screen-row">
+            <div><div class="title">Delete events</div></div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill blocked">Blocked</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+
+          <div class="section-label">Device</div>
+          <div class="screen-row">
+            <div><div class="title">Brightness</div></div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill allowed">Allowed</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+          <div class="screen-row">
+            <div><div class="title">Torch</div></div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill review">Needs review</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+
+          <div class="section-label">Installed</div>
+          <div class="screen-row">
+            <div>
+              <div class="title">Open-Meteo Weather</div>
+              <div class="subtitle">api.open-meteo.com</div>
+            </div>
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="pill allowed">Allowed</span>
+              <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </div>
+
+          <div class="screen-row" style="border-bottom:none;">
+            <div>
+              <div class="title">Connector Store</div>
+              <div class="subtitle">Browse and install third-party connectors</div>
+            </div>
+            <svg class="icon" style="color:var(--sv-color-text-subtle);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONNECTOR DETAIL (Search example) -->
+      <div class="phone-screen" id="screen-connector-detail">
+        <div class="phone-header">
+          <span class="back" style="cursor:pointer;" onclick="showScreen('connectors')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          Search
+        </div>
+        <div class="phone-body">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:16px;">
+            <div>
+              <div style="font-size:var(--sv-font-size-md); font-weight:var(--sv-font-weight-semibold); color:var(--sv-color-text-primary);">Search</div>
+              <div style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin-top:2px;">Answers web-search requests in chat</div>
+            </div>
+            <span class="pill allowed">Allowed</span>
+          </div>
+
+          <div class="section-label">Reaches</div>
+          <div style="padding:0 16px 8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" style="color:var(--sv-color-text-subtle);"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="2.2" fill="currentColor"/></svg>
+              <span style="font-size:var(--sv-font-size-caption); font-family:var(--sv-font-family-mono); color:var(--sv-color-text-muted);">api.tavily.com</span>
+            </div>
+            <p style="font-size:11px; color:var(--sv-color-text-subtle); margin:6px 0 0;">Only your search text leaves the device, only when you use Search mode.</p>
+          </div>
+
+          <div class="section-label">Provider</div>
+          <div style="padding:0 16px 8px;">
+            <div class="segmented">
+              <div class="seg">SearXNG</div>
+              <div class="seg active">Tavily</div>
+            </div>
+          </div>
+
+          <div style="padding:8px 16px;" class="field">
+            <label>Tavily API key</label>
+            <input type="password" value="••••••••••••" style="width:100%;" />
+            <span class="hint">Stored in the device keychain, scoped to this connector only.</span>
+          </div>
+
+          <div style="padding:8px 16px;">
+            <button class="btn secondary" style="width:100%;">Save changes</button>
+          </div>
+
+          <div style="padding:8px 16px 24px;">
+            <button class="btn ghost" style="width:100%; color:var(--sv-color-error-text);">Revoke access</button>
+            <p style="font-size:11px; color:var(--sv-color-text-subtle); margin:6px 0 0; text-align:center;">Revoking also deletes the stored API key.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONNECTOR DETAIL, FIRST RUN (Search not yet configured) -->
+      <div class="phone-screen" id="screen-connector-first-run">
+        <div class="phone-header">
+          <span class="back" style="cursor:pointer;" onclick="showScreen('connectors')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          Search
+        </div>
+        <div class="phone-body">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:16px;">
+            <div>
+              <div style="font-size:var(--sv-font-size-md); font-weight:var(--sv-font-weight-semibold); color:var(--sv-color-text-primary);">Search</div>
+              <div style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin-top:2px;">Answers web-search requests in chat</div>
+            </div>
+            <span class="pill notasked">Not set up</span>
+          </div>
+
+          <p style="padding:0 16px 8px; font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin:0;">Choose which service answers web-search requests. Nothing leaves the device until you save and grant access.</p>
+
+          <div class="section-label">Provider</div>
+          <div style="padding:0 16px 8px;">
+            <div class="segmented">
+              <div class="seg active">SearXNG</div>
+              <div class="seg">Tavily</div>
+            </div>
+          </div>
+
+          <div style="padding:8px 16px;" class="field">
+            <label>Instance URL</label>
+            <input type="text" placeholder="https://your-instance.example.org" style="width:100%;" />
+            <span class="hint">Self-hosted, or one you trust. Must be https &mdash; this app never relaxes that.</span>
+          </div>
+
+          <div style="padding:8px 16px 24px;">
+            <button class="btn primary" style="width:100%;">Save &amp; grant access</button>
+            <p style="font-size:11px; color:var(--sv-color-text-subtle); margin:6px 0 0; text-align:center;">Saving asks for this connector's permission &mdash; separately revocable, scoped to it alone.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONNECTOR STORE -->
+      <div class="phone-screen" id="screen-connector-store">
+        <div class="phone-header">
+          <span class="back" style="cursor:pointer;" onclick="showScreen('connectors')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          Connector Store
+        </div>
+        <div class="phone-body">
+          <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <p style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin:0;">This screen fetches the public connector registry from the internet.</p>
+            <div class="field" style="width:auto;">
+              <label>Search</label>
+              <input type="text" placeholder="Filter by name or description" />
+            </div>
+          </div>
+          <div class="screen-row" style="cursor:pointer;" onclick="showScreen('connector-install')">
+            <div>
+              <div class="title">Open-Meteo Weather</div>
+              <div class="subtitle">Current conditions and forecast</div>
+            </div>
+            <svg class="icon" style="color:var(--sv-color-text-subtle);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="screen-row" style="opacity:0.5;">
+            <div>
+              <div class="title">GitHub Issues</div>
+              <div class="subtitle">Track issues across repos &middot; not yet supported</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONNECTOR INSTALL -->
+      <div class="phone-screen" id="screen-connector-install">
+        <div class="phone-header">
+          <span class="back" style="cursor:pointer;" onclick="showScreen('connector-store')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          Install Connector
+        </div>
+        <div class="phone-body" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <div style="font-size:var(--sv-font-size-md); color:var(--sv-color-text-primary);">Open-Meteo Weather</div>
+            <div style="font-size:var(--sv-font-size-sm); color:var(--sv-color-text-muted); margin-top:2px;">Current conditions and forecast</div>
+            <div style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-subtle); margin-top:2px;">Submitted by Jane Doe</div>
+          </div>
+          <div>
+            <div style="font-size:var(--sv-font-size-sm); color:var(--sv-color-text-primary);">Reaches</div>
+            <div style="font-size:var(--sv-font-size-caption); font-family:var(--sv-font-family-mono); color:var(--sv-color-text-muted); margin-top:2px;">api.open-meteo.com</div>
+          </div>
+          <div class="field" style="width:auto;">
+            <label>API key</label>
+            <input type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" />
+            <span class="hint">Stored in the device keychain, scoped to this connector only.</span>
+          </div>
+          <button class="btn primary">Install &amp; grant</button>
+        </div>
+      </div>
+
+      <div class="phone-tabbar">
+        <div class="tab active" data-tab="chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+          <span>Chat</span>
+        </div>
+        <div class="tab" data-tab="models">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2.5"/><path d="M9 2.5v2M15 2.5v2M9 19.5v2M15 19.5v2M2.5 9h2M2.5 15h2M19.5 9h2M19.5 15h2"/></svg>
+          <span>Models</span>
+        </div>
+        <div class="tab" data-tab="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span>Settings</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens-desktop">
+    <h2>Screens (desktop)</h2>
+    <p class="desc">
+      Same identity, patterns, and screen inventory as mobile, in a
+      sidebar-plus-content window (Tauri v2, native title bar). Connectors is
+      promoted to a top-level sidebar item; the trust strip is pinned to the
+      sidebar bottom so the active trust tier is visible on every screen, not
+      just Chat. The connector inventory is platform-specific by design —
+      mobile's Device section (Brightness, Torch) is phone hardware and has no
+      desktop counterpart; desktop's Tier&nbsp;3 set is its own (research 0011).
+    </p>
+
+    <div class="screen-tabs">
+      <button class="screen-tab active" data-screen="chat" onclick="showDesktopScreen('chat')">Chat</button>
+      <button class="screen-tab" data-screen="models" onclick="showDesktopScreen('models')">Models</button>
+      <button class="screen-tab" data-screen="connectors" onclick="showDesktopScreen('connectors')">Connectors</button>
+      <button class="screen-tab" data-screen="connector-detail" onclick="showDesktopScreen('connector-detail')">Connector detail</button>
+      <button class="screen-tab" data-screen="settings" onclick="showDesktopScreen('settings')">Settings</button>
+    </div>
+
+    <div class="desktop-frame">
+      <div class="desktop-titlebar">
+        <span class="lights"><span></span><span></span><span></span></span>
+        <span class="title">Sovereign Edge</span>
+      </div>
+      <div class="desktop-main">
+
+        <div class="desktop-sidebar">
+          <div class="desktop-brand">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="var(--sv-color-accent)" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="18.2" cy="4.6" r="1.7" fill="var(--sv-color-accent)"/>
+              <path d="M12 8.2l1.1 2.7 2.7 1.1-2.7 1.1-1.1 2.7-1.1-2.7-2.7-1.1 2.7-1.1 1.1-2.7z" fill="var(--sv-color-accent)"/>
+            </svg>
+            Sovereign Edge
+          </div>
+          <div class="desktop-nav">
+            <div class="desktop-nav-item active" data-nav="chat" onclick="showDesktopScreen('chat')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+              Chat
+            </div>
+            <div class="desktop-nav-item" data-nav="models" onclick="showDesktopScreen('models')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2.5"/><path d="M9 2.5v2M15 2.5v2M9 19.5v2M15 19.5v2M2.5 9h2M2.5 15h2M19.5 9h2M19.5 15h2"/></svg>
+              Models
+            </div>
+            <div class="desktop-nav-item" data-nav="connectors" onclick="showDesktopScreen('connectors')">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="1.9" fill="currentColor"/></svg>
+              Connectors
+            </div>
+            <div class="desktop-nav-item" data-nav="settings" onclick="showDesktopScreen('settings')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              Settings
+            </div>
+          </div>
+          <div class="desktop-trust">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/><path d="M5 12.55a10.94 10.94 0 015.17-2.39"/><path d="M10.71 5.05A16 16 0 0122.58 9"/><path d="M1.42 9a15.91 15.91 0 014.7-2.88"/><path d="M8.53 16.11a6 6 0 016.95 0"/><path d="M12 20h.01"/></svg>
+            On-device &middot; Hermes 3B
+          </div>
+        </div>
+
+        <!-- DESKTOP CHAT -->
+        <div class="desktop-content active" id="dscreen-chat">
+          <div class="desktop-scroll">
+            <div class="inner">
+              <div class="chat-thread" style="padding:20px 0;">
+                <div class="bubble assistant">I can help with that &mdash; do you want me to check your calendar first?</div>
+                <div class="bubble user">Yes, tomorrow afternoon.</div>
+                <div class="bubble assistant">You're free after 2pm. Want me to draft an invite?</div>
+                <span class="provenance">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="2.2" fill="currentColor"/></svg>
+                  Calendar &middot; Read events
+                </span>
+                <div class="bubble user">Also, is the ferry running this weekend?</div>
+                <div class="bubble assistant">Yes &mdash; the harbour ferry runs Saturday and Sunday, every 40 minutes from 9am.</div>
+                <span class="provenance">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="2.2" fill="currentColor"/></svg>
+                  Search &middot; Tavily
+                </span>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0; border-top:1px solid var(--sv-color-border);">
+            <div class="inner">
+              <div style="display:flex; gap:8px; padding:10px 0 0; overflow-x:auto;">
+                <span class="mode-chip active">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                  Chat
+                </span>
+                <span class="mode-chip">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                  Search
+                </span>
+                <span class="mode-chip">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  Brainstorm
+                </span>
+              </div>
+              <div style="display:flex; align-items:flex-end; gap:8px; padding:10px 0 16px;">
+                <div class="field" style="flex:1; width:auto;">
+                  <textarea rows="2" placeholder="Message &mdash; Enter to send, Shift+Enter for a new line"></textarea>
+                </div>
+                <button class="send-btn" aria-label="Send">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESKTOP MODELS -->
+        <div class="desktop-content" id="dscreen-models">
+          <div class="desktop-screen-header">Models</div>
+          <div class="desktop-scroll">
+            <div class="inner">
+              <p style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin:4px 0 8px;">Models run entirely on this device. Larger ones answer better and need more memory.</p>
+              <div class="section-label" style="padding-left:0;">Installed</div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div>
+                  <div class="title">Hermes 3B</div>
+                  <div class="subtitle">2.1 GB &middot; Fits comfortably</div>
+                </div>
+                <span class="fit-badge good">In use</span>
+              </div>
+              <div class="screen-row" style="flex-direction:column; align-items:stretch; padding-left:0; padding-right:0;">
+                <div style="display:flex; justify-content:space-between;">
+                  <div>
+                    <div class="title">Llama 3 8B</div>
+                    <div class="subtitle">Downloading &middot; 1.2 of 3.4 GB</div>
+                  </div>
+                  <span class="fit-badge tight">67%</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" style="width:67%;"></div></div>
+              </div>
+              <div class="section-label" style="padding-left:0;">Available</div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div>
+                  <div class="title">Phi-3 Mini</div>
+                  <div class="subtitle">1.8 GB &middot; Fits comfortably</div>
+                </div>
+                <span class="fit-badge good">Download</span>
+              </div>
+              <div class="screen-row" style="padding-left:0; padding-right:0; border-bottom:none;">
+                <div>
+                  <div class="title">Mixtral 47B</div>
+                  <div class="subtitle">26 GB &middot; click to download anyway</div>
+                </div>
+                <span class="fit-badge bad">Too large</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESKTOP CONNECTORS -->
+        <div class="desktop-content" id="dscreen-connectors">
+          <div class="desktop-screen-header">Connectors</div>
+          <div class="desktop-scroll">
+            <div class="inner">
+              <p style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted); margin:4px 0 8px;">Granting one connector never grants another.</p>
+              <div class="section-label" style="padding-left:0;">Search</div>
+              <div class="screen-row" style="padding-left:0; padding-right:0; cursor:pointer;" onclick="showDesktopScreen('connector-detail')">
+                <div>
+                  <div class="title">Search</div>
+                  <div class="subtitle">SearXNG &middot; Tavily</div>
+                </div>
+                <span style="display:inline-flex; align-items:center; gap:6px;">
+                  <span class="pill allowed">Allowed</span>
+                  <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </span>
+              </div>
+              <div class="section-label" style="padding-left:0;">Calendar</div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div><div class="title">Read events</div></div>
+                <span style="display:inline-flex; align-items:center; gap:6px;">
+                  <span class="pill allowed">Allowed</span>
+                  <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </span>
+              </div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div><div class="title">Create events</div></div>
+                <span style="display:inline-flex; align-items:center; gap:6px;">
+                  <span class="pill notasked">Not asked</span>
+                  <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </span>
+              </div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div><div class="title">Delete events</div></div>
+                <span style="display:inline-flex; align-items:center; gap:6px;">
+                  <span class="pill blocked">Blocked</span>
+                  <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </span>
+              </div>
+              <div class="section-label" style="padding-left:0;">Installed</div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div>
+                  <div class="title">Open-Meteo Weather</div>
+                  <div class="subtitle">api.open-meteo.com</div>
+                </div>
+                <span style="display:inline-flex; align-items:center; gap:6px;">
+                  <span class="pill allowed">Allowed</span>
+                  <svg class="icon" style="color:var(--sv-color-text-subtle); width:14px; height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </span>
+              </div>
+              <div class="screen-row" style="padding-left:0; padding-right:0; border-bottom:none;">
+                <div>
+                  <div class="title">Connector Store</div>
+                  <div class="subtitle">Browse and install third-party connectors</div>
+                </div>
+                <svg class="icon" style="color:var(--sv-color-text-subtle);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESKTOP CONNECTOR DETAIL -->
+        <div class="desktop-content" id="dscreen-connector-detail">
+          <div class="desktop-screen-header" style="display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--sv-color-accent); cursor:pointer; display:flex;" onclick="showDesktopScreen('connectors')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+            Search
+          </div>
+          <div class="desktop-scroll">
+            <div class="inner">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0;">
+                <div style="font-size:var(--sv-font-size-caption); color:var(--sv-color-text-muted);">Answers web-search requests in chat</div>
+                <span class="pill allowed">Allowed</span>
+              </div>
+              <div class="section-label" style="padding-left:0;">Reaches</div>
+              <div style="padding:0 0 8px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" style="color:var(--sv-color-text-subtle);"><path d="M14.8 3.98A8.5 8.5 0 1 1 12 3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="18.2" cy="4.6" r="2.2" fill="currentColor"/></svg>
+                  <span style="font-size:var(--sv-font-size-caption); font-family:var(--sv-font-family-mono); color:var(--sv-color-text-muted);">api.tavily.com</span>
+                </div>
+                <p style="font-size:11px; color:var(--sv-color-text-subtle); margin:6px 0 0;">Only your search text leaves the device, only when you use Search mode.</p>
+              </div>
+              <div class="section-label" style="padding-left:0;">Provider</div>
+              <div style="padding:0 0 8px; max-width:280px;">
+                <div class="segmented">
+                  <div class="seg">SearXNG</div>
+                  <div class="seg active">Tavily</div>
+                </div>
+              </div>
+              <div class="field" style="padding:8px 0; width:100%; max-width:340px;">
+                <label>Tavily API key</label>
+                <input type="password" value="••••••••••••" style="width:100%;" />
+                <span class="hint">Stored in the system keychain, scoped to this connector only.</span>
+              </div>
+              <div style="display:flex; gap:8px; padding:8px 0 24px;">
+                <button class="btn secondary sm">Save changes</button>
+                <button class="btn ghost sm" style="color:var(--sv-color-error-text);">Revoke access</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESKTOP SETTINGS -->
+        <div class="desktop-content" id="dscreen-settings">
+          <div class="desktop-screen-header">Settings</div>
+          <div class="desktop-scroll">
+            <div class="inner">
+              <div class="section-label" style="padding-left:0;">Appearance</div>
+              <div style="padding:0 0 16px; max-width:280px;">
+                <div class="segmented">
+                  <div class="seg active">System</div>
+                  <div class="seg">Light</div>
+                  <div class="seg">Dark</div>
+                </div>
+              </div>
+              <div class="section-label" style="padding-left:0;">About</div>
+              <div class="screen-row" style="padding-left:0; padding-right:0;">
+                <div class="title">Version</div>
+                <div class="subtitle">0.1.0</div>
+              </div>
+              <div class="screen-row" style="padding-left:0; padding-right:0; border-bottom:none;">
+                <div>
+                  <div class="title">Offline by design</div>
+                  <div class="subtitle">Sovereign Edge has no network code in its chat path.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Reference only — proposal for Sovereign Edge's mobile + desktop design
+    system. Values here are hand-mirrored from <code>primitives.ts</code> /
+    <code>semantic.ts</code> in this same package; once implemented, this file
+    should stay in sync with those.
+  </footer>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('theme-toggle').textContent = isDark ? 'Switch to dark' : 'Switch to light';
+  }
+
+  // Sub-screens of the Settings stack (Connectors, Connector detail,
+  // Connector Store, Connector Install) still highlight the Settings tab in
+  // the bottom bar, matching how the real nested native-stack navigator
+  // behaves.
+  const TABBAR_MAP = {
+    splash: null,
+    chat: 'chat',
+    models: 'models',
+    settings: 'settings',
+    connectors: 'settings',
+    'connector-detail': 'settings',
+    'connector-first-run': 'settings',
+    'connector-store': 'settings',
+    'connector-install': 'settings',
+  };
+
+  function showScreen(id) {
+    // Scoped to #screens — the desktop section below has its own .screen-tab
+    // strip, and an unscoped query would deactivate its tabs from here.
+    const scope = document.getElementById('screens');
+    scope
+      .querySelectorAll('.phone-screen')
+      .forEach((el) => el.classList.toggle('active', el.id === 'screen-' + id));
+    scope
+      .querySelectorAll('.screen-tab')
+      .forEach((el) => el.classList.toggle('active', el.dataset.screen === id));
+    scope
+      .querySelectorAll('.phone-tabbar .tab')
+      .forEach((el) => el.classList.toggle('active', el.dataset.tab === TABBAR_MAP[id]));
+
+    // A real splash screen has no chrome at all — no status bar, no tab bar.
+    const hasChrome = TABBAR_MAP[id] !== null;
+    scope.querySelector('.phone-tabbar').style.display = hasChrome ? 'flex' : 'none';
+    scope.querySelector('.phone-statusbar').style.display = hasChrome ? 'flex' : 'none';
+  }
+
+  // Sub-screens highlight their parent sidebar item, same idea as the
+  // mobile tab bar map above.
+  const DESKTOP_NAV_MAP = {
+    chat: 'chat',
+    models: 'models',
+    connectors: 'connectors',
+    'connector-detail': 'connectors',
+    settings: 'settings',
+  };
+
+  function showDesktopScreen(id) {
+    const scope = document.getElementById('screens-desktop');
+    scope
+      .querySelectorAll('.desktop-content')
+      .forEach((el) => el.classList.toggle('active', el.id === 'dscreen-' + id));
+    scope
+      .querySelectorAll('.screen-tab')
+      .forEach((el) => el.classList.toggle('active', el.dataset.screen === id));
+    scope
+      .querySelectorAll('.desktop-nav-item')
+      .forEach((el) => el.classList.toggle('active', el.dataset.nav === DESKTOP_NAV_MAP[id]));
+  }
+</script>
+
+</body>
+</html>
