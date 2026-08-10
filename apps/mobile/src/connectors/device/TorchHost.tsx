@@ -2,7 +2,10 @@ import { Camera, CameraView } from 'expo-camera';
 import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 
-import { setPermissionGrantedListener, setTorchController } from './torchBridge';
+import {
+  setPermissionGrantedListener,
+  setTorchController,
+} from './torchBridge';
 
 /**
  * Mounted once at the app root (see `App.tsx`), always — not gated on this

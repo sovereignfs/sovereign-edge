@@ -172,9 +172,7 @@ describe('ConnectorsScreen', () => {
       await userEvent.press(s.getByText('Calendar — Create Event'));
       expect(mockEnsureCalendarAccess).toHaveBeenCalled();
       expect(mockGrant).not.toHaveBeenCalled();
-      expect(
-        s.getByText(/Calendar access was not allowed/),
-      ).toBeTruthy();
+      expect(s.getByText(/Calendar access was not allowed/)).toBeTruthy();
     });
 
     it('revoking a granted calendar connector does not request OS access again', async () => {

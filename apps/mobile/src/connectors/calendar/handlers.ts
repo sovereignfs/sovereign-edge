@@ -92,7 +92,8 @@ export const createEvent: NativeHandler = async (args) => {
     return {
       ok: false,
       reason: 'handler-error',
-      detail: error instanceof Error ? error.message : 'Could not create the event.',
+      detail:
+        error instanceof Error ? error.message : 'Could not create the event.',
     };
   }
 };
@@ -127,7 +128,8 @@ export const updateEvent: NativeHandler = async (args) => {
     return {
       ok: false,
       reason: 'handler-error',
-      detail: error instanceof Error ? error.message : 'Could not update the event.',
+      detail:
+        error instanceof Error ? error.message : 'Could not update the event.',
     };
   }
 };
@@ -149,7 +151,8 @@ export const deleteEvent: NativeHandler = async (args) => {
     return {
       ok: false,
       reason: 'handler-error',
-      detail: error instanceof Error ? error.message : 'Could not delete the event.',
+      detail:
+        error instanceof Error ? error.message : 'Could not delete the event.',
     };
   }
 };
@@ -189,7 +192,8 @@ export const queryEvents: NativeHandler = async (args) => {
     return {
       ok: false,
       reason: 'handler-error',
-      detail: error instanceof Error ? error.message : 'Could not read the calendar.',
+      detail:
+        error instanceof Error ? error.message : 'Could not read the calendar.',
     };
   }
 };

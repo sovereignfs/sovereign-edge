@@ -72,9 +72,7 @@ export function ConnectorsScreen() {
   // Shared by Calendar and Torch — both need a real OS permission before
   // the app's own `grant()` runs, and never at the same time, so one piece
   // of state for "the OS refused" is simpler than one per connector.
-  const [permissionError, setPermissionError] = useState<string | null>(
-    null,
-  );
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   // `readSearchConfig()` below only runs when this component re-renders.
   // React Navigation keeps a stack screen mounted and does not re-render it

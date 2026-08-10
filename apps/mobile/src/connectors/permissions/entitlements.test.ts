@@ -46,7 +46,10 @@ const freeManifest = searchManifest as unknown as ConnectorManifest;
 const paidManifest = {
   ...(searchManifest as ConnectorManifestTier1),
   id: 'fs.sovereign.paid-example',
-  pricing: { model: 'paid' as const, productId: 'fs.sovereign.paid-example.unlock' },
+  pricing: {
+    model: 'paid' as const,
+    productId: 'fs.sovereign.paid-example.unlock',
+  },
 } as ConnectorManifest;
 
 describe('entitlements', () => {
@@ -60,7 +63,10 @@ describe('entitlements', () => {
   });
 
   it('round-trips a granted entitlement', () => {
-    const record = grantEntitlement('fs.sovereign.paid-example', 'dev-override');
+    const record = grantEntitlement(
+      'fs.sovereign.paid-example',
+      'dev-override',
+    );
     expect(record.connectorId).toBe('fs.sovereign.paid-example');
     expect(record.source).toBe('dev-override');
     expect(typeof record.grantedAt).toBe('string');

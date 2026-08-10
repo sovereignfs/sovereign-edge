@@ -41,9 +41,7 @@ export function getTorchController(): TorchController | null {
 
 let permissionGrantedListener: (() => void) | null = null;
 
-export function setPermissionGrantedListener(
-  next: (() => void) | null,
-): void {
+export function setPermissionGrantedListener(next: (() => void) | null): void {
   permissionGrantedListener = next;
 }
 

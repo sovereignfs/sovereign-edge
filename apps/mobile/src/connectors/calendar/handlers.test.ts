@@ -24,9 +24,11 @@ describe('calendar handlers', () => {
   beforeEach(() => {
     Platform.OS = 'ios';
     mockGetDefaultCalendarAsync.mockReset().mockResolvedValue({ id: 'cal-1' });
-    mockGetCalendarsAsync.mockReset().mockResolvedValue([
-      { id: 'cal-1', isPrimary: true, allowsModifications: true },
-    ]);
+    mockGetCalendarsAsync
+      .mockReset()
+      .mockResolvedValue([
+        { id: 'cal-1', isPrimary: true, allowsModifications: true },
+      ]);
     mockCreateEventAsync.mockReset().mockResolvedValue('event-1');
     mockUpdateEventAsync.mockReset().mockResolvedValue('event-1');
     mockDeleteEventAsync.mockReset().mockResolvedValue(undefined);
@@ -159,7 +161,10 @@ describe('calendar handlers', () => {
         startDate: '2026-08-10T00:00:00.000Z',
         endDate: '2026-08-11T00:00:00.000Z',
       });
-      expect(result).toEqual({ ok: true, text: 'No events found in that range.' });
+      expect(result).toEqual({
+        ok: true,
+        text: 'No events found in that range.',
+      });
     });
 
     it('lists events found across every readable calendar', async () => {
