@@ -11,8 +11,9 @@ import {
  * Browse the public connector registry (task 5.4) and install one (task
  * 5.5) — the desktop counterpart to mobile's `ConnectorStoreScreen.tsx`/
  * `ConnectorInstallScreen.tsx`, kept as one file with an inline
- * list/detail toggle rather than a second destination, mirroring how
- * `SearchSetupScreen.tsx` is already a single self-contained screen.
+ * list/detail toggle rather than a second destination — the same pattern
+ * `ConnectorsScreen.tsx` uses for its own connector detail views (task
+ * 15.4).
  *
  * This is the first screen in the app that needs the internet for its own
  * sake, not a granted connector's — said plainly below rather than
@@ -156,11 +157,12 @@ export function ConnectorStoreScreen({
 }
 
 /**
- * Install detail — "install" here means exactly what `SearchSetupScreen`
- * already does for the first-party Search connector: validate → write
- * any declared credentials to the vault → grant → persist, epic 2.2's
- * consent model reused completely unchanged. The Rust `install_connector`
- * command does the validation/grant/persist; this component's own job is
+ * Install detail — "install" here means exactly what `ConnectorsScreen`'s
+ * own `SearchDetail` does for the first-party Search connector: validate →
+ * write any declared credentials to the vault → grant → persist, epic
+ * 2.2's consent model reused completely unchanged. The Rust
+ * `install_connector` command does the validation/grant/persist; this
+ * component's own job is
  * just collecting any declared credentials first.
  */
 function ConnectorInstallDetail({

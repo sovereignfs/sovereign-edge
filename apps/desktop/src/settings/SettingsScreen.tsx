@@ -4,7 +4,10 @@ import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import {
   Button,
+  Icon,
   ListItem,
+  SectionLabel,
+  SegmentedControl,
   useTheme,
   useThemePreference,
   type ThemePreference,
@@ -16,10 +19,10 @@ import {
  * since) as a real, mutually-exclusive control — not three independent
  * toggles, the exact "reads oddly" gap mobile's own task 8.1 flagged and
  * left open in its equivalent screen ("it wants a radio control the
- * component set does not have yet"). `packages/desktop-ui` still has no
- * dedicated radio-group component, so this is a plain `role="radiogroup"`
- * built from styled buttons — the same "no new component for one screen"
- * call `AppShell.tsx`'s own nav buttons already made.
+ * component set does not have yet"). Task 15.4 gives `desktop-ui` that
+ * component (`SegmentedControl`) and this screen switches to it — same
+ * `role="radiogroup"`/`role="radio"`/`aria-checked` shape the hand-rolled
+ * version already used, so no existing query needed to change.
  *
  * No new state to manage: `useThemePreference()` reads/writes the same
  * `ThemeProvider` context every other screen already renders under
@@ -39,10 +42,10 @@ import {
  * repeating mobile's looser sentence verbatim.
  */
 
-const OPTIONS: { id: ThemePreference; label: string }[] = [
-  { id: 'system', label: 'System' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
 ];
 
 type UpdateState =
@@ -113,100 +116,64 @@ export function SettingsScreen({
     }
   }
 
-  return (
-    <div style={{ padding: theme.space[4] }}>
-      <h1 style={{ fontSize: theme.fontSize.lg, margin: 0 }}>Settings</h1>
+  // `ListItem`/`SectionLabel` both carry their own horizontal padding
+  // (matching `ModelsScreen.tsx`'s own layout, task 15.3) — everything
+  // else in this screen (the title, the segmented control, freeform
+  // paragraphs) needs it applied explicitly, since the outer container no
+  // longer provides it uniformly the way the old single-`<div>` layout did.
+  const inset = { padding: `0 ${theme.space[4]}px` };
 
-      <section style={{ marginTop: theme.space[4] }}>
-        <h2
-          style={{
-            fontSize: theme.fontSize.md,
-            fontWeight: theme.fontWeight.semibold,
-            margin: 0,
-            marginBottom: theme.space[2],
-          }}
-        >
-          Theme
-        </h2>
-        <div
-          role="radiogroup"
-          aria-label="Theme"
-          style={{ display: 'inline-flex', gap: theme.space[1] }}
-        >
-          {OPTIONS.map((option) => {
-            const selected = option.id === preference;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => setPreference(option.id)}
-                style={{
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.radius.md,
-                  padding: `${theme.space[2]}px ${theme.space[3]}px`,
-                  fontSize: theme.fontSize.sm,
-                  fontFamily: theme.fontFamily.body,
-                  cursor: 'pointer',
-                  background: selected
-                    ? theme.colors.accentSubtle
-                    : 'transparent',
-                  color: selected
-                    ? theme.colors.accent
-                    : theme.colors.textPrimary,
-                  fontWeight: selected
-                    ? theme.fontWeight.semibold
-                    : theme.fontWeight.regular,
-                }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+  return (
+    <div>
+      <div style={{ ...inset, paddingTop: theme.space[4] }}>
+        <h1 style={{ fontSize: theme.fontSize.lg, margin: 0 }}>Settings</h1>
+      </div>
+
+      <section>
+        <SectionLabel>Appearance</SectionLabel>
+        <div style={{ ...inset, paddingBottom: theme.space[2] }}>
+          <SegmentedControl
+            options={THEME_OPTIONS}
+            value={preference}
+            onChange={setPreference}
+            aria-label="Theme"
+          />
         </div>
         <p
           style={{
+            ...inset,
             color: theme.colors.textMuted,
             fontSize: theme.fontSize.sm,
-            marginTop: theme.space[2],
+            margin: 0,
+            paddingBottom: theme.space[2],
           }}
         >
           System follows this machine's own light/dark setting.
         </p>
       </section>
 
-      <section style={{ marginTop: theme.space[6] }}>
-        <h2
-          style={{
-            fontSize: theme.fontSize.md,
-            fontWeight: theme.fontWeight.semibold,
-            margin: 0,
-            marginBottom: theme.space[2],
-          }}
-        >
-          Privacy
-        </h2>
+      <section>
+        <SectionLabel>Privacy</SectionLabel>
         <ListItem
           title="Connectors"
           subtitle="The only way anything here reaches the network"
           onClick={() => onNavigate('connectors')}
+          accessory={
+            <Icon name="chevron-right" size="sm" color={theme.colors.textSubtle} aria-hidden />
+          }
         />
       </section>
 
-      <section style={{ marginTop: theme.space[6] }}>
-        <h2
-          style={{
-            fontSize: theme.fontSize.md,
-            fontWeight: theme.fontWeight.semibold,
-            margin: 0,
-            marginBottom: theme.space[2],
-          }}
-        >
-          About
-        </h2>
+      <section>
+        <SectionLabel>About</SectionLabel>
         <p
-          style={{ color: theme.colors.textMuted, fontSize: theme.fontSize.sm }}
+          style={{
+            ...inset,
+            color: theme.colors.textMuted,
+            fontSize: theme.fontSize.sm,
+            margin: 0,
+            paddingBottom: theme.space[2],
+          }}
         >
           {version ? `Sovereign Edge ${version}` : 'Sovereign Edge'}
         </p>
@@ -215,7 +182,7 @@ export function SettingsScreen({
           subtitle="Sovereign Edge has no network code in its chat path."
         />
 
-        <div style={{ marginTop: theme.space[2] }}>
+        <div style={{ ...inset, paddingTop: theme.space[3] }}>
           {updateState.kind === 'available' ? (
             <Button
               label={`Download and Install v${updateState.update.version}`}

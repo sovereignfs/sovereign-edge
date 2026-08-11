@@ -1,0 +1,30 @@
+.track {
+  display: inline-flex;
+  background: var(--sv-color-surface-sunken);
+  border-radius: var(--sv-radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+
+.segment {
+  border: none;
+  background: transparent;
+  border-radius: calc(var(--sv-radius-md) - 2px);
+  padding: var(--sv-space-2) var(--sv-space-3);
+  font-size: var(--sv-font-size-caption);
+  font-family: var(--sv-font-family-body);
+  font-weight: var(--sv-font-weight-regular);
+  color: var(--sv-color-text-muted);
+  cursor: pointer;
+}
+
+.segmentActive {
+  background: var(--sv-color-surface-raised);
+  color: var(--sv-color-text-primary);
+  font-weight: var(--sv-font-weight-medium);
+  /* `surfaceRaised` equals `surfaceSunken` in dark mode, so a shadow is
+     what actually keeps the active segment visible there — not just the
+     fill colour. Same reasoning mobile's own `SegmentedControl` (task 7.7)
+     documents for its `theme.shadows.control`. */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}

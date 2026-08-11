@@ -39,6 +39,7 @@ const COMMANDS: &[&str] = &[
     "install_connector",
     "remove_connector",
     "request_calendar_access",
+    "show_main_window",
 ];
 
 fn main() {

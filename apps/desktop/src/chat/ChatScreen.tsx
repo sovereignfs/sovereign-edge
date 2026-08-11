@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, ChatBubble, TextField, useTheme } from 'desktop-ui';
+import { Button, ChatBubble, Icon, useTheme, type IconName } from 'desktop-ui';
+import styles from './ChatScreen.module.css';
 import {
   activeModelId,
   cancelGeneration,
@@ -70,6 +71,20 @@ export function ChatScreen({
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Plain `<textarea>` doesn't grow with its content on its own — measuring
+  // `scrollHeight` and writing it back is the standard way to fake that.
+  // `height: auto` first, or `scrollHeight` would only ever report a value
+  // at least as tall as whatever height was already set, never shrink back
+  // down after deleting a line. The CSS `max-height` (three lines' worth)
+  // still caps this and switches to an internal scrollbar past it.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,6 +260,12 @@ export function ChatScreen({
               border: `1px solid ${theme.colors.warningBorder}`,
             }}
           >
+            <Icon
+              name="alert-triangle"
+              size="sm"
+              color={theme.colors.warningText}
+              aria-hidden
+            />
             <p
               style={{
                 color: theme.colors.warningText,
@@ -328,42 +349,86 @@ export function ChatScreen({
         style={{
           padding: theme.space[4],
           borderTop: `1px solid ${theme.colors.border}`,
-          display: 'flex',
-          gap: theme.space[2],
         }}
       >
-        <div style={{ flex: 1 }}>
-          <TextField
-            label="Message"
-            placeholder={
-              status === 'ready' ? 'Ask anything…' : 'Choose a model first'
-            }
-            value={draft}
-            disabled={status !== 'ready' && status !== 'busy'}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                void send();
+        <div className={styles.composer}>
+          <div className={styles.textareaWrap}>
+            <label htmlFor="chat-message" className={styles.textareaLabel}>
+              Message
+            </label>
+            <textarea
+              id="chat-message"
+              ref={textareaRef}
+              className={styles.textarea}
+              rows={1}
+              placeholder={
+                status === 'ready'
+                  ? 'Ask anything — Enter to send, Shift+Enter for a new line'
+                  : 'Choose a model first'
               }
-            }}
-          />
+              value={draft}
+              disabled={status !== 'ready' && status !== 'busy'}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void send();
+                }
+              }}
+            />
+          </div>
+          {status === 'busy' ? (
+            <ComposerButton
+              icon="square"
+              label="Stop"
+              variant="secondary"
+              onClick={() => void stop()}
+            />
+          ) : (
+            <ComposerButton
+              icon="send"
+              label="Send"
+              variant="primary"
+              onClick={() => void send()}
+              disabled={status !== 'ready' || draft.trim().length === 0}
+            />
+          )}
         </div>
-        {status === 'busy' ? (
-          <Button
-            label="Stop"
-            variant="secondary"
-            onClick={() => void stop()}
-          />
-        ) : (
-          <Button
-            label="Send"
-            variant="primary"
-            onClick={() => void send()}
-            disabled={status !== 'ready' || draft.trim().length === 0}
-          />
-        )}
       </footer>
     </div>
+  );
+}
+
+function ComposerButton({
+  icon,
+  label,
+  variant,
+  onClick,
+  disabled = false,
+}: {
+  icon: IconName;
+  label: string;
+  variant: 'primary' | 'secondary';
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={[
+        styles.composerButton,
+        variant === 'primary'
+          ? styles.composerButtonPrimary
+          : styles.composerButtonSecondary,
+      ].join(' ')}
+    >
+      {/* `color` is left unset — the button's own CSS sets `color`, and
+          `Icon` defaults to `currentColor`, so the icon always matches the
+          button's text colour for both variants without saying so twice. */}
+      <Icon name={icon} size="sm" aria-hidden />
+    </button>
   );
 }

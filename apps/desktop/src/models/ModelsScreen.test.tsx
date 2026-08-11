@@ -72,12 +72,12 @@ afterEach(() => {
 });
 
 describe('ModelsScreen', () => {
-  it('shows DOWNLOAD for an uninstalled model and installs it on click', async () => {
+  it('shows Download for an uninstalled model and installs it on click', async () => {
     listModels.mockResolvedValue([model()]);
     installModel.mockResolvedValue(undefined);
     renderScreen();
 
-    expect(await screen.findByText('DOWNLOAD')).toBeInTheDocument();
+    expect(await screen.findByText('Download')).toBeInTheDocument();
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
 
     await waitFor(() =>
@@ -85,13 +85,13 @@ describe('ModelsScreen', () => {
     );
   });
 
-  it('shows IN USE for the active model and removes it on click', async () => {
+  it('shows In use for the active model and removes it on click', async () => {
     listModels.mockResolvedValue([model({ installed: true })]);
     activeModelId.mockResolvedValue('qwen2.5-0.5b');
     removeModel.mockResolvedValue(undefined);
     renderScreen();
 
-    expect(await screen.findByText('IN USE')).toBeInTheDocument();
+    expect(await screen.findByText('In use')).toBeInTheDocument();
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
 
     await waitFor(() =>
@@ -99,7 +99,7 @@ describe('ModelsScreen', () => {
     );
   });
 
-  it('shows INSTALLED for a non-active installed model and activates it on click', async () => {
+  it('shows Installed for a non-active installed model and activates it on click', async () => {
     listModels.mockResolvedValue([model({ installed: true })]);
     activeModelId.mockResolvedValue(null);
     loadModel.mockResolvedValue({
@@ -109,13 +109,13 @@ describe('ModelsScreen', () => {
     });
     renderScreen();
 
-    expect(await screen.findByText('INSTALLED')).toBeInTheDocument();
+    expect(await screen.findByText('Installed')).toBeInTheDocument();
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
 
     await waitFor(() => expect(loadModel).toHaveBeenCalledWith('qwen2.5-0.5b'));
   });
 
-  it('shows CANCEL and cancels a downloading row on click, dropping it back to idle', async () => {
+  it('cancels a downloading row on click, dropping it back to idle', async () => {
     listModels.mockResolvedValue([model()]);
     let resolveInstall: () => void = () => {};
     installModel.mockReturnValue(
@@ -126,7 +126,10 @@ describe('ModelsScreen', () => {
     renderScreen();
 
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
-    expect(await screen.findByText('CANCEL')).toBeInTheDocument();
+    // No progress event has fired yet, so the fraction is unknown — the
+    // badge shows the same placeholder the subtitle's own byte-count
+    // fallback uses for an unknown total.
+    expect(await screen.findByText('…')).toBeInTheDocument();
 
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
     expect(cancelInstall).toHaveBeenCalledWith('qwen2.5-0.5b');
@@ -152,12 +155,12 @@ describe('ModelsScreen', () => {
 
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
 
-    await waitFor(() => expect(screen.queryByText('CANCEL')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('…')).toBeNull());
     expect(screen.queryByText(/could not be generated|failed/i)).toBeNull();
-    expect(await screen.findByText('DOWNLOAD')).toBeInTheDocument();
+    expect(await screen.findByText('Download')).toBeInTheDocument();
   });
 
-  it('shows RETRY and the real error message when install() fails for a real reason', async () => {
+  it('shows Retry and the real error message when install() fails for a real reason', async () => {
     listModels.mockResolvedValue([model()]);
     installModel.mockRejectedValue(
       new Error('Download failed: server returned 500.'),
@@ -166,9 +169,21 @@ describe('ModelsScreen', () => {
 
     await userEvent.click(await rowButton('Qwen2.5 0.5B'));
 
-    expect(await screen.findByText('RETRY')).toBeInTheDocument();
+    expect(await screen.findByText('Retry')).toBeInTheDocument();
     expect(
       await screen.findByText('Download failed: server returned 500.'),
     ).toBeInTheDocument();
+  });
+
+  it('groups installed and available models under their own section', async () => {
+    listModels.mockResolvedValue([
+      model({ id: 'installed-model', name: 'Installed Model', installed: true }),
+      model({ id: 'available-model', name: 'Available Model', installed: false }),
+    ]);
+    activeModelId.mockResolvedValue('installed-model');
+    renderScreen();
+
+    expect(await screen.findByText('INSTALLED')).toBeInTheDocument();
+    expect(screen.getByText('AVAILABLE')).toBeInTheDocument();
   });
 });

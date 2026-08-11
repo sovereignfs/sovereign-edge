@@ -175,4 +175,9 @@ section used to flag; future bumps happen the same way, via
 | —       | Code signing and notarization                         | 📋     | Desktop | [14.2](docs/epics/desktop/distribution.md#-142--code-signing-and-notarization)                       |
 | —       | Update mechanism                                      | ✅     | Desktop | [14.3](docs/epics/desktop/distribution.md#-143--update-mechanism)                                    |
 | —       | Release pipeline                                      | ✅     | Desktop | [14.4](docs/epics/desktop/distribution.md#-144--release-pipeline)                                    |
+| —       | Icon system                                            | ✅     | Desktop | [15.1](docs/epics/desktop/design-system.md#-151--icon-system)                                        |
+| —       | Chat screen: icons, provenance receipts, multiline composer | ✅ | Desktop | [15.2](docs/epics/desktop/design-system.md#-152--chat-screen-icons-provenance-receipts-multiline-composer) |
+| —       | Models screen: sections, progress bar, fit badge       | ✅     | Desktop | [15.3](docs/epics/desktop/design-system.md#-153--models-screen-sections-progress-bar-fit-badge)      |
+| —       | Settings segmented control + Connectors restructure    | ✅     | Desktop | [15.4](docs/epics/desktop/design-system.md#-154--settings-segmented-control--connectors-restructure) |
+| —       | Release assets: app icon + splash window                | ✅     | Desktop | [15.5](docs/epics/desktop/design-system.md#-155--release-assets-app-icon--splash-window)              |
 | —       | Desktop direct-sale flow                              | 📋     | Shared  | [6.3](docs/epics/shared/monetization.md#-63--desktop-direct-sale-flow)                          |

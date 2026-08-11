@@ -18,6 +18,7 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  gap: var(--sv-space-1);
   white-space: nowrap;
   border-width: 1px;
   border-style: solid;

@@ -12,6 +12,7 @@ vi.mock('../lib/tauri', async () => {
     ...actual,
     listConnectors: vi.fn(),
     setConnectorGranted: vi.fn(),
+    setSearchConnectorConfig: vi.fn(),
     removeConnector: vi.fn(),
     requestCalendarAccess: vi.fn(),
   };
@@ -19,6 +20,7 @@ vi.mock('../lib/tauri', async () => {
 
 const listConnectors = vi.mocked(tauri.listConnectors);
 const setConnectorGranted = vi.mocked(tauri.setConnectorGranted);
+const setSearchConnectorConfig = vi.mocked(tauri.setSearchConnectorConfig);
 const removeConnector = vi.mocked(tauri.removeConnector);
 const requestCalendarAccess = vi.mocked(tauri.requestCalendarAccess);
 
@@ -31,44 +33,52 @@ function renderScreen(onNavigate = vi.fn()) {
   return { onNavigate };
 }
 
+async function rowButton(titleSubstring: string): Promise<HTMLElement> {
+  const title = await screen.findByText(new RegExp(titleSubstring));
+  const button = title.closest('button');
+  if (!button) throw new Error(`row for "${titleSubstring}" is not clickable`);
+  return button;
+}
+
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 describe('ConnectorsScreen', () => {
-  it('shows the "Not set up" row and navigates to setup on click when unconfigured', async () => {
+  it('shows the "Not set up" row and opens Search detail on click when unconfigured', async () => {
     listConnectors.mockResolvedValue([]);
-    const { onNavigate } = renderScreen();
+    renderScreen();
 
-    const row = await screen.findByText('Search');
-    expect(
-      screen.getByText('Not set up — tap to choose a provider'),
-    ).toBeInTheDocument();
+    await userEvent.click(await rowButton('Search'));
 
-    const button = row.closest('button');
-    if (!button) throw new Error('empty-state row is not clickable');
-    await userEvent.click(button);
-
-    expect(onNavigate).toHaveBeenCalledWith('connectors-setup');
+    expect(screen.getByLabelText('Instance URL')).toBeInTheDocument();
+    expect(screen.getByText('Not set up')).toBeInTheDocument();
   });
 
-  it('renders a granted connector with a checked switch and a reconfigure row', async () => {
+  it('shows Search under its own section with an Allowed pill once configured', async () => {
     listConnectors.mockResolvedValue([
       { id: 'fs.sovereign.search', name: 'Search', granted: true },
     ]);
     renderScreen();
 
-    const toggle = await screen.findByRole('switch', { name: 'Search' });
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
-    expect(
-      screen.getByText(
-        'Granted — this connector may reach the network when used.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Change provider or key')).toBeInTheDocument();
+    expect(await screen.findByText('SEARCH')).toBeInTheDocument();
+    expect(screen.getByText('Allowed')).toBeInTheDocument();
   });
 
-  it('revokes a granted connector on toggle click', async () => {
+  it('opens Search detail on click, offering Revoke access and the reconfigure form', async () => {
+    listConnectors.mockResolvedValue([
+      { id: 'fs.sovereign.search', name: 'Search', granted: true },
+    ]);
+    renderScreen();
+
+    await userEvent.click(await rowButton('Search'));
+
+    expect(screen.getByRole('button', { name: 'Revoke access' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Instance URL')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+  });
+
+  it('revokes Search from its own detail view', async () => {
     listConnectors.mockResolvedValue([
       { id: 'fs.sovereign.search', name: 'Search', granted: true },
     ]);
@@ -79,66 +89,50 @@ describe('ConnectorsScreen', () => {
     });
     renderScreen();
 
-    const toggle = await screen.findByRole('switch', { name: 'Search' });
-    await userEvent.click(toggle);
+    await userEvent.click(await rowButton('Search'));
+    await userEvent.click(screen.getByRole('button', { name: 'Revoke access' }));
 
     await waitFor(() =>
-      expect(setConnectorGranted).toHaveBeenCalledWith(
-        'fs.sovereign.search',
-        false,
-      ),
-    );
-    await waitFor(() =>
-      expect(toggle).toHaveAttribute('aria-checked', 'false'),
+      expect(setConnectorGranted).toHaveBeenCalledWith('fs.sovereign.search', false),
     );
   });
 
-  it('reverts the optimistic flip when the grant/revoke call fails', async () => {
-    listConnectors.mockResolvedValue([
-      { id: 'fs.sovereign.search', name: 'Search', granted: false },
-    ]);
-    setConnectorGranted.mockRejectedValue(new Error('network error'));
+  it('saves a new Search configuration from the first-run detail view', async () => {
+    listConnectors.mockResolvedValue([]);
+    setSearchConnectorConfig.mockResolvedValue({
+      id: 'fs.sovereign.search',
+      name: 'Search',
+      granted: true,
+    });
     renderScreen();
 
-    const toggle = await screen.findByRole('switch', { name: 'Search' });
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
-
-    await userEvent.click(toggle);
-
-    // Reverts back to false after the rejected call settles, rather than
-    // leaving the UI claiming a grant that never actually took.
-    await waitFor(() =>
-      expect(toggle).toHaveAttribute('aria-checked', 'false'),
+    await userEvent.click(await rowButton('Search'));
+    await userEvent.type(
+      screen.getByLabelText('Instance URL'),
+      'https://searx.example.org',
     );
-  });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Save & grant access' }),
+    );
 
-  it('the reconfigure row also navigates to setup', async () => {
-    listConnectors.mockResolvedValue([
-      { id: 'fs.sovereign.search', name: 'Search', granted: true },
-    ]);
-    const { onNavigate } = renderScreen();
-
-    const reconfigure = await screen.findByText('Change provider or key');
-    const button = reconfigure.closest('button');
-    if (!button) throw new Error('reconfigure row is not clickable');
-    await userEvent.click(button);
-
-    expect(onNavigate).toHaveBeenCalledWith('connectors-setup');
+    await waitFor(() =>
+      expect(setSearchConnectorConfig).toHaveBeenCalledWith({
+        provider: 'searxng',
+        searxng_url: 'https://searx.example.org',
+      }),
+    );
   });
 
   it('the store entry point navigates to the connector store', async () => {
     listConnectors.mockResolvedValue([]);
     const { onNavigate } = renderScreen();
 
-    const row = await screen.findByText('Connector Store');
-    const button = row.closest('button');
-    if (!button) throw new Error('store entry row is not clickable');
-    await userEvent.click(button);
+    await userEvent.click(await rowButton('Connector Store'));
 
     expect(onNavigate).toHaveBeenCalledWith('connector-store');
   });
 
-  it('shows a Remove row for a store-installed connector but not for Search', async () => {
+  it('lists a store-installed connector under Installed, with a pill and no inline Toggle', async () => {
     listConnectors.mockResolvedValue([
       { id: 'fs.sovereign.search', name: 'Search', granted: true },
       {
@@ -149,39 +143,44 @@ describe('ConnectorsScreen', () => {
     ]);
     renderScreen();
 
-    await screen.findByText('Open-Meteo Forecast');
-    expect(
-      screen.getByText('Uninstall Open-Meteo Forecast'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Uninstall Search')).not.toBeInTheDocument();
+    expect(await screen.findByText('INSTALLED')).toBeInTheDocument();
+    expect(screen.getByText('Open-Meteo Forecast')).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 
-  it('removing a store-installed connector calls removeConnector and refreshes', async () => {
-    listConnectors
-      .mockResolvedValueOnce([
-        {
-          id: 'fs.sovereign.weather-open-meteo',
-          name: 'Open-Meteo Forecast',
-          granted: true,
-        },
-      ])
-      .mockResolvedValueOnce([]);
+  it('offers to remove a store-installed connector from its own detail view', async () => {
+    listConnectors.mockResolvedValue([
+      {
+        id: 'fs.sovereign.weather-open-meteo',
+        name: 'Open-Meteo Forecast',
+        granted: true,
+      },
+    ]);
     removeConnector.mockResolvedValue(undefined);
     renderScreen();
 
-    const remove = await screen.findByText('Uninstall Open-Meteo Forecast');
-    const button = remove.closest('button');
-    if (!button) throw new Error('remove row is not clickable');
-    await userEvent.click(button);
+    await userEvent.click(await rowButton('Open-Meteo Forecast'));
+    expect(screen.queryByRole('button', { name: 'Remove connector' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove connector' }));
 
     await waitFor(() =>
-      expect(removeConnector).toHaveBeenCalledWith(
-        'fs.sovereign.weather-open-meteo',
-      ),
+      expect(removeConnector).toHaveBeenCalledWith('fs.sovereign.weather-open-meteo'),
     );
-    await waitFor(() =>
-      expect(screen.queryByText('Open-Meteo Forecast')).not.toBeInTheDocument(),
-    );
+  });
+
+  it('a Calendar connector has no Remove action in its detail view', async () => {
+    listConnectors.mockResolvedValue([
+      {
+        id: 'fs.sovereign.calendar.create-event',
+        name: 'Calendar — Create Event',
+        granted: true,
+      },
+    ]);
+    renderScreen();
+
+    await userEvent.click(await rowButton('Calendar — Create Event'));
+    expect(screen.queryByRole('button', { name: 'Remove connector' })).not.toBeInTheDocument();
   });
 
   describe('Calendar (task 10.2)', () => {
@@ -201,10 +200,8 @@ describe('ConnectorsScreen', () => {
       });
       renderScreen();
 
-      const toggle = await screen.findByRole('switch', {
-        name: 'Calendar — Create Event',
-      });
-      await userEvent.click(toggle);
+      await userEvent.click(await rowButton('Calendar — Create Event'));
+      await userEvent.click(screen.getByRole('button', { name: 'Grant access' }));
 
       await waitFor(() => expect(requestCalendarAccess).toHaveBeenCalled());
       await waitFor(() =>
@@ -226,10 +223,8 @@ describe('ConnectorsScreen', () => {
       requestCalendarAccess.mockResolvedValue(false);
       renderScreen();
 
-      const toggle = await screen.findByRole('switch', {
-        name: 'Calendar — Create Event',
-      });
-      await userEvent.click(toggle);
+      await userEvent.click(await rowButton('Calendar — Create Event'));
+      await userEvent.click(screen.getByRole('button', { name: 'Grant access' }));
 
       await waitFor(() => expect(requestCalendarAccess).toHaveBeenCalled());
       expect(setConnectorGranted).not.toHaveBeenCalled();
@@ -253,10 +248,8 @@ describe('ConnectorsScreen', () => {
       });
       renderScreen();
 
-      const toggle = await screen.findByRole('switch', {
-        name: 'Calendar — Create Event',
-      });
-      await userEvent.click(toggle);
+      await userEvent.click(await rowButton('Calendar — Create Event'));
+      await userEvent.click(screen.getByRole('button', { name: 'Revoke access' }));
 
       await waitFor(() =>
         expect(setConnectorGranted).toHaveBeenCalledWith(
@@ -265,22 +258,6 @@ describe('ConnectorsScreen', () => {
         ),
       );
       expect(requestCalendarAccess).not.toHaveBeenCalled();
-    });
-
-    it('shows no Remove row for a calendar connector', async () => {
-      listConnectors.mockResolvedValue([
-        {
-          id: 'fs.sovereign.calendar.create-event',
-          name: 'Calendar — Create Event',
-          granted: true,
-        },
-      ]);
-      renderScreen();
-
-      await screen.findByText('Calendar — Create Event');
-      expect(
-        screen.queryByText('Uninstall Calendar — Create Event'),
-      ).not.toBeInTheDocument();
     });
   });
 });
