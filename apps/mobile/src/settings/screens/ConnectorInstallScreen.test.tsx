@@ -30,11 +30,11 @@ jest.mock('@/connectors/store/installed', () => ({
     mockSaveInstalledConnector(...args),
 }));
 
-const mockNavigate = jest.fn();
+const mockReplace = jest.fn();
 let mockRouteParams: unknown;
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({ replace: mockReplace }),
   useRoute: () => ({ params: mockRouteParams }),
 }));
 
@@ -92,7 +92,7 @@ describe('ConnectorInstallScreen', () => {
     mockGrant.mockReset();
     mockVaultWrite.mockReset();
     mockSaveInstalledConnector.mockReset();
-    mockNavigate.mockReset();
+    mockReplace.mockReset();
   });
 
   it('installs a credential-free connector without prompting for anything', async () => {
@@ -113,7 +113,11 @@ describe('ConnectorInstallScreen', () => {
     expect(mockSaveInstalledConnector).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
     );
-    expect(mockNavigate).toHaveBeenCalledWith('Connectors');
+    expect(mockReplace).toHaveBeenCalledWith('ConnectorDetail', {
+      kind: 'manifest',
+      manifest: expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
+      installed: true,
+    });
   });
 
   it('refuses to install a credential-required connector until the credential is entered', async () => {
@@ -148,7 +152,11 @@ describe('ConnectorInstallScreen', () => {
     expect(mockGrant).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'fs.sovereign.github-whoami' }),
     );
-    expect(mockNavigate).toHaveBeenCalledWith('Connectors');
+    expect(mockReplace).toHaveBeenCalledWith('ConnectorDetail', {
+      kind: 'manifest',
+      manifest: expect.objectContaining({ id: 'fs.sovereign.github-whoami' }),
+      installed: true,
+    });
   });
 
   it('shows the declared device capability scope for a Tier 3 manifest', async () => {

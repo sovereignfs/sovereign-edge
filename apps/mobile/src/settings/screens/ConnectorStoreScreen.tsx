@@ -8,7 +8,7 @@ import {
   fetchConnectorRegistry,
   type RegistryConnector,
 } from '@/connectors/store/registry';
-import { ListItem, TextField, useTheme } from '@/design-system';
+import { Icon, ListItem, TextField, useTheme } from '@/design-system';
 
 import type { SettingsStackParamList } from '../navigation/RootNavigator';
 
@@ -163,6 +163,16 @@ export function ConnectorStoreScreen() {
                 : entry.manifest.summary
             }
             disabled={paid}
+            accessory={
+              paid ? undefined : (
+                <Icon
+                  name="chevron-right"
+                  size="sm"
+                  color={theme.colors.textSubtle}
+                  aria-hidden
+                />
+              )
+            }
             onPress={
               paid
                 ? undefined

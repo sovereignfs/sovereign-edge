@@ -73,11 +73,11 @@ export type SemanticColors = {
 };
 
 export const lightColors: SemanticColors = {
-  surface: palette.white,
-  surfaceSunken: palette.grey50,
+  surface: palette.grey50,
+  surfaceSunken: palette.grey100,
   surfaceRaised: palette.white,
 
-  textPrimary: palette.grey950,
+  textPrimary: palette.grey800,
   textMuted: palette.grey500,
   textSubtle: palette.grey400,
   textOnAccent: palette.white,
@@ -85,12 +85,12 @@ export const lightColors: SemanticColors = {
   border: palette.grey200,
   borderStrong: palette.grey300,
 
-  accent: palette.grey900,
-  accentHover: palette.grey700,
-  // grey900 (#18181b) at 12%. CSS could resolve this with color-mix; not
+  accent: palette.clay700,
+  accentHover: palette.clay800,
+  // clay700 (#a54b2e) at 12%. CSS could resolve this with color-mix; not
   // every consumer can, so it stays precomputed.
-  accentSubtle: 'rgba(24, 24, 27, 0.12)',
-  focusRing: palette.grey900,
+  accentSubtle: 'rgba(165, 75, 46, 0.12)',
+  focusRing: palette.clay700,
 
   errorSurface: palette.red100,
   errorText: palette.red800,
@@ -112,7 +112,8 @@ export const lightColors: SemanticColors = {
   infoText: palette.blue800,
   infoBorder: palette.blue200,
 
-  scrim: 'rgba(0, 0, 0, 0.5)',
+  // Warm-tinted, not neutral black — matches the warm surface it darkens.
+  scrim: 'rgba(21, 16, 10, 0.5)',
 };
 
 export const darkColors: SemanticColors = {
@@ -128,11 +129,12 @@ export const darkColors: SemanticColors = {
   border: palette.grey800,
   borderStrong: palette.grey700,
 
-  accent: palette.grey50,
-  accentHover: palette.grey200,
-  // grey50 (#fafafa) at 12%.
-  accentSubtle: 'rgba(250, 250, 250, 0.12)',
-  focusRing: palette.grey100,
+  accent: palette.clay300,
+  accentHover: palette.clay400,
+  // clay300 (#e6a183) at 16% — a touch stronger than light mode's 12% tint,
+  // since it needs to read against the darker warm surface.
+  accentSubtle: 'rgba(230, 161, 131, 0.16)',
+  focusRing: palette.clay200,
 
   errorSurface: palette.red900,
   errorText: palette.red200,
@@ -193,17 +195,14 @@ export const lightShadows = shadows('light');
 export const darkShadows = shadows('dark');
 
 /**
- * Typography.
- *
- * Sovereign pairs Hanken Grotesk with JetBrains Mono, supplied by the
- * operator as a web font — neither is bundled anywhere in this repo yet, on
- * any platform, so shipping a webfont dependency here would be inventing
- * scope this task wasn't asked for. System font stacks stand in until a
- * later task actually loads the real fonts (`apps/mobile`'s own
- * `fontFamily` token carries the identical placeholder-until-shipped
- * status, via `expo-font`, for the same reason).
+ * Typography (task 7.3): Hanken Grotesk (body) · JetBrains Mono (code).
+ * Fallback-stack only — no font files are bundled anywhere in this repo, on
+ * any platform. The family name is simply named first in the CSS stack, so
+ * a browser (or, on mobile, `apps/mobile`'s own RN `fontFamily` override —
+ * see that theme's own comment) silently falls back to the system font
+ * until/unless a later task actually ships the font files.
  */
 export const fontFamily = {
-  body: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-  mono: 'ui-monospace, Menlo, Consolas, monospace',
+  body: `'Hanken Grotesk', -apple-system, 'Segoe UI', system-ui, sans-serif`,
+  mono: `'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace`,
 } as const;

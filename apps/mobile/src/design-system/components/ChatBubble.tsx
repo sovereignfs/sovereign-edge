@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../ThemeProvider';
+import { Mark } from './Mark';
 
 export type ChatBubbleProps = {
   role: 'user' | 'assistant';
@@ -39,47 +40,55 @@ export function ChatBubble({
         isUser ? styles.alignEnd : styles.alignStart,
       ]}
     >
-      <View
-        style={{
-          maxWidth: '85%',
-          backgroundColor: isUser
-            ? theme.colors.accent
-            : theme.colors.surfaceSunken,
-          paddingHorizontal: theme.space[3],
-          paddingVertical: theme.space[2],
-          borderRadius: theme.radius.xl,
-          // Squaring the trailing corner points the bubble at its sender —
-          // cheaper than a tail and it survives long text reflowing.
-          borderBottomRightRadius: isUser ? theme.radius.sm : theme.radius.xl,
-          borderBottomLeftRadius: isUser ? theme.radius.xl : theme.radius.sm,
-          gap: theme.space[1],
-        }}
-      >
-        <Text
+      <View style={{ maxWidth: '85%', gap: theme.space[1] }}>
+        <View
           style={{
-            color: isUser
-              ? theme.colors.textOnAccent
-              : theme.colors.textPrimary,
-            fontSize: theme.fontSize.sm,
-            fontFamily: theme.fontFamily.body,
+            backgroundColor: isUser
+              ? theme.colors.accent
+              : theme.colors.surfaceSunken,
+            paddingHorizontal: theme.space[3],
+            paddingVertical: theme.space[2],
+            borderRadius: theme.radius.xl,
+            // Squaring the trailing corner points the bubble at its sender —
+            // cheaper than a tail and it survives long text reflowing.
+            borderBottomRightRadius: isUser
+              ? theme.radius.sm
+              : theme.radius.xl,
+            borderBottomLeftRadius: isUser
+              ? theme.radius.xl
+              : theme.radius.sm,
           }}
         >
-          {text}
-          {streaming ? '▌' : ''}
-        </Text>
-
-        {connector ? (
           <Text
             style={{
               color: isUser
                 ? theme.colors.textOnAccent
-                : theme.colors.textMuted,
-              fontSize: theme.fontSize.label,
-              fontFamily: theme.fontFamily.mono,
+                : theme.colors.textPrimary,
+              fontSize: theme.fontSize.sm,
+              fontFamily: theme.fontFamily.body,
             }}
           >
-            {`via ${connector}`}
+            {text}
+            {streaming ? '▌' : ''}
           </Text>
+        </View>
+
+        {connector ? (
+          <View
+            style={[styles.receipt, isUser ? styles.receiptEnd : null]}
+            accessibilityLabel={`Answered using the ${connector} connector`}
+          >
+            <Mark size={11} color={theme.colors.textSubtle} />
+            <Text
+              style={{
+                color: theme.colors.textSubtle,
+                fontSize: theme.fontSize.label,
+                fontFamily: theme.fontFamily.body,
+              }}
+            >
+              {connector}
+            </Text>
+          </View>
         ) : null}
       </View>
     </View>
@@ -90,4 +99,13 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row' },
   alignStart: { justifyContent: 'flex-start' },
   alignEnd: { justifyContent: 'flex-end' },
+  // Nudged in from the bubble's own edge rather than flush with it — reads
+  // as "attached to" the bubble above, not as its own separate row.
+  receipt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginLeft: 10,
+  },
+  receiptEnd: { alignSelf: 'flex-end', marginLeft: 0, marginRight: 10 },
 });

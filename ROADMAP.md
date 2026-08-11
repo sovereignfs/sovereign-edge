@@ -1,6 +1,6 @@
 # Sovereign Edge — Roadmap
 
-**Version:** 0.2.1 · **Last updated:** 2026-08-08
+**Version:** 0.2.11 · **Last updated:** 2026-08-11
 
 Chronological task index. Full task detail lives in
 [`docs/epics/`](docs/epics/). Decision record behind this phasing:
@@ -65,6 +65,12 @@ connector-management UI. Still first-party only.
 | 0.2.5   | Instance URL and API token setup flow | 📋   | Mobile | [4.2](docs/epics/mobile/sovereign-tasks-connector.md#-42--instance-url-and-api-token-setup-flow)                |
 | —       | Calendar connector (desktop, macOS only) | ✅ | Shared | [10.2](docs/epics/mobile/calendar-connector.md#-102--desktop-calendar-connector-macos-only)                     |
 | —       | Calendar connector (desktop, Windows/Linux) | 📋 | Shared | [10.3](docs/epics/mobile/calendar-connector.md#-103--desktop-calendar-connector-windowslinux-fast-follow)     |
+| 0.2.6   | Warm palette + shared token source of truth | ✅ | Mobile | [7.3](docs/epics/mobile/design-system.md#-73--warm-palette--shared-token-source-of-truth)                       |
+| 0.2.7   | Icon system                          | ✅     | Mobile | [7.4](docs/epics/mobile/design-system.md#-74--icon-system)                                                      |
+| 0.2.8   | Chat: icons, provenance receipts, multiline composer | ✅ | Mobile | [7.5](docs/epics/mobile/design-system.md#-75--chat-screen-icons-provenance-receipts-multiline-composer)      |
+| 0.2.9   | Models: sections, progress bar, fit badge | ✅   | Mobile | [7.6](docs/epics/mobile/design-system.md#-76--models-screen-sections-progress-bar-fit-badge)                    |
+| 0.2.10  | Settings segmented control + Connectors restructure | ✅ | Mobile | [7.7](docs/epics/mobile/design-system.md#-77--settings-segmented-control--connectors-restructure)            |
+| 0.2.11  | Release assets: app icon + splash screen | ✅    | Mobile | [7.8](docs/epics/mobile/design-system.md#-78--release-assets-app-icon--splash-screen)                           |
 
 ---
 

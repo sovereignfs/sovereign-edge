@@ -1,8 +1,9 @@
 import { fireEvent, render, userEvent } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 
+import { darkColors, lightColors } from 'design-tokens';
+
 import { ThemeProvider } from '../ThemeProvider';
-import { darkColors, lightColors } from '../semantic';
 import { Button, ChatBubble, ListItem, TextField, Toggle } from './index';
 
 /**
@@ -120,7 +121,10 @@ describe('ChatBubble', () => {
     const s = await renderThemed(
       <ChatBubble role="assistant" text="It is sunny." connector="Search" />,
     );
-    expect(s.getByText('via Search')).toBeTruthy();
+    // The receipt (task 7.5) is the connector name next to the brand mark
+    // glyph, not embedded "via X" text inside the bubble itself.
+    expect(s.getByLabelText('Answered using the Search connector')).toBeTruthy();
+    expect(s.getByText('Search')).toBeTruthy();
   });
 
   it('says nothing about connectors for a purely local reply', async () => {

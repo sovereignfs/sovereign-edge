@@ -85,10 +85,16 @@ export function ConnectorInstallScreen() {
       }
       grant(result.manifest);
       saveInstalledConnector(result.manifest);
-      // Pops back to the already-mounted Connectors screen rather than one
-      // step to the store list, so the user lands where the new connector
-      // is now visible, not back where they just were.
-      navigation.navigate('Connectors');
+      // Replaces this screen with the new connector's own detail screen —
+      // matching what happens after granting any other connector (task
+      // 7.7) — rather than popping back to the store list or the plain
+      // Connectors list, so the user lands looking at exactly what they
+      // just installed.
+      navigation.replace('ConnectorDetail', {
+        kind: 'manifest',
+        manifest: result.manifest,
+        installed: true,
+      });
     } catch {
       setError('Could not install this connector. Try again.');
     } finally {

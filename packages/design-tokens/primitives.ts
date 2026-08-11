@@ -6,10 +6,14 @@
  * Ported rather than shared: `@sovereignfs/ui` is CSS Modules and web React
  * with its own build, and this repo's own goal (per epic 7's own framing)
  * is the same *visual language*, not a code dependency on an external
- * package. This file — not `@sovereignfs/ui` — is this repo's single
- * source of truth for these numbers now; `apps/mobile/src/design-system`
- * still carries its own copy (extracting it into this package is future
- * work, not this task's).
+ * package. This file is this repo's single source of truth for these
+ * numbers.
+ *
+ * The warm grey scale and the `clay` accent scale (task 7.3) replace
+ * Sovereign's cool-grey monochrome identity with Edge's own — validated
+ * interactively in `reference.html` (same directory) before landing here.
+ * Never edit the values in one place without the other; `reference.html`
+ * is the visual source of truth this file is expected to match.
  *
  * Nothing outside `semantic.ts` should import from here. Primitives say
  * what a colour *is*; semantic tokens say what it is *for*, and only the
@@ -20,17 +24,27 @@ export const palette = {
   white: '#ffffff',
   black: '#000000',
 
-  grey50: '#fafafa',
-  grey100: '#f4f4f5',
-  grey200: '#e4e4e7',
-  grey300: '#d4d4d8',
-  grey400: '#a1a1aa',
-  grey500: '#71717a',
-  grey600: '#52525b',
-  grey700: '#3f3f46',
-  grey800: '#27272a',
-  grey900: '#18181b',
-  grey950: '#09090b',
+  grey50: '#f7f5f0',
+  grey100: '#edeae1',
+  grey200: '#ddd7c9',
+  grey300: '#c7beab',
+  grey400: '#a79c86',
+  grey500: '#8b8069',
+  grey600: '#6e6452',
+  grey700: '#52493a',
+  grey800: '#382f24',
+  grey900: '#241d15',
+  grey950: '#15100a',
+
+  clay100: '#f7e4db',
+  clay200: '#efc3ae',
+  clay300: '#e6a183',
+  clay400: '#de8067',
+  clay500: '#d97757',
+  clay600: '#c15f3e',
+  clay700: '#a54b2e',
+  clay800: '#7c3820',
+  clay900: '#542613',
 
   amber100: '#fff7ed',
   amber200: '#fed7aa',

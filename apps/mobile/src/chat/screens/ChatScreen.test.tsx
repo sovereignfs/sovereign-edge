@@ -92,7 +92,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'colours?');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/Blue, green/)).toBeTruthy();
   });
@@ -107,7 +107,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'hello');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -131,9 +131,13 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'find a recipe');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
-    expect(s.getByText(/via Search/)).toBeTruthy();
+    // The receipt (task 7.5) is the connector name alone, next to the
+    // brand mark glyph — no "via" prefix needed once there's an icon.
+    // Queried by accessibility label, not `getByText('Search')`: the mode
+    // chip labelled "Search" renders the same visible text.
+    expect(s.getByLabelText('Answered using the Search connector')).toBeTruthy();
   });
 
   it('shows a reply that was never streamed a single token', async () => {
@@ -151,7 +155,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'find a recipe');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/hasn't been granted access/)).toBeTruthy();
   });
@@ -161,9 +165,9 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'hello');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
-    expect(s.queryByText(/via /)).toBeNull();
+    expect(s.queryByLabelText(/Answered using/)).toBeNull();
   });
 
   it('never offers connectors from a writing-assist mode', async () => {
@@ -178,7 +182,7 @@ describe('ChatScreen', () => {
 
     await userEvent.press(s.getByLabelText('Fix grammar mode'));
     await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate.mock.calls[0]![0].connectorMode).toBe('off');
   });
@@ -197,7 +201,7 @@ describe('ChatScreen', () => {
       s.getByPlaceholderText('Message'),
       'weather in Berlin',
     );
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate.mock.calls[0]![0].connectorMode).toBe('required');
   });
@@ -213,7 +217,9 @@ describe('ChatScreen', () => {
 
   it('offers Stop instead of Send while generating', async () => {
     // The engine supports aborting; leaving only a disabled Send would make
-    // the user wait out a reply they no longer want.
+    // the user wait out a reply they no longer want. Both are icon-only
+    // buttons (task 7.5), so identity lives in the accessibility label, not
+    // visible text.
     const generate = jest.fn(async () => done);
     const { view } = renderChat({
       status: 'busy',
@@ -221,8 +227,8 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    expect(s.getByText('Stop')).toBeTruthy();
-    expect(s.queryByText('Send')).toBeNull();
+    expect(s.getByLabelText('Stop generating')).toBeTruthy();
+    expect(s.queryByLabelText('Send')).toBeNull();
     expect(generate).not.toHaveBeenCalled();
   });
 
@@ -237,7 +243,7 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.type(s.getByPlaceholderText('Message'), 'hi');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[0]![0];
       expect(messages.some((m) => m.role === 'system')).toBe(false);
@@ -252,7 +258,7 @@ describe('ChatScreen', () => {
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const { messages, temperature } = generate.mock.calls[0]![0];
       expect(messages[0]!.role).toBe('system');
@@ -274,7 +280,7 @@ describe('ChatScreen', () => {
 
       await userEvent.press(s.getByLabelText('Brainstorm mode'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'names');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const { temperature } = generate.mock.calls[0]![0];
       expect(temperature).toBeGreaterThan(0.8);
@@ -300,9 +306,9 @@ describe('ChatScreen', () => {
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'one');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'two');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const second = generate.mock.calls[1]![0];
       expect(second.messages[0]!.role).toBe('system');
@@ -322,9 +328,9 @@ describe('ChatScreen', () => {
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'first');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'second');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[1]![0];
       // System prompt plus this message only — no trace of the first turn.
@@ -343,9 +349,9 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.type(s.getByPlaceholderText('Message'), 'first');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'second');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[1]![0];
       expect(messages.some((m) => m.content === 'first')).toBe(true);
@@ -399,11 +405,11 @@ describe('ChatScreen', () => {
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'one');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       await userEvent.press(s.getByLabelText('Chat mode'));
       await userEvent.type(s.getByPlaceholderText('Message'), 'two');
-      await userEvent.press(s.getByText('Send'));
+      await userEvent.press(s.getByLabelText('Send'));
 
       const second = generate.mock.calls[1]![0];
       expect(second.messages.some((m) => m.role === 'system')).toBe(false);
@@ -420,7 +426,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.type(s.getByPlaceholderText('Message'), 'hi');
-    await userEvent.press(s.getByText('Send'));
+    await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/could not be generated/)).toBeTruthy();
   });

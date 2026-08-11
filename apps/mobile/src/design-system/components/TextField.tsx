@@ -28,6 +28,7 @@ export function TextField({
   editable = true,
   onFocus,
   onBlur,
+  multiline = false,
   ...rest
 }: TextFieldProps) {
   const theme = useTheme();
@@ -62,6 +63,7 @@ export function TextField({
         // error text sits visibly underneath it.
         accessibilityState={{ disabled: !editable }}
         editable={editable}
+        multiline={multiline}
         placeholderTextColor={theme.colors.textSubtle}
         onFocus={(e) => {
           setFocused(true);
@@ -73,6 +75,11 @@ export function TextField({
         }}
         style={{
           minHeight: theme.touchTargetMin,
+          // A composer that could grow to fill the screen on a long paste
+          // is worse than one that scrolls internally past a point — three
+          // lines' worth is enough to see what's being sent without eating
+          // the message list above it.
+          maxHeight: multiline ? theme.touchTargetMin * 3 : undefined,
           paddingHorizontal: theme.space[3],
           paddingVertical: theme.space[2],
           borderWidth: 1,
@@ -84,6 +91,10 @@ export function TextField({
           color: theme.colors.textPrimary,
           fontSize: theme.fontSize.sm,
           fontFamily: theme.fontFamily.body,
+          // Multiline text starts at the top of the field, like every other
+          // messaging composer; centred looks fine at one line and wrong at
+          // three. Android needs this stated explicitly.
+          textAlignVertical: multiline ? 'top' : 'center',
         }}
         {...rest}
       />

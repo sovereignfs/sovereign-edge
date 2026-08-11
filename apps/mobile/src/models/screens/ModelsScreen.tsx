@@ -1,7 +1,14 @@
 import { useCallback } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 
-import { ListItem, useTheme } from '@/design-system';
+import {
+  FitBadge,
+  ListItem,
+  ProgressBar,
+  SectionLabel,
+  useTheme,
+  type FitBadgeVariant,
+} from '@/design-system';
 import type { Fit } from '@/models';
 import {
   useModelSession,
@@ -46,6 +53,53 @@ export function ModelsScreen() {
     [activeModelId, activate, cancelInstall, install, remove],
   );
 
+  // Split rather than sorted-in-place: a model moves section the moment it
+  // finishes installing, and two flat groups make that obvious without
+  // needing a transition to notice.
+  const installed = models.filter((model) => model.installed);
+  const available = models.filter((model) => !model.installed);
+
+  const row = (model: (typeof models)[number]) => {
+    const active = model.id === activeModelId;
+    const download = downloads[model.id];
+    return (
+      <ListItem
+        key={model.id}
+        title={`${model.name} · ${model.parameters}`}
+        // The fit note is the useful part — it says whether *this* phone
+        // can run it, which a size alone does not.
+        subtitle={
+          subtitleFor(download) ??
+          idleSubtitle(gb(model.sizeBytes), model.fit.note, {
+            installed: model.installed,
+            active,
+            fit: model.fit.fit,
+          })
+        }
+        footer={
+          download?.phase === 'downloading' ? (
+            <ProgressBar progress={download.fraction ?? 0} />
+          ) : undefined
+        }
+        accessory={
+          <Badge
+            installed={model.installed}
+            active={active}
+            download={download}
+            fit={model.fit.fit}
+          />
+        }
+        onPress={onPress(model.id, model.installed, download)}
+        // Only a failed download is an error. The loaded model was also
+        // drawn in the error colour once, which read as "something is
+        // wrong with this one" directly beside a green IN USE badge —
+        // two opposite signals on the same row. What tapping does is
+        // said in words in the subtitle instead.
+        destructive={download?.phase === 'failed'}
+      />
+    );
+  };
+
   return (
     <ScrollView style={{ backgroundColor: theme.colors.surface }}>
       <Text
@@ -62,42 +116,19 @@ export function ModelsScreen() {
         more memory.
       </Text>
 
-      <View>
-        {models.map((model) => {
-          const active = model.id === activeModelId;
-          const download = downloads[model.id];
-          return (
-            <ListItem
-              key={model.id}
-              title={`${model.name} · ${model.parameters}`}
-              // The fit note is the useful part — it says whether *this* phone
-              // can run it, which a size alone does not.
-              subtitle={
-                subtitleFor(download) ??
-                idleSubtitle(gb(model.sizeBytes), model.fit.note, {
-                  installed: model.installed,
-                  active,
-                })
-              }
-              accessory={
-                <Accessory
-                  installed={model.installed}
-                  active={active}
-                  download={download}
-                  fit={model.fit.fit}
-                />
-              }
-              onPress={onPress(model.id, model.installed, download)}
-              // Only a failed download is an error. The loaded model was also
-              // drawn in the error colour once, which read as "something is
-              // wrong with this one" directly beside a green IN USE badge —
-              // two opposite signals on the same row. What tapping does is
-              // said in words in the subtitle instead.
-              destructive={download?.phase === 'failed'}
-            />
-          );
-        })}
-      </View>
+      {installed.length > 0 ? (
+        <>
+          <SectionLabel>Installed</SectionLabel>
+          {installed.map(row)}
+        </>
+      ) : null}
+
+      {available.length > 0 ? (
+        <>
+          <SectionLabel>Available</SectionLabel>
+          {available.map(row)}
+        </>
+      ) : null}
     </ScrollView>
   );
 }
@@ -107,16 +138,18 @@ export function ModelsScreen() {
  *
  * Downloading rows already end in "tap to cancel"; saying it here too means no
  * row is a pressable mystery, which matters most for the loaded model, where
- * the action is deletion.
+ * the action is deletion. A model the device likely cannot run says so too —
+ * the badge alone ("Too large") doesn't say what tapping it does.
  */
 function idleSubtitle(
   size: string,
   fitNote: string,
-  state: { installed: boolean; active: boolean },
+  state: { installed: boolean; active: boolean; fit: Fit },
 ): string {
   const base = `${size} · ${fitNote}`;
   if (state.active) return `${base} · tap to remove`;
   if (state.installed) return `${base} · tap to use`;
+  if (state.fit === 'unsupported') return `${base} · tap to download anyway`;
   return base;
 }
 
@@ -125,26 +158,19 @@ function idleSubtitle(
  *
  * A download is the longest wait in the app and the epic's rule is that it may
  * never look silently stuck, so every phase names itself and a failure shows
- * its own message rather than a generic one.
+ * its own message rather than a generic one. The percentage itself lives in
+ * the badge and the progress bar now, not duplicated into this text.
  */
 function subtitleFor(download: ModelDownload | undefined): string | undefined {
   if (!download) return undefined;
 
   switch (download.phase) {
     case 'downloading': {
-      const pct =
-        download.fraction === null
-          ? null
-          : `${Math.floor(download.fraction * 100)}%`;
       const size =
         download.totalBytes === null
           ? `${(download.bytesWritten / 1e6).toFixed(0)} MB so far`
           : `${(download.bytesWritten / 1e9).toFixed(2)} of ${(download.totalBytes / 1e9).toFixed(2)} GB`;
-      // No percentage when the server sends no Content-Length — inventing one
-      // would be a worse lie than admitting the total is unknown.
-      return pct
-        ? `Downloading ${pct} · ${size} · tap to cancel`
-        : `Downloading · ${size} · tap to cancel`;
+      return `Downloading · ${size} · tap to cancel`;
     }
     case 'verifying':
       return 'Checking the file matches the publisher’s checksum.';
@@ -155,16 +181,29 @@ function subtitleFor(download: ModelDownload | undefined): string | undefined {
   }
 }
 
+/** Fit maps to badge colour the same way everywhere it's shown. */
+function variantFor(fit: Fit): FitBadgeVariant {
+  switch (fit) {
+    case 'comfortable':
+      return 'good';
+    case 'tight':
+      return 'tight';
+    case 'unsupported':
+      return 'bad';
+    case 'unknown':
+      return 'neutral';
+  }
+}
+
 /**
- * The trailing label, which is also the row's only affordance.
+ * The row's status badge, which is also its only affordance.
  *
  * A model the device cannot run still offers a download — the estimate is a
- * heuristic and the choice is the user's — but it must not be presented as an
- * equally good option. It reads "DOWNLOAD ANYWAY" in the muted colour, so the
- * control agrees with the subtitle telling them to pick something smaller
- * instead of contradicting it in accent colour.
+ * heuristic and the choice is the user's — but the badge must not present it
+ * as an equally good option, so it names the problem ("Too large") instead
+ * of the action; the subtitle carries "tap to download anyway" instead.
  */
-function Accessory({
+function Badge({
   installed,
   active,
   download,
@@ -175,36 +214,26 @@ function Accessory({
   download: ModelDownload | undefined;
   fit: Fit;
 }) {
-  const theme = useTheme();
-  const inFlight =
-    download?.phase === 'downloading' || download?.phase === 'verifying';
-  const discouraged = !installed && fit === 'unsupported';
-
-  const label = (() => {
-    if (inFlight) return 'CANCEL';
-    if (download?.phase === 'failed') return 'RETRY';
-    if (!installed) return discouraged ? 'DOWNLOAD ANYWAY' : 'DOWNLOAD';
-    return active ? 'IN USE' : 'INSTALLED';
-  })();
-
-  const colour = (() => {
-    if (download?.phase === 'failed') return theme.colors.errorText;
-    if (active) return theme.colors.successText;
-    if (!installed) {
-      return discouraged ? theme.colors.textMuted : theme.colors.accent;
+  if (download?.phase === 'downloading') {
+    const pct =
+      download.fraction === null
+        ? null
+        : `${Math.floor(download.fraction * 100)}%`;
+    return <FitBadge label={pct ?? '…'} variant="tight" />;
+  }
+  if (download?.phase === 'verifying') {
+    return <FitBadge label="Verifying" variant="tight" />;
+  }
+  if (download?.phase === 'failed') {
+    return <FitBadge label="Retry" variant="bad" />;
+  }
+  if (!installed) {
+    if (fit === 'unsupported') {
+      return <FitBadge label="Too large" variant="bad" />;
     }
-    return theme.colors.textMuted;
-  })();
-
+    return <FitBadge label="Download" variant={variantFor(fit)} />;
+  }
   return (
-    <Text
-      style={{
-        color: colour,
-        fontSize: theme.fontSize.label,
-        fontFamily: theme.fontFamily.mono,
-      }}
-    >
-      {label}
-    </Text>
+    <FitBadge label={active ? 'In use' : 'Installed'} variant={variantFor(fit)} />
   );
 }

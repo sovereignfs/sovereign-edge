@@ -8,6 +8,8 @@ export type ListItemProps = {
   subtitle?: string;
   /** Trailing control — a Toggle, a chevron, a size label. */
   accessory?: ReactNode;
+  /** Extra content below the subtitle, in the same column — a progress bar. */
+  footer?: ReactNode;
   onPress?: () => void;
   disabled?: boolean;
   /** Renders title and subtitle in the error colour. */
@@ -18,6 +20,7 @@ export function ListItem({
   title,
   subtitle,
   accessory,
+  footer,
   onPress,
   disabled = false,
   destructive = false,
@@ -64,6 +67,7 @@ export function ListItem({
             {subtitle}
           </Text>
         ) : null}
+        {footer}
       </View>
       {accessory}
     </View>
