@@ -131,13 +131,7 @@ function Header({
   );
 }
 
-function ScopeSection({
-  label,
-  scope,
-}: {
-  label: string;
-  scope: string[];
-}) {
+function ScopeSection({ label, scope }: { label: string; scope: string[] }) {
   const theme = useTheme();
   return (
     <>

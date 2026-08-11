@@ -115,7 +115,9 @@ describe('ConnectorInstallScreen', () => {
     );
     expect(mockReplace).toHaveBeenCalledWith('ConnectorDetail', {
       kind: 'manifest',
-      manifest: expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
+      manifest: expect.objectContaining({
+        id: 'fs.sovereign.weather-open-meteo',
+      }),
       installed: true,
     });
   });

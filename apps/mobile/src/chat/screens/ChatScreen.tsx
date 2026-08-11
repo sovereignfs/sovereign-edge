@@ -538,6 +538,14 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   grow: { flex: 1 },
-  chip: { flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth },
-  composerButton: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  composerButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
 });

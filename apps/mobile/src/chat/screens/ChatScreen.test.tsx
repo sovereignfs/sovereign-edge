@@ -137,7 +137,9 @@ describe('ChatScreen', () => {
     // brand mark glyph — no "via" prefix needed once there's an icon.
     // Queried by accessibility label, not `getByText('Search')`: the mode
     // chip labelled "Search" renders the same visible text.
-    expect(s.getByLabelText('Answered using the Search connector')).toBeTruthy();
+    expect(
+      s.getByLabelText('Answered using the Search connector'),
+    ).toBeTruthy();
   });
 
   it('shows a reply that was never streamed a single token', async () => {

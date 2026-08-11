@@ -54,7 +54,9 @@ export function SegmentedControl<T extends string>({
                 alignItems: 'center',
                 paddingVertical: theme.space[2],
                 borderRadius: theme.radius.md - 2,
-                backgroundColor: active ? theme.colors.surfaceRaised : undefined,
+                backgroundColor: active
+                  ? theme.colors.surfaceRaised
+                  : undefined,
                 opacity: pressed ? 0.7 : 1,
               },
               // The active segment's own elevation, not just its fill —
@@ -70,7 +72,9 @@ export function SegmentedControl<T extends string>({
                 fontWeight: active
                   ? theme.fontWeight.medium
                   : theme.fontWeight.regular,
-                color: active ? theme.colors.textPrimary : theme.colors.textMuted,
+                color: active
+                  ? theme.colors.textPrimary
+                  : theme.colors.textMuted,
               }}
             >
               {option.label}
