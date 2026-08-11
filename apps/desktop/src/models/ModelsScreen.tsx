@@ -137,7 +137,10 @@ function Badge({
     return <FitBadge label="Download" variant={variantFor(fit)} />;
   }
   return (
-    <FitBadge label={active ? 'In use' : 'Installed'} variant={variantFor(fit)} />
+    <FitBadge
+      label={active ? 'In use' : 'Installed'}
+      variant={variantFor(fit)}
+    />
   );
 }
 
@@ -312,13 +315,18 @@ export function ModelsScreen() {
             margin: `${theme.space[2]}px 0 0`,
           }}
         >
-          Models run entirely on this device. Larger ones answer better and
-          need more memory.
+          Models run entirely on this device. Larger ones answer better and need
+          more memory.
         </p>
       </div>
 
       {loading ? (
-        <p style={{ fontSize: theme.fontSize.sm, padding: `0 ${theme.space[4]}px` }}>
+        <p
+          style={{
+            fontSize: theme.fontSize.sm,
+            padding: `0 ${theme.space[4]}px`,
+          }}
+        >
           Loading models…
         </p>
       ) : (

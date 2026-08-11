@@ -177,8 +177,16 @@ describe('ModelsScreen', () => {
 
   it('groups installed and available models under their own section', async () => {
     listModels.mockResolvedValue([
-      model({ id: 'installed-model', name: 'Installed Model', installed: true }),
-      model({ id: 'available-model', name: 'Available Model', installed: false }),
+      model({
+        id: 'installed-model',
+        name: 'Installed Model',
+        installed: true,
+      }),
+      model({
+        id: 'available-model',
+        name: 'Available Model',
+        installed: false,
+      }),
     ]);
     activeModelId.mockResolvedValue('installed-model');
     renderScreen();
