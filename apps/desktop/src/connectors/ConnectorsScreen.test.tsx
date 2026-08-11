@@ -73,9 +73,13 @@ describe('ConnectorsScreen', () => {
 
     await userEvent.click(await rowButton('Search'));
 
-    expect(screen.getByRole('button', { name: 'Revoke access' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Revoke access' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Instance URL')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Save changes' }),
+    ).toBeInTheDocument();
   });
 
   it('revokes Search from its own detail view', async () => {
@@ -90,10 +94,15 @@ describe('ConnectorsScreen', () => {
     renderScreen();
 
     await userEvent.click(await rowButton('Search'));
-    await userEvent.click(screen.getByRole('button', { name: 'Revoke access' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Revoke access' }),
+    );
 
     await waitFor(() =>
-      expect(setConnectorGranted).toHaveBeenCalledWith('fs.sovereign.search', false),
+      expect(setConnectorGranted).toHaveBeenCalledWith(
+        'fs.sovereign.search',
+        false,
+      ),
     );
   });
 
@@ -160,12 +169,18 @@ describe('ConnectorsScreen', () => {
     renderScreen();
 
     await userEvent.click(await rowButton('Open-Meteo Forecast'));
-    expect(screen.queryByRole('button', { name: 'Remove connector' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Remove connector' }),
+    ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Remove connector' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Remove connector' }),
+    );
 
     await waitFor(() =>
-      expect(removeConnector).toHaveBeenCalledWith('fs.sovereign.weather-open-meteo'),
+      expect(removeConnector).toHaveBeenCalledWith(
+        'fs.sovereign.weather-open-meteo',
+      ),
     );
   });
 
@@ -180,7 +195,9 @@ describe('ConnectorsScreen', () => {
     renderScreen();
 
     await userEvent.click(await rowButton('Calendar — Create Event'));
-    expect(screen.queryByRole('button', { name: 'Remove connector' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Remove connector' }),
+    ).not.toBeInTheDocument();
   });
 
   describe('Calendar (task 10.2)', () => {
@@ -201,7 +218,9 @@ describe('ConnectorsScreen', () => {
       renderScreen();
 
       await userEvent.click(await rowButton('Calendar — Create Event'));
-      await userEvent.click(screen.getByRole('button', { name: 'Grant access' }));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Grant access' }),
+      );
 
       await waitFor(() => expect(requestCalendarAccess).toHaveBeenCalled());
       await waitFor(() =>
@@ -224,7 +243,9 @@ describe('ConnectorsScreen', () => {
       renderScreen();
 
       await userEvent.click(await rowButton('Calendar — Create Event'));
-      await userEvent.click(screen.getByRole('button', { name: 'Grant access' }));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Grant access' }),
+      );
 
       await waitFor(() => expect(requestCalendarAccess).toHaveBeenCalled());
       expect(setConnectorGranted).not.toHaveBeenCalled();
@@ -249,7 +270,9 @@ describe('ConnectorsScreen', () => {
       renderScreen();
 
       await userEvent.click(await rowButton('Calendar — Create Event'));
-      await userEvent.click(screen.getByRole('button', { name: 'Revoke access' }));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Revoke access' }),
+      );
 
       await waitFor(() =>
         expect(setConnectorGranted).toHaveBeenCalledWith(

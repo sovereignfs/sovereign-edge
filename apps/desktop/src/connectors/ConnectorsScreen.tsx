@@ -72,7 +72,10 @@ const CALENDAR_CONNECTOR_ID_PREFIX = 'fs.sovereign.calendar.';
  * would mean inventing data this screen doesn't actually have.
  */
 
-function pillFor(granted: boolean): { label: string; variant: FitBadgeVariant } {
+function pillFor(granted: boolean): {
+  label: string;
+  variant: FitBadgeVariant;
+} {
   return granted
     ? { label: 'Allowed', variant: 'good' }
     : { label: 'Not granted', variant: 'neutral' };
@@ -157,12 +160,15 @@ export function ConnectorsScreen({
     }
   }
 
-  const searchStatus = connectors.find((c) => c.id === SEARCH_CONNECTOR_ID) ?? null;
+  const searchStatus =
+    connectors.find((c) => c.id === SEARCH_CONNECTOR_ID) ?? null;
   const calendarRows = connectors.filter((c) =>
     c.id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX),
   );
   const installedRows = connectors.filter(
-    (c) => c.id !== SEARCH_CONNECTOR_ID && !c.id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX),
+    (c) =>
+      c.id !== SEARCH_CONNECTOR_ID &&
+      !c.id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX),
   );
   const empty = connectors.length === 0;
 
@@ -187,7 +193,9 @@ export function ConnectorsScreen({
           installed={installedRows.some((c) => c.id === status.id)}
           pending={pendingId === status.id}
           calendarError={
-            status.id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX) ? calendarError : null
+            status.id.startsWith(CALENDAR_CONNECTOR_ID_PREFIX)
+              ? calendarError
+              : null
           }
           onBack={() => setSelected(null)}
           onToggle={(next) => void toggle(status.id, next)}
@@ -198,7 +206,12 @@ export function ConnectorsScreen({
   }
 
   const chevron = (
-    <Icon name="chevron-right" size="sm" color={theme.colors.textSubtle} aria-hidden />
+    <Icon
+      name="chevron-right"
+      size="sm"
+      color={theme.colors.textSubtle}
+      aria-hidden
+    />
   );
 
   return (
@@ -229,7 +242,13 @@ export function ConnectorsScreen({
             title="Search"
             subtitle={searchStatus ? undefined : 'Not set up'}
             accessory={
-              <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[2],
+                }}
+              >
                 <FitBadge {...pillFor(searchStatus?.granted ?? false)} />
                 {chevron}
               </div>
@@ -246,7 +265,11 @@ export function ConnectorsScreen({
                   title={c.name}
                   accessory={
                     <div
-                      style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.space[2],
+                      }}
                     >
                       <FitBadge {...pillFor(c.granted)} />
                       {chevron}
@@ -267,7 +290,11 @@ export function ConnectorsScreen({
                   title={c.name}
                   accessory={
                     <div
-                      style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.space[2],
+                      }}
                     >
                       <FitBadge {...pillFor(c.granted)} />
                       {chevron}
@@ -383,7 +410,13 @@ function ConnectorDetail({
         </p>
       ) : null}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[2] }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.space[2],
+        }}
+      >
         {status.granted ? (
           <Button
             label="Revoke access"
@@ -462,7 +495,11 @@ function SearchDetail({
       <BackLink onBack={onBack} />
       <DetailHeader
         title="Search"
-        pill={status ? pillFor(status.granted) : { label: 'Not set up', variant: 'neutral' }}
+        pill={
+          status
+            ? pillFor(status.granted)
+            : { label: 'Not set up', variant: 'neutral' }
+        }
       />
 
       <p

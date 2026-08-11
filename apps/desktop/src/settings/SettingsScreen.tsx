@@ -159,7 +159,12 @@ export function SettingsScreen({
           subtitle="The only way anything here reaches the network"
           onClick={() => onNavigate('connectors')}
           accessory={
-            <Icon name="chevron-right" size="sm" color={theme.colors.textSubtle} aria-hidden />
+            <Icon
+              name="chevron-right"
+              size="sm"
+              color={theme.colors.textSubtle}
+              aria-hidden
+            />
           }
         />
       </section>

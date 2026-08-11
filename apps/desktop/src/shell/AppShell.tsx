@@ -30,13 +30,18 @@ import { SettingsScreen } from '../settings/SettingsScreen';
 // folded it into `ConnectorsScreen`'s own inline detail view, the same
 // list/detail-toggle pattern `ConnectorStoreScreen.tsx` already used for
 // its own install flow.
-type Destination = 'chat' | 'models' | 'connectors' | 'connector-store' | 'settings';
+type Destination =
+  'chat' | 'models' | 'connectors' | 'connector-store' | 'settings';
 
 // 'connectors' uses the app's own "one gate" mark rather than a generic
 // Lucide glyph — reference.html's desktop sidebar mockup does the same,
 // tying the connector concept back to the mark's own "crossed the
 // boundary, with permission" motif instead of a generic plug/link icon.
-const DESTINATIONS: { id: Destination; label: string; icon: IconName | 'mark' }[] = [
+const DESTINATIONS: {
+  id: Destination;
+  label: string;
+  icon: IconName | 'mark';
+}[] = [
   { id: 'chat', label: 'Chat', icon: 'message-circle' },
   { id: 'models', label: 'Models', icon: 'cpu' },
   { id: 'connectors', label: 'Connectors', icon: 'mark' },

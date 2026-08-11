@@ -55,10 +55,9 @@ export function ChatBubble({
 
         {connector ? (
           <div
-            className={[
-              styles.receipt,
-              isUser ? styles.receiptEnd : '',
-            ].join(' ')}
+            className={[styles.receipt, isUser ? styles.receiptEnd : ''].join(
+              ' ',
+            )}
             aria-label={`Answered using the ${connector} connector`}
           >
             <Mark size={11} color="var(--sv-color-text-subtle)" />
