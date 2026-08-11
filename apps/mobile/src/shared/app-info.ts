@@ -7,4 +7,4 @@ export const APP_NAME = 'Sovereign Edge';
  * Reading it from `expo-constants` at runtime would avoid the duplication,
  * but pulls a native module in for a string that changes once per task.
  */
-export const APP_VERSION = '0.2.1';
+export const APP_VERSION = '0.2.11';

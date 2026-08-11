@@ -1,10 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import {
+  Icon,
   ListItem,
-  Toggle,
+  SectionLabel,
+  SegmentedControl,
   useTheme,
   useThemePreference,
   type ThemePreference,
@@ -13,13 +15,11 @@ import { APP_NAME, APP_VERSION } from '@/shared/app-info';
 
 import type { SettingsStackParamList } from '../navigation/RootNavigator';
 
-const ORDER: ThemePreference[] = ['system', 'light', 'dark'];
-
-const LABEL: Record<ThemePreference, string> = {
-  system: 'Match system',
-  light: 'Light',
-  dark: 'Dark',
-};
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 export function SettingsScreen() {
   const theme = useTheme();
@@ -30,29 +30,28 @@ export function SettingsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.colors.surface }}>
       <SectionLabel>Appearance</SectionLabel>
-      {ORDER.map((option) => (
-        <ListItem
-          key={option}
-          title={LABEL[option]}
-          onPress={() => setPreference(option)}
-          accessory={
-            // A checkmark would be lighter, but reusing Toggle keeps the
-            // selected state legible to a screen reader without inventing a
-            // radio control that does not exist in the component set yet.
-            <Toggle
-              value={preference === option}
-              onValueChange={() => setPreference(option)}
-              accessibilityLabel={LABEL[option]}
-            />
-          }
+      <View
+        style={{
+          paddingHorizontal: theme.space[4],
+          paddingBottom: theme.space[4],
+        }}
+      >
+        <SegmentedControl
+          options={THEME_OPTIONS}
+          value={preference}
+          onChange={setPreference}
+          accessibilityLabel="Appearance"
         />
-      ))}
+      </View>
 
       <SectionLabel>Privacy</SectionLabel>
       <ListItem
         title="Connectors"
         subtitle="Nothing can reach the network"
         onPress={() => navigation.navigate('Connectors')}
+        accessory={
+          <Icon name="chevron-right" size="sm" color={theme.colors.textSubtle} aria-hidden />
+        }
       />
 
       <SectionLabel>About</SectionLabel>
@@ -62,29 +61,5 @@ export function SettingsScreen() {
         subtitle={`${APP_NAME} has no network code in its chat path.`}
       />
     </ScrollView>
-  );
-}
-
-function SectionLabel({ children }: { children: string }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        paddingHorizontal: theme.space[4],
-        paddingTop: theme.space[5],
-        paddingBottom: theme.space[2],
-      }}
-    >
-      <Text
-        style={{
-          color: theme.colors.textMuted,
-          fontSize: theme.fontSize.label,
-          fontFamily: theme.fontFamily.body,
-          letterSpacing: 1,
-        }}
-      >
-        {children.toUpperCase()}
-      </Text>
-    </View>
   );
 }

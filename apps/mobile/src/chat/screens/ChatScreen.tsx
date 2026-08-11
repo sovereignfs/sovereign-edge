@@ -11,11 +11,27 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, ChatBubble, TextField, useTheme } from '@/design-system';
+import {
+  ChatBubble,
+  Icon,
+  TextField,
+  useTheme,
+  type IconName,
+} from '@/design-system';
 
 import type { ChatMessage } from '../inference';
 import { DEFAULT_MODE_ID, MODES, findMode, type ModeId } from '../modes';
 import { useChatSession } from '../session/ChatSessionContext';
+
+/** One icon per writing-assist mode, shown ahead of its chip label. */
+const MODE_ICON: Record<ModeId, IconName> = {
+  plain: 'message-circle',
+  search: 'search',
+  brainstorm: 'lightbulb',
+  grammar: 'spell-check',
+  tone: 'wand-2',
+  draft: 'file-text',
+};
 
 type Message = ChatMessage & {
   id: string;
@@ -197,22 +213,78 @@ export function ChatScreen() {
             }
             value={draft}
             onChangeText={setDraft}
-            onSubmitEditing={send}
-            returnKeyType="send"
+            multiline
             editable={session.status !== 'no-model'}
           />
         </View>
         {session.status === 'busy' ? (
-          <Button
-            label="Stop"
+          <ComposerButton
+            icon="square"
+            label="Stop generating"
             variant="secondary"
             onPress={() => abort.current?.abort()}
           />
         ) : (
-          <Button label="Send" onPress={send} disabled={!canSend} />
+          <ComposerButton
+            icon="send"
+            label="Send"
+            variant="primary"
+            onPress={send}
+            disabled={!canSend}
+          />
         )}
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+/**
+ * Icon-only, so it stays compact beside a composer that now grows past one
+ * line — a full-width "Send" label would either wrap awkwardly or force
+ * the text field narrower every time the draft grows to a second line.
+ */
+function ComposerButton({
+  icon,
+  label,
+  variant,
+  onPress,
+  disabled = false,
+}: {
+  icon: IconName;
+  label: string;
+  variant: 'primary' | 'secondary';
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
+  const primary = variant === 'primary';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.composerButton,
+        {
+          width: theme.touchTargetMin,
+          height: theme.touchTargetMin,
+          borderRadius: theme.radius.full,
+          backgroundColor: primary ? theme.colors.accent : 'transparent',
+          borderColor: primary ? 'transparent' : theme.colors.borderStrong,
+          opacity: disabled ? 0.5 : pressed ? 0.75 : 1,
+        },
+      ]}
+    >
+      <Icon
+        name={icon}
+        size="md"
+        color={primary ? theme.colors.textOnAccent : theme.colors.textPrimary}
+        aria-hidden
+      />
+    </Pressable>
   );
 }
 
@@ -266,8 +338,9 @@ function ModeBar({
             style={({ pressed }) => [
               styles.chip,
               {
-                paddingHorizontal: theme.space[3],
-                paddingVertical: theme.space[2],
+                gap: theme.space[1],
+                paddingHorizontal: theme.space[2] + 1,
+                paddingVertical: theme.space[1],
                 borderRadius: theme.radius.full,
                 borderColor: selected
                   ? theme.colors.accent
@@ -279,12 +352,20 @@ function ModeBar({
               },
             ]}
           >
+            <Icon
+              name={MODE_ICON[mode.id]}
+              size="xs"
+              color={
+                selected ? theme.colors.textOnAccent : theme.colors.textMuted
+              }
+              aria-hidden
+            />
             <Text
               style={{
                 color: selected
                   ? theme.colors.textOnAccent
                   : theme.colors.textMuted,
-                fontSize: theme.fontSize.caption,
+                fontSize: theme.fontSize.xs,
                 fontFamily: theme.fontFamily.body,
               }}
             >
@@ -339,7 +420,19 @@ function OfflineBanner({ modeId }: { modeId: ModeId }) {
           },
         ]}
       >
-        {preparing ? <ActivityIndicator size="small" /> : null}
+        {preparing ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          // Calm "offline by design" signal in the steady state; the same
+          // slot becomes an explicit warning glyph if preparation failed —
+          // two different messages should not share one icon.
+          <Icon
+            name={failed ? 'alert-triangle' : 'wifi-off'}
+            size="xs"
+            color={failed ? theme.colors.errorText : theme.colors.textMuted}
+            aria-hidden
+          />
+        )}
         <Text
           style={{
             flex: 1,
@@ -375,11 +468,18 @@ function OfflineBanner({ modeId }: { modeId: ModeId }) {
             {
               paddingHorizontal: theme.space[4],
               paddingVertical: theme.space[2],
+              gap: theme.space[2],
               backgroundColor: theme.colors.warningSurface,
               borderBottomColor: theme.colors.warningBorder,
             },
           ]}
         >
+          <Icon
+            name="alert-triangle"
+            size="xs"
+            color={theme.colors.warningText}
+            aria-hidden
+          />
           <Text
             style={{
               flex: 1,
@@ -431,9 +531,13 @@ const styles = StyleSheet.create({
   },
   composer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    // Bottom-anchored, not centred or top-anchored: as the field grows
+    // past one line the button should stay next to the newest line of
+    // text and the user's thumb, not float in the middle of a tall box.
+    alignItems: 'flex-end',
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   grow: { flex: 1 },
-  chip: { borderWidth: StyleSheet.hairlineWidth },
+  chip: { flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth },
+  composerButton: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
 });

@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react-native';
 import { Text, useColorScheme } from 'react-native';
 
+import { darkColors, lightColors } from 'design-tokens';
+
 import { ThemeProvider, useTheme, useThemePreference } from './ThemeProvider';
 import { darkTheme, lightTheme } from './theme';
-import { darkColors, lightColors } from './semantic';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
 const mockUseColorScheme = jest.mocked(useColorScheme);

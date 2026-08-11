@@ -9,19 +9,25 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { ChatScreen } from '@/chat/screens/ChatScreen';
 import type { ConnectorManifest } from '@/connectors';
-import { useTheme, type Theme } from '@/design-system';
+import { Icon, useTheme, type Theme } from '@/design-system';
 import { ModelsScreen } from '@/models/screens/ModelsScreen';
 
+import { ConnectorDetailScreen } from '../screens/ConnectorDetailScreen';
 import { ConnectorInstallScreen } from '../screens/ConnectorInstallScreen';
 import { ConnectorStoreScreen } from '../screens/ConnectorStoreScreen';
 import { ConnectorsScreen } from '../screens/ConnectorsScreen';
-import { SearchSetupScreen } from '../screens/SearchSetupScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 
 export type SettingsStackParamList = {
   SettingsHome: undefined;
   Connectors: undefined;
-  SearchSetup: undefined;
+  // Search has no manifest until configured, so it navigates by kind alone;
+  // every other connector already has one (built-in, or read back from the
+  // installed store), so it travels with the row that opened it rather than
+  // being looked up again by id on the far side.
+  ConnectorDetail:
+    | { kind: 'search' }
+    | { kind: 'manifest'; manifest: ConnectorManifest; installed?: boolean };
   ConnectorStore: undefined;
   ConnectorInstall: {
     manifest: ConnectorManifest;
@@ -81,9 +87,19 @@ function SettingsNavigator() {
         options={{ title: 'Connectors' }}
       />
       <SettingsStack.Screen
-        name="SearchSetup"
-        component={SearchSetupScreen}
-        options={{ title: 'Search' }}
+        name="ConnectorDetail"
+        component={ConnectorDetailScreen}
+        options={({ route }) => ({
+          // Native-stack computes header config for every registered screen
+          // up front (to support the iOS swipe-back preview), not only once
+          // visited — `route.params` is undefined at that point, before this
+          // screen has ever been navigated to with real params.
+          title: !route.params
+            ? 'Connector'
+            : route.params.kind === 'search'
+              ? 'Search'
+              : route.params.manifest.name,
+        })}
       />
       <SettingsStack.Screen
         name="ConnectorStore"
@@ -114,17 +130,10 @@ export function RootNavigator() {
           },
           tabBarActiveTintColor: theme.colors.textPrimary,
           tabBarInactiveTintColor: theme.colors.textSubtle,
-          // No icon set is chosen yet, so tabs are text-only. The label must
-          // live in the label slot: putting it in tabBarIcon squeezes it into
-          // the narrow glyph box and the words wrap mid-syllable on device.
           tabBarLabelStyle: {
             fontSize: theme.fontSize.caption,
             fontFamily: theme.fontFamily.body,
           },
-          // Explicitly no icon. Omitting `tabBarIcon` entirely makes
-          // bottom-tabs draw its own placeholder, which renders as a
-          // missing-glyph box above every label.
-          tabBarIcon: () => null,
         }}
       >
         <Tab.Screen
@@ -132,6 +141,9 @@ export function RootNavigator() {
           component={ChatScreen}
           options={{
             tabBarAccessibilityLabel: 'Chat tab',
+            tabBarIcon: ({ color }) => (
+              <Icon name="message-circle" color={color} aria-hidden />
+            ),
           }}
         />
         <Tab.Screen
@@ -139,6 +151,12 @@ export function RootNavigator() {
           component={ModelsScreen}
           options={{
             tabBarAccessibilityLabel: 'Models tab',
+            // The chip glyph, not a generic package/box icon — the same
+            // "inference on your own silicon" shorthand the app's own mark
+            // uses (task 7.4).
+            tabBarIcon: ({ color }) => (
+              <Icon name="cpu" color={color} aria-hidden />
+            ),
           }}
         />
         <Tab.Screen
@@ -147,6 +165,9 @@ export function RootNavigator() {
           options={{
             headerShown: false,
             tabBarAccessibilityLabel: 'Settings tab',
+            tabBarIcon: ({ color }) => (
+              <Icon name="settings" color={color} aria-hidden />
+            ),
           }}
         />
       </Tab.Navigator>

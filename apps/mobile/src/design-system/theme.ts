@@ -1,23 +1,32 @@
 import {
+  darkColors,
   fontSize,
-  fontWeight,
   iconSize,
+  lightColors,
   motion,
   radius,
   space,
   touchTargetMin,
-} from './primitives';
-import {
-  darkColors,
-  darkShadows,
-  fontFamily,
-  lightColors,
-  lightShadows,
   type SemanticColors,
-  type Shadow,
-} from './semantic';
+} from 'design-tokens';
+
+import { darkShadows, fontFamily, lightShadows, type Shadow } from './semantic';
 
 export type ColorScheme = 'light' | 'dark';
+
+/**
+ * React Native's `fontWeight` style wants a string literal ('400'), not the
+ * number `design-tokens` exports for its web-facing consumers — same
+ * divergence documented in `design-tokens/README.md`. Kept as literals
+ * (not derived from the numeric export via `String()`) so the type stays
+ * the RN-accepted string-literal union instead of widening to `string`.
+ */
+const fontWeight = {
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
+} as const;
 
 export type Theme = {
   scheme: ColorScheme;
@@ -35,8 +44,8 @@ export type Theme = {
 
 /**
  * Everything except `colors` and `shadows` is identical across schemes —
- * upstream calls these "scale tokens are theme-stable". Spacing and type sizes
- * do not change when the lights go out.
+ * upstream calls these "scale tokens are theme-stable". Spacing and type
+ * sizes do not change when the lights go out.
  */
 const scale = {
   space,

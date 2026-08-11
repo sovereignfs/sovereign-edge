@@ -9,24 +9,18 @@ import { ConnectorsScreen } from './ConnectorsScreen';
 
 /**
  * `connectorScope` runs for real (a pure function over a manifest);
- * `grant`/`revoke`/`grantFor`/`needsRedecision` are mocked so this test
- * exercises the screen's own rendering/wiring, not the on-disk grant store
- * (already covered by `permissions/grants.test.ts`).
+ * `grantFor`/`needsRedecision` are mocked so this test exercises the
+ * screen's own rendering/wiring, not the on-disk grant store (already
+ * covered by `permissions/grants.test.ts`). Every row here only navigates —
+ * the actual grant/revoke/configure behavior moved to
+ * `ConnectorDetailScreen.test.tsx` (task 7.7).
  */
-const mockGrant = jest.fn();
-const mockRevoke = jest.fn();
 const mockGrantFor = jest.fn();
 const mockNeedsRedecision = jest.fn();
-const mockEnsureCalendarAccess = jest.fn();
-const mockEnsureCameraAccess = jest.fn();
 jest.mock('@/connectors', () => ({
   ...jest.requireActual('@/connectors'),
-  grant: (...args: unknown[]) => mockGrant(...args),
-  revoke: (...args: unknown[]) => mockRevoke(...args),
   grantFor: (...args: unknown[]) => mockGrantFor(...args),
   needsRedecision: (...args: unknown[]) => mockNeedsRedecision(...args),
-  ensureCalendarAccess: () => mockEnsureCalendarAccess(),
-  ensureCameraAccess: () => mockEnsureCameraAccess(),
 }));
 
 const mockReadSearchConfig = jest.fn();
@@ -35,11 +29,8 @@ jest.mock('@/connectors/search/config', () => ({
 }));
 
 const mockReadInstalledConnectors = jest.fn();
-const mockRemoveInstalledConnector = jest.fn();
 jest.mock('@/connectors/store/installed', () => ({
   readInstalledConnectors: () => mockReadInstalledConnectors(),
-  removeInstalledConnector: (...args: unknown[]) =>
-    mockRemoveInstalledConnector(...args),
 }));
 
 const mockNavigate = jest.fn();
@@ -73,23 +64,26 @@ function renderScreen() {
 
 describe('ConnectorsScreen', () => {
   beforeEach(() => {
-    mockGrant.mockReset();
-    mockRevoke.mockReset().mockResolvedValue(undefined);
     mockGrantFor.mockReset().mockReturnValue({ state: 'not-asked' });
     mockNeedsRedecision.mockReset().mockReturnValue(false);
     mockReadSearchConfig.mockReset().mockReturnValue(null);
     mockReadInstalledConnectors.mockReset().mockReturnValue([]);
-    mockRemoveInstalledConnector.mockReset();
     mockNavigate.mockReset();
-    mockEnsureCalendarAccess.mockReset();
-    mockEnsureCameraAccess.mockReset();
   });
 
-  it('shows the Search setup row and the store entry point when nothing is installed', async () => {
+  it('shows the Search row and the store entry point when nothing is installed', async () => {
     const s = await renderScreen();
     expect(s.getByText('Search')).toBeTruthy();
-    expect(s.getByText('Not set up — tap to choose a provider')).toBeTruthy();
+    expect(s.getByText('Choose a provider to get started')).toBeTruthy();
     expect(s.getByText('Connector Store')).toBeTruthy();
+  });
+
+  it('navigates to Search detail from the Search row', async () => {
+    const s = await renderScreen();
+    await userEvent.press(s.getByText('Search'));
+    expect(mockNavigate).toHaveBeenCalledWith('ConnectorDetail', {
+      kind: 'search',
+    });
   });
 
   it('navigates to the store from the entry point row', async () => {
@@ -98,153 +92,85 @@ describe('ConnectorsScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('ConnectorStore');
   });
 
-  it('lists a store-installed connector alongside its own remove row', async () => {
+  it('lists a store-installed connector under Installed, with a pill and no inline actions', async () => {
     mockReadInstalledConnectors.mockReturnValue([storeConnector]);
     const s = await renderScreen();
+    expect(s.getByText('INSTALLED')).toBeTruthy();
     expect(s.getByText('Open-Meteo Forecast')).toBeTruthy();
-    expect(s.getByText('Uninstall Open-Meteo Forecast')).toBeTruthy();
+    expect(s.getAllByText('Not asked').length).toBeGreaterThan(0);
   });
 
-  it('grants a not-asked store connector on tap', async () => {
+  it('navigates to detail, flagged installed, for a store connector', async () => {
     mockReadInstalledConnectors.mockReturnValue([storeConnector]);
     const s = await renderScreen();
     await userEvent.press(s.getByText('Open-Meteo Forecast'));
-    expect(mockGrant).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
-    );
+    expect(mockNavigate).toHaveBeenCalledWith('ConnectorDetail', {
+      kind: 'manifest',
+      manifest: expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
+      installed: true,
+    });
   });
 
-  it('revokes a granted store connector on tap', async () => {
+  it('shows the configured Search connector with an Allowed pill', async () => {
     mockGrantFor.mockReturnValue({ state: 'granted' });
-    mockReadInstalledConnectors.mockReturnValue([storeConnector]);
-    const s = await renderScreen();
-    await userEvent.press(s.getByText('Open-Meteo Forecast'));
-    expect(mockRevoke).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
-    );
-  });
-
-  it('removing a store connector revokes it and deletes it from the installed list', async () => {
-    mockReadInstalledConnectors.mockReturnValue([storeConnector]);
-    const s = await renderScreen();
-    await userEvent.press(s.getByText('Uninstall Open-Meteo Forecast'));
-    expect(mockRevoke).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'fs.sovereign.weather-open-meteo' }),
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mockRemoveInstalledConnector).toHaveBeenCalledWith(
-      'fs.sovereign.weather-open-meteo',
-    );
-  });
-
-  it('shows the configured Search connector alongside the reconfigure row', async () => {
     mockReadSearchConfig.mockReturnValue({
       provider: 'searxng',
       searxngUrl: 'https://searx.example.org',
     });
     const s = await renderScreen();
-    expect(s.getByText('Search (SearXNG)')).toBeTruthy();
-    expect(s.getByText('Reconfigure Search')).toBeTruthy();
+    expect(s.getByText('Search')).toBeTruthy();
+    expect(s.getAllByText('Allowed').length).toBeGreaterThan(0);
+  });
+
+  it('shows a Needs review pill for a granted connector with widened scope', async () => {
+    mockGrantFor.mockReturnValue({ state: 'granted' });
+    mockNeedsRedecision.mockReturnValue(true);
+    mockReadSearchConfig.mockReturnValue({ provider: 'tavily' });
+    const s = await renderScreen();
+    expect(s.getAllByText('Needs review').length).toBeGreaterThan(0);
   });
 
   describe('Calendar (task 10.1)', () => {
-    it('always shows all four calendar rows, unconfigured', async () => {
+    it('always shows all four calendar rows, under their own section', async () => {
       const s = await renderScreen();
+      expect(s.getByText('CALENDAR')).toBeTruthy();
       expect(s.getByText('Calendar — Create Event')).toBeTruthy();
       expect(s.getByText('Calendar — Update Event')).toBeTruthy();
       expect(s.getByText('Calendar — Delete Event')).toBeTruthy();
       expect(s.getByText('Calendar — Query Events')).toBeTruthy();
     });
 
-    it('requests real OS calendar access before granting, and grants on success', async () => {
-      mockEnsureCalendarAccess.mockResolvedValue({ granted: true });
+    it('navigates to detail on tap, not installed', async () => {
       const s = await renderScreen();
       await userEvent.press(s.getByText('Calendar — Create Event'));
-      expect(mockEnsureCalendarAccess).toHaveBeenCalled();
-      expect(mockGrant).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'fs.sovereign.calendar.create-event' }),
-      );
-    });
-
-    it('does not grant, and shows a message, when the OS refuses calendar access', async () => {
-      mockEnsureCalendarAccess.mockResolvedValue({ granted: false });
-      const s = await renderScreen();
-      await userEvent.press(s.getByText('Calendar — Create Event'));
-      expect(mockEnsureCalendarAccess).toHaveBeenCalled();
-      expect(mockGrant).not.toHaveBeenCalled();
-      expect(s.getByText(/Calendar access was not allowed/)).toBeTruthy();
-    });
-
-    it('revoking a granted calendar connector does not request OS access again', async () => {
-      mockGrantFor.mockReturnValue({ state: 'granted' });
-      const s = await renderScreen();
-      await userEvent.press(s.getByText('Calendar — Create Event'));
-      expect(mockEnsureCalendarAccess).not.toHaveBeenCalled();
-      expect(mockRevoke).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'fs.sovereign.calendar.create-event' }),
-      );
+      expect(mockNavigate).toHaveBeenCalledWith('ConnectorDetail', {
+        kind: 'manifest',
+        manifest: expect.objectContaining({
+          id: 'fs.sovereign.calendar.create-event',
+        }),
+        installed: false,
+      });
     });
   });
 
-  describe('Device brightness (task 11.1)', () => {
-    it('always shows the brightness row, unconfigured', async () => {
+  describe('Device (tasks 11.1/11.2)', () => {
+    it('always shows the brightness and flashlight rows, under their own section', async () => {
       const s = await renderScreen();
+      expect(s.getByText('DEVICE')).toBeTruthy();
       expect(s.getByText('Device — Brightness')).toBeTruthy();
-    });
-
-    it('grants on tap with no OS permission step', async () => {
-      const s = await renderScreen();
-      await userEvent.press(s.getByText('Device — Brightness'));
-      expect(mockEnsureCalendarAccess).not.toHaveBeenCalled();
-      expect(mockEnsureCameraAccess).not.toHaveBeenCalled();
-      expect(mockGrant).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'fs.sovereign.device.set-brightness' }),
-      );
-    });
-
-    it('revokes a granted brightness connector on tap', async () => {
-      mockGrantFor.mockReturnValue({ state: 'granted' });
-      const s = await renderScreen();
-      await userEvent.press(s.getByText('Device — Brightness'));
-      expect(mockRevoke).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'fs.sovereign.device.set-brightness' }),
-      );
-    });
-  });
-
-  describe('Device torch (task 11.2)', () => {
-    it('always shows the flashlight row, unconfigured', async () => {
-      const s = await renderScreen();
       expect(s.getByText('Device — Flashlight')).toBeTruthy();
     });
 
-    it('requests real OS camera access before granting, and grants on success', async () => {
-      mockEnsureCameraAccess.mockResolvedValue({ granted: true });
+    it('navigates to detail on tap', async () => {
       const s = await renderScreen();
-      await userEvent.press(s.getByText('Device — Flashlight'));
-      expect(mockEnsureCameraAccess).toHaveBeenCalled();
-      expect(mockGrant).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'fs.sovereign.device.set-torch' }),
-      );
-    });
-
-    it('does not grant, and shows a message, when the OS refuses camera access', async () => {
-      mockEnsureCameraAccess.mockResolvedValue({ granted: false });
-      const s = await renderScreen();
-      await userEvent.press(s.getByText('Device — Flashlight'));
-      expect(mockEnsureCameraAccess).toHaveBeenCalled();
-      expect(mockGrant).not.toHaveBeenCalled();
-      expect(s.getByText(/Camera access was not allowed/)).toBeTruthy();
-    });
-
-    it('revoking a granted torch connector does not request OS access again', async () => {
-      mockGrantFor.mockReturnValue({ state: 'granted' });
-      const s = await renderScreen();
-      await userEvent.press(s.getByText('Device — Flashlight'));
-      expect(mockEnsureCameraAccess).not.toHaveBeenCalled();
-      expect(mockRevoke).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'fs.sovereign.device.set-torch' }),
-      );
+      await userEvent.press(s.getByText('Device — Brightness'));
+      expect(mockNavigate).toHaveBeenCalledWith('ConnectorDetail', {
+        kind: 'manifest',
+        manifest: expect.objectContaining({
+          id: 'fs.sovereign.device.set-brightness',
+        }),
+        installed: false,
+      });
     });
   });
 });

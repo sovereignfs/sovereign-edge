@@ -11,15 +11,15 @@ export {
   type ColorScheme,
   type Theme,
 } from './theme';
-export { fontFamily, type SemanticColors, type Shadow } from './semantic';
+export { fontFamily, type Shadow } from './semantic';
 export {
   fontSize,
-  fontWeight,
   iconSize,
   motion,
   palette,
   radius,
   space,
   touchTargetMin,
-} from './primitives';
+  type SemanticColors,
+} from 'design-tokens';
 export * from './components';

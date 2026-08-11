@@ -64,24 +64,26 @@ describe('ModelsScreen', () => {
     // Without this the app is a dead end on first launch: chat says "open
     // Models to add one" and Models offers nothing to press.
     const { view } = renderModels();
-    expect((await view).getByText('DOWNLOAD')).toBeTruthy();
+    expect((await view).getByText('Download')).toBeTruthy();
   });
 
   it('starts the download when the row is pressed', async () => {
     const { view, session } = renderModels();
     const s = await view;
 
-    await userEvent.press(s.getByText('DOWNLOAD'));
+    await userEvent.press(s.getByText('Download'));
 
     expect(session.install).toHaveBeenCalledWith(QWEN);
   });
 
   it('reports progress rather than a bare spinner', async () => {
-    // Epic 0.4's rule: a multi-gigabyte transfer may never look stuck.
+    // Epic 0.4's rule: a multi-gigabyte transfer may never look stuck. The
+    // percentage lives in the badge and the progress bar, not the subtitle.
     const { view } = renderModels({ downloads: { [QWEN]: downloading() } });
     const s = await view;
 
-    expect(s.getByText(/Downloading 42%/)).toBeTruthy();
+    expect(s.getByText('42%')).toBeTruthy();
+    expect(s.getByText(/Downloading/)).toBeTruthy();
     expect(s.getByText(/0.21 of 0.49 GB/)).toBeTruthy();
   });
 
@@ -104,8 +106,8 @@ describe('ModelsScreen', () => {
     });
     const s = await view;
 
-    expect(s.getByText('CANCEL')).toBeTruthy();
-    await userEvent.press(s.getByText('CANCEL'));
+    expect(s.getByText('42%')).toBeTruthy();
+    await userEvent.press(s.getByText('42%'));
 
     expect(session.cancelInstall).toHaveBeenCalledWith(QWEN);
     expect(session.install).not.toHaveBeenCalled();
@@ -114,13 +116,16 @@ describe('ModelsScreen', () => {
   it('stays cancellable while verifying', async () => {
     // Verification hashes the whole file; on a slow device that is long
     // enough that losing the stop control would strand the user.
-    const { view } = renderModels({
+    const { view, session } = renderModels({
       downloads: { [QWEN]: downloading({ phase: 'verifying' }) },
     });
     const s = await view;
 
-    expect(s.getByText('CANCEL')).toBeTruthy();
+    expect(s.getByText('Verifying')).toBeTruthy();
     expect(s.getByText(/checksum/)).toBeTruthy();
+
+    await userEvent.press(s.getByText('Verifying'));
+    expect(session.cancelInstall).toHaveBeenCalledWith(QWEN);
   });
 
   it('does not present a model the device cannot run as an equal option', async () => {
@@ -147,8 +152,11 @@ describe('ModelsScreen', () => {
     });
     const s = await view;
 
-    expect(s.getByText('DOWNLOAD ANYWAY')).toBeTruthy();
-    expect(s.queryByText('DOWNLOAD')).toBeNull();
+    // The badge names the problem, not the action — the subtitle carries
+    // "tap to download anyway" instead.
+    expect(s.getByText('Too large')).toBeTruthy();
+    expect(s.getByText(/tap to download anyway/)).toBeTruthy();
+    expect(s.queryByText('Download')).toBeNull();
   });
 
   it('says what pressing an installed row will do', async () => {
@@ -168,7 +176,31 @@ describe('ModelsScreen', () => {
     const s = await view;
 
     expect(s.getByText(/tap to remove/)).toBeTruthy();
-    expect(s.getByText('IN USE')).toBeTruthy();
+    expect(s.getByText('In use')).toBeTruthy();
+  });
+
+  it('groups installed and available models under their own section', async () => {
+    const { CURATED_MODELS } =
+      jest.requireActual<typeof import('../catalog')>('../catalog');
+    const { fitForDevice } =
+      jest.requireActual<typeof import('../device')>('../device');
+    const entry = CURATED_MODELS[0]!;
+
+    const { view } = renderModels({
+      activeModelId: QWEN,
+      models: [
+        { ...entry, installed: true, fit: fitForDevice(entry) },
+        {
+          ...CURATED_MODELS[1]!,
+          installed: false,
+          fit: fitForDevice(CURATED_MODELS[1]!),
+        },
+      ],
+    });
+    const s = await view;
+
+    expect(s.getByText('INSTALLED')).toBeTruthy();
+    expect(s.getByText('AVAILABLE')).toBeTruthy();
   });
 
   it('shows why a download failed and offers a retry', async () => {
@@ -183,7 +215,7 @@ describe('ModelsScreen', () => {
     const s = await view;
 
     expect(s.getByText(/No data received for 60s/)).toBeTruthy();
-    await userEvent.press(s.getByText('RETRY'));
+    await userEvent.press(s.getByText('Retry'));
 
     expect(session.install).toHaveBeenCalledWith(QWEN);
   });
