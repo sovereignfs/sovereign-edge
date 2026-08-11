@@ -77,7 +77,9 @@ describe('RootNavigator', () => {
     await userEvent.press(s.getByLabelText('Settings tab'));
     await userEvent.press(s.getByText('Dark'));
     // The segment for the selected option reflects the new preference.
-    expect(s.getByRole('tab', { name: 'Dark' }).props.accessibilityState.selected).toBe(true);
+    expect(
+      s.getByRole('tab', { name: 'Dark' }).props.accessibilityState.selected,
+    ).toBe(true);
     expect(
       s.getByRole('tab', { name: 'System' }).props.accessibilityState.selected,
     ).toBe(false);

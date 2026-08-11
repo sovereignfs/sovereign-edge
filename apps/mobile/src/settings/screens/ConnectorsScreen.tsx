@@ -89,14 +89,25 @@ export function ConnectorsScreen() {
   const empty = searchManifest === null && storeConnectors.length === 0;
 
   const chevron = (
-    <Icon name="chevron-right" size="sm" color={theme.colors.textSubtle} aria-hidden />
+    <Icon
+      name="chevron-right"
+      size="sm"
+      color={theme.colors.textSubtle}
+      aria-hidden
+    />
   );
 
   const pillAndChevron = (manifest: ConnectorManifest) => {
     const { state } = grantFor(manifest.id);
     const pill = pillFor(state, needsRedecision(manifest));
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.space[2],
+        }}
+      >
         <FitBadge label={pill.label} variant={pill.variant} />
         {chevron}
       </View>
@@ -157,13 +168,21 @@ export function ConnectorsScreen() {
           searchManifest ? (
             pillAndChevron(searchManifest)
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.space[2],
+              }}
+            >
               <FitBadge label="Not set up" variant="neutral" />
               {chevron}
             </View>
           )
         }
-        onPress={() => navigation.navigate('ConnectorDetail', { kind: 'search' })}
+        onPress={() =>
+          navigation.navigate('ConnectorDetail', { kind: 'search' })
+        }
       />
 
       {/* Calendar (task 10.1) is always offered, like Search — it needs no

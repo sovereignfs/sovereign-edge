@@ -50,7 +50,12 @@ export function SettingsScreen() {
         subtitle="Nothing can reach the network"
         onPress={() => navigation.navigate('Connectors')}
         accessory={
-          <Icon name="chevron-right" size="sm" color={theme.colors.textSubtle} aria-hidden />
+          <Icon
+            name="chevron-right"
+            size="sm"
+            color={theme.colors.textSubtle}
+            aria-hidden
+          />
         }
       />
 

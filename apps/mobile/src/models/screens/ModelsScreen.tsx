@@ -234,6 +234,9 @@ function Badge({
     return <FitBadge label="Download" variant={variantFor(fit)} />;
   }
   return (
-    <FitBadge label={active ? 'In use' : 'Installed'} variant={variantFor(fit)} />
+    <FitBadge
+      label={active ? 'In use' : 'Installed'}
+      variant={variantFor(fit)}
+    />
   );
 }

@@ -51,12 +51,8 @@ export function ChatBubble({
             borderRadius: theme.radius.xl,
             // Squaring the trailing corner points the bubble at its sender —
             // cheaper than a tail and it survives long text reflowing.
-            borderBottomRightRadius: isUser
-              ? theme.radius.sm
-              : theme.radius.xl,
-            borderBottomLeftRadius: isUser
-              ? theme.radius.xl
-              : theme.radius.sm,
+            borderBottomRightRadius: isUser ? theme.radius.sm : theme.radius.xl,
+            borderBottomLeftRadius: isUser ? theme.radius.xl : theme.radius.sm,
           }}
         >
           <Text

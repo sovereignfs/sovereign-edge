@@ -123,7 +123,9 @@ describe('ChatBubble', () => {
     );
     // The receipt (task 7.5) is the connector name next to the brand mark
     // glyph, not embedded "via X" text inside the bubble itself.
-    expect(s.getByLabelText('Answered using the Search connector')).toBeTruthy();
+    expect(
+      s.getByLabelText('Answered using the Search connector'),
+    ).toBeTruthy();
     expect(s.getByText('Search')).toBeTruthy();
   });
 

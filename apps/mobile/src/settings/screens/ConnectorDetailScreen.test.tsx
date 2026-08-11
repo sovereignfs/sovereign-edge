@@ -65,9 +65,9 @@ beforeEach(() => {
   mockNeedsRedecision.mockReset().mockReturnValue(false);
   mockEnsureCalendarAccess.mockReset();
   mockEnsureCameraAccess.mockReset();
-  mockOpenVault
-    .mockReset()
-    .mockReturnValue({ write: (...args: unknown[]) => mockVaultWrite(...args) });
+  mockOpenVault.mockReset().mockReturnValue({
+    write: (...args: unknown[]) => mockVaultWrite(...args),
+  });
   mockVaultWrite.mockReset();
   mockReadSearchConfig.mockReset().mockReturnValue(null);
   mockWriteSearchConfig.mockReset();
