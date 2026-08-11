@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useTheme } from 'desktop-ui';
+import { Icon, Mark, useTheme, type IconName } from 'desktop-ui';
 import { ChatScreen } from '../chat/ChatScreen';
 import { ModelsScreen } from '../models/ModelsScreen';
 import { ConnectorsScreen } from '../connectors/ConnectorsScreen';
 import { ConnectorStoreScreen } from '../connectors/ConnectorStoreScreen';
-import { SearchSetupScreen } from '../connectors/SearchSetupScreen';
 import { SettingsScreen } from '../settings/SettingsScreen';
 
 /**
@@ -22,26 +21,26 @@ import { SettingsScreen } from '../settings/SettingsScreen';
  * 12.6 made about a styling library.
  */
 
-// 'connectors-setup'/'connector-store' are deliberately not in
-// `DESTINATIONS`/the sidebar — reachable only via `ConnectorsScreen`'s own
-// "Not set up"/"Change provider or key"/"Connector Store" rows calling
+// 'connector-store' is deliberately not in `DESTINATIONS`/the sidebar —
+// reachable only via `ConnectorsScreen`'s own "Connector Store" row calling
 // this same `setDestination`, mirroring how `ChatScreen`'s own out-links
-// already work rather than adding a nested-navigation system for what are
-// still flat, non-deep-linked destinations (task 5.5 follows the same
-// precedent task 13.6 set for `connectors-setup`).
-type Destination =
-  | 'chat'
-  | 'models'
-  | 'connectors'
-  | 'connectors-setup'
-  | 'connector-store'
-  | 'settings';
+// already work rather than adding a nested-navigation system for what is
+// still a flat, non-deep-linked destination (task 5.5's own precedent).
+// Search's setup flow no longer has a destination of its own — task 15.4
+// folded it into `ConnectorsScreen`'s own inline detail view, the same
+// list/detail-toggle pattern `ConnectorStoreScreen.tsx` already used for
+// its own install flow.
+type Destination = 'chat' | 'models' | 'connectors' | 'connector-store' | 'settings';
 
-const DESTINATIONS: { id: Destination; label: string }[] = [
-  { id: 'chat', label: 'Chat' },
-  { id: 'models', label: 'Models' },
-  { id: 'connectors', label: 'Connectors' },
-  { id: 'settings', label: 'Settings' },
+// 'connectors' uses the app's own "one gate" mark rather than a generic
+// Lucide glyph — reference.html's desktop sidebar mockup does the same,
+// tying the connector concept back to the mark's own "crossed the
+// boundary, with permission" motif instead of a generic plug/link icon.
+const DESTINATIONS: { id: Destination; label: string; icon: IconName | 'mark' }[] = [
+  { id: 'chat', label: 'Chat', icon: 'message-circle' },
+  { id: 'models', label: 'Models', icon: 'cpu' },
+  { id: 'connectors', label: 'Connectors', icon: 'mark' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
 export function AppShell() {
@@ -71,6 +70,16 @@ export function AppShell() {
           padding: theme.space[3],
         }}
       >
+        {/* `titleBarStyle: "Overlay"` (tauri.conf.json) floats the native
+            traffic lights over this sidebar's own top-left corner instead
+            of a separate grey title bar strip, so the app's own background
+            paints all the way to the top. This spacer keeps the first nav
+            item clear of them (~28px is macOS's own traffic-light zone
+            height across current OS versions) and, via
+            `data-tauri-drag-region`, is what makes the window draggable
+            from here now that there's no native title bar providing that
+            for free. */}
+        <div data-tauri-drag-region style={{ height: 28, flexShrink: 0 }} />
         {DESTINATIONS.map((d) => {
           const active = d.id === destination;
           return (
@@ -80,6 +89,9 @@ export function AppShell() {
               aria-current={active ? 'page' : undefined}
               onClick={() => setDestination(d.id)}
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.space[2],
                 textAlign: 'left',
                 border: 'none',
                 borderRadius: theme.radius.md,
@@ -94,6 +106,11 @@ export function AppShell() {
                   : theme.fontWeight.regular,
               }}
             >
+              {d.icon === 'mark' ? (
+                <Mark size={16} />
+              ) : (
+                <Icon name={d.icon} size="sm" aria-hidden />
+              )}
               {d.label}
             </button>
           );
@@ -107,9 +124,6 @@ export function AppShell() {
         {destination === 'models' ? <ModelsScreen /> : null}
         {destination === 'connectors' ? (
           <ConnectorsScreen onNavigate={setDestination} />
-        ) : null}
-        {destination === 'connectors-setup' ? (
-          <SearchSetupScreen onNavigate={setDestination} />
         ) : null}
         {destination === 'connector-store' ? (
           <ConnectorStoreScreen onNavigate={setDestination} />

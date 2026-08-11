@@ -1,3 +1,4 @@
+import { Icon, type IconName } from 'desktop-ui';
 import { MODES, type ModeId } from './modes';
 import styles from './ModeBar.module.css';
 
@@ -12,6 +13,18 @@ import styles from './ModeBar.module.css';
  * `"${label} mode"` convention (`"Fix grammar mode"`, `"Search mode"`, etc.)
  * so the two platforms' accessible names agree.
  */
+
+// Same icon per mode as mobile's own `MODE_ICON` (task 7.5) — one mapping
+// from concept to glyph, not a per-platform reinterpretation.
+const MODE_ICON: Record<ModeId, IconName> = {
+  plain: 'message-circle',
+  search: 'search',
+  brainstorm: 'lightbulb',
+  grammar: 'spell-check',
+  tone: 'wand-2',
+  draft: 'file-text',
+};
+
 export function ModeBar({
   active,
   onSelect,
@@ -32,6 +45,7 @@ export function ModeBar({
             className={selected ? styles.chipSelected : styles.chip}
             onClick={() => onSelect(mode.id)}
           >
+            <Icon name={MODE_ICON[mode.id]} size="xs" aria-hidden />
             {mode.label}
           </button>
         );

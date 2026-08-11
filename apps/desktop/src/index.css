@@ -1,0 +1,53 @@
+/*
+ * `packages/design-tokens/semantic.ts`'s own `fontFamily` doc comment
+ * flags this as a deferred, every-platform gap: "no font files are
+ * bundled anywhere in this repo... until/unless a later task actually
+ * ships the font files." This is that task, for desktop — found by
+ * actually running a real `tauri dev` window and seeing the fallback
+ * stack (`-apple-system` etc.) render instead.
+ *
+ * Both are OFL-licensed, downloaded from Google Fonts' own CDN
+ * (fonts.gstatic.com) — the two families `fontFamily.body`/`.mono`
+ * already name first in their fallback stacks — then bundled here rather
+ * than linked from a CDN at runtime, matching this app's own "nothing
+ * leaves this machine" posture (the same reason every `reqwest::Client`
+ * in `src-tauri` is built through `net_guard::guarded_client_builder()`).
+ * Only the weights actually referenced in `apps/desktop`/`packages/
+ * desktop-ui` today are bundled: Hanken Grotesk 400/500/600 (`fontWeight.
+ * regular`/`.medium`/`.semibold` — `.bold` isn't used anywhere here yet)
+ * as one variable-font file (Google served the same static-instance URL
+ * for all three requested weights — a real variable font, not a
+ * coincidence), and JetBrains Mono 400 only (its one call site,
+ * `ConnectorStoreScreen.tsx`'s scope list, sets no explicit weight).
+ */
+@font-face {
+  font-family: 'Hanken Grotesk';
+  src: url('/fonts/hanken-grotesk-variable.woff2') format('woff2');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}

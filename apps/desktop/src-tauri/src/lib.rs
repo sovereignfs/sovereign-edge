@@ -797,6 +797,23 @@ fn set_search_connector_config(
     save_search_connector_config(&state.connectors_dir, request)
 }
 
+/// Task 15.5's own hand-off: `App.tsx` calls this once, after its first
+/// mount, to show `main` (started `"visible": false` in `tauri.conf.json`
+/// so the splash window covers the gap before React's first paint) and
+/// close `splashscreen`. Both windows are looked up by label rather than
+/// assumed present — `get_webview_window` returns `None` on a label that
+/// doesn't exist rather than panicking, so a second, accidental call after
+/// `splashscreen` is already closed is silently harmless.
+#[tauri::command]
+fn show_main_window(app: tauri::AppHandle) {
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.show();
+    }
+    if let Some(splash) = app.get_webview_window("splashscreen") {
+        let _ = splash.close();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -904,6 +921,7 @@ pub fn run() {
             install_connector,
             remove_connector,
             request_calendar_access,
+            show_main_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Sovereign Edge desktop");

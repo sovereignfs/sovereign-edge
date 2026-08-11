@@ -205,7 +205,9 @@ export function requestCalendarAccess(): Promise<boolean> {
 
 /**
  * Task 13.6's own command: the real Search setup flow, mirroring mobile's
- * `SearchSetupScreen.save()`. `request`'s own fields stay snake_case, like
+ * own Search-configuration save flow (`ConnectorDetailScreen.tsx`'s
+ * `SearchDetail`, called from `ConnectorsScreen.tsx`'s own `SearchDetail`
+ * here as of task 15.4). `request`'s own fields stay snake_case, like
  * `generateChat`'s `GenerateChatRequest` — the Rust struct has no
  * `#[serde(rename_all = "camelCase")]`, matching this file's own
  * documented per-struct-not-blanket casing convention.
@@ -298,4 +300,12 @@ export function installConnector(
 /** Revokes and un-persists a store-installed connector. */
 export function removeConnector(id: string): Promise<void> {
   return call('remove_connector', { id });
+}
+
+/**
+ * Task 15.5: shows `main` (started `"visible": false`) and closes
+ * `splashscreen` — called once from `App.tsx`'s first-mount `useEffect`.
+ */
+export function showMainWindow(): Promise<void> {
+  return call('show_main_window');
 }

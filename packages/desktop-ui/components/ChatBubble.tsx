@@ -1,4 +1,5 @@
 import styles from './ChatBubble.module.css';
+import { Mark } from './Mark';
 
 export type ChatBubbleProps = {
   role: 'user' | 'assistant';
@@ -39,18 +40,30 @@ export function ChatBubble({
         isUser ? styles.alignEnd : styles.alignStart,
       ].join(' ')}
     >
-      <div
-        className={[
-          styles.bubble,
-          isUser ? styles.bubbleUser : styles.bubbleAssistant,
-        ].join(' ')}
-      >
-        <p className={styles.text}>
-          {text}
-          {streaming ? '▌' : ''}
-        </p>
+      <div className={styles.column}>
+        <div
+          className={[
+            styles.bubble,
+            isUser ? styles.bubbleUser : styles.bubbleAssistant,
+          ].join(' ')}
+        >
+          <p className={styles.text}>
+            {text}
+            {streaming ? '▌' : ''}
+          </p>
+        </div>
+
         {connector ? (
-          <p className={styles.connector}>{`via ${connector}`}</p>
+          <div
+            className={[
+              styles.receipt,
+              isUser ? styles.receiptEnd : '',
+            ].join(' ')}
+            aria-label={`Answered using the ${connector} connector`}
+          >
+            <Mark size={11} color="var(--sv-color-text-subtle)" />
+            <span className={styles.receiptText}>{connector}</span>
+          </div>
         ) : null}
       </div>
     </div>

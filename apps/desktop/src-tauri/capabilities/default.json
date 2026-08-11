@@ -27,6 +27,7 @@
     "allow-install-connector",
     "allow-remove-connector",
     "allow-request-calendar-access",
+    "allow-show-main-window",
     "core:app:allow-version",
     "updater:allow-check",
     "updater:allow-download-and-install",
