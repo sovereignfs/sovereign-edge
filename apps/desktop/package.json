@@ -2,7 +2,7 @@
   "name": "desktop",
   "version": "0.1.5",
   "private": true,
-  "description": "Sovereign Edge desktop app — Tauri v2 (epic 9, research 0010). Task 12.1 scaffold: an empty window, no product features yet.",
+  "description": "Sovereign Edge desktop app — Tauri v2 (epic 9, research 0010). Epics 12 (Core Port) and 13 (App Shell) done: real on-device inference, connectors, navigation, and settings.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
