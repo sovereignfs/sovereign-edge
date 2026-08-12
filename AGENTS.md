@@ -11,7 +11,7 @@ to one app, read that app's own `AGENTS.md`:
 | Read this for...                                      | File                                        |
 | ------------------------------------------------------- | -------------------------------------------- |
 | Commands, native build mechanics, environment quirks, current implementation state — **mobile** | [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) |
-| Same, for **desktop** — epic 12 (Desktop Core Port) done; epic 13 (App Shell) scoped, not started | [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) |
+| Same, for **desktop** — epics 12 (Desktop Core Port) and 13 (App Shell) done | [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) |
 
 ## What this is
 
@@ -29,7 +29,7 @@ sovereign-edge/
 ├── docs/                 canonical concept, epics, research (this file's own doc set)
 ├── apps/
 │   ├── mobile/            the shipping product — iOS + Android, Expo/React Native
-│   └── desktop/           epic 12 (Core Port) done; epic 13 (App Shell) scoped, not started
+│   └── desktop/           epics 12 (Core Port) and 13 (App Shell) done
 └── packages/               internal, unpublished — no code here is meant for
     ├── core/                external consumers
     ├── design-tokens/
@@ -75,20 +75,27 @@ overturned a design that looked obviously correct on paper.
 
 `ROADMAP.md` is canonical for task-level status. At a glance:
 
-- **Mobile** is the only app that ships today — Phase 1 (offline chat +
-  Search connector) is functionally complete with one item still open (store
-  release setup, 0.1.20), Phase 2 (Tier 3 connectors, Sovereign Tasks) is in
-  progress. Full detail: [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md).
+- **Mobile** is the original shipping app — Phase 1 (offline chat + Search
+  connector) is functionally complete with one item still open (store release
+  setup, 0.1.20); Phase 2's Tier 3 connectors (Calendar, Device) are done and
+  the Sovereign Tasks connector (4.1/4.2) is next; Phase 3's connector SDK,
+  registry, and in-app Connector Store are done, with the Tier 2 sandboxed
+  runtime (5.6) still open. Full detail:
+  [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md).
 - **Desktop**: epic 9 (Desktop Shell — `docs/epics/desktop/shell.md`) is
   resolved, Tauri v2, see
   [research 0010](docs/research/0010-desktop-shell-technology.md). Epic 12
-  (Desktop Core Port, tasks 12.1–12.7 plus 12.7a) is done — real on-device
-  inference, connector framework, and a minimal offline chat UI. Epic 13
-  (Desktop App Shell — `docs/epics/desktop/app-shell.md`) is scoped but not
-  started: real navigation, a model manager screen, a connectors/permissions
-  screen, and general settings, extracted from what task 12.7's chat screen
-  currently does inline. Neither epic is yet scheduled into a `ROADMAP.md`
-  phase.
+  (Desktop Core Port, tasks 12.1–12.7 plus 12.7a, 12.8–12.10) is done — real
+  on-device inference, connector framework (Tier 1 + Tier 3), writing-assist
+  modes, and a chat UI exercising all of it. Epic 13 (Desktop App Shell —
+  `docs/epics/desktop/app-shell.md`) is also done: real navigation, a model
+  manager screen, a connectors/permissions screen, and general settings,
+  extracted from what task 12.7's chat screen used to do inline. Epic 14
+  (Distribution & Signing) is in progress — real installer artifacts and an
+  update mechanism are done (`v0.1.5` published), code signing (14.2) is
+  still open pending an Apple Developer ID. Neither 12/13 nor 14 is scheduled
+  into a numbered `ROADMAP.md` phase; see `ROADMAP.md`'s own "Desktop"
+  section for the authoritative task-by-task status.
 
 ## Working conventions
 
@@ -120,6 +127,17 @@ overturned a design that looked obviously correct on paper.
 - **When a task completes, mark it ✅ in both `ROADMAP.md` and the matching
   `docs/epics/<file>.md` heading, in the same PR.** Those two places are the
   only status record; do not accumulate completion history in this file.
+- **Update every other doc that restates that status, in the same PR.**
+  `README.md`'s "Current status" table and this file's "State of play"
+  section both summarize task status for orientation — they are not generated
+  from `ROADMAP.md` and go stale silently if left alone. Before marking a
+  task done, `grep` the task's epic name/number (e.g. `grep -rn "epic 13"
+  README.md AGENTS.md apps/*/AGENTS.md apps/*/package.json`) and fix every
+  hit that describes the old state, including scaffold/placeholder language
+  in `package.json` `description` fields. If a summary doc's status can't be
+  kept current without becoming a second source of truth, cut the
+  duplication instead: point at `ROADMAP.md` rather than repeating specifics
+  that will drift.
 - **Never merge a PR automatically.** Wait for explicit instruction. Open
   agent-created PRs as drafts (`gh pr create --draft`).
 - **Bump the version when a task completes**, following `sovereign`'s

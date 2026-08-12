@@ -20,8 +20,10 @@ Fully standalone. No runtime dependency on [`sovereign`](https://github.com/sove
 and it works with zero knowledge that `sovereign` exists.
 
 This repo is a pnpm workspace: `apps/mobile` is the shipping product below;
-`apps/desktop` is a placeholder — shell technology decided (Tauri v2, see
-[research 0010](docs/research/0010-desktop-shell-technology.md)), no code yet;
+`apps/desktop` is a Tauri v2 app (see
+[research 0010](docs/research/0010-desktop-shell-technology.md)) with epics 12
+(Core Port) and 13 (App Shell) done — real on-device inference, connectors,
+and a full navigation/settings UI, one release (`v0.1.5`) already published;
 `packages/*` are internal, unpublished code shared between them.
 
 See [CONCEPT.md](CONCEPT.md) for the full concept paper.
@@ -37,10 +39,11 @@ exists yet. That task is deliberately parked rather than blocking everything
 else — see its epic for what's actually missing.
 
 The offline core and the Search connector (Tier 1 — reaches the network,
-with explicit per-connector permission) both work on real hardware. Phase 2
-is starting: the connector layer's first **Tier 3** connectors — Calendar
-and a small Device Utilities connector, both purely on-device, no network at
-all — are next, ahead of the previously-planned Sovereign Tasks connector.
+with explicit per-connector permission) both work on real hardware. Phase 2's
+first **Tier 3** connectors — Calendar and a small Device Utilities connector,
+both purely on-device, no network at all — are done, on mobile and desktop.
+Phase 3's connector SDK, plugin template, public registry, and in-app
+Connector Store are also done. The Sovereign Tasks connector is next.
 See [ROADMAP.md](ROADMAP.md) for the exact sequence.
 
 | Area                                       | State                                                                        |
@@ -50,9 +53,12 @@ See [ROADMAP.md](ROADMAP.md) for the exact sequence.
 | Design system, app shell (7, 8.1)          | ✅ Theme tokens, core components, navigation, settings                       |
 | Native build tooling (0.3)                 | ✅ Declarative signing (both platforms), local + CI release scripts          |
 | Connector framework + Search connector (2, 3) | ✅ Complete — manifest, permissions, routing, runtime, in-chat provenance, Tier 1 shipped |
-| Tier 3 connector scaffolding (2.6)         | 📋 Next up — required before Calendar/Device can be built                    |
-| Calendar, Device connectors (10, 11)       | 📋 Planned — Phase 2, right after 2.6                                        |
-| Sovereign Tasks connector (4)              | 📋 Planned — Phase 2, after Calendar/Device                                  |
+| Tier 3 connectors — Calendar, Device (2.6, 10, 11) | ✅ Complete — Calendar and Device (brightness, torch), mobile + desktop     |
+| Connector Store, SDK, registry (5)         | ✅ Complete — SDK, plugin template, public registry, in-app store             |
+| Entitlement model (6.1)                    | ✅ Complete                                                                   |
+| Desktop app — Core Port, App Shell (12, 13) | ✅ Complete — real inference, connectors, navigation, settings; `v0.1.5` published |
+| Sovereign Tasks connector (4)              | 📋 Planned — Phase 2, next up                                                |
+| Tier 2 sandboxed script runtime (5.6)      | 📋 Planned — Phase 3                                                         |
 | Store release (8.2)                        | 📋 Parked — needs a paid Apple Developer Program + Google Play Console account |
 
 Measured on an iPhone 15 Pro (Release build, Metal active): Qwen2.5 0.5B
@@ -81,11 +87,10 @@ that split exists and what mobile app stores actually allow.
 
 ## Development
 
-Everything below is about `apps/mobile` — the only app that exists yet. See
+Everything below is about `apps/mobile` — the original shipping product. See
 [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) for the full command list and
-environment quirks; a desktop equivalent lands once epic 12 (the desktop
-port — task 12.1's scaffold is done, the rest has not started) gets further
-along.
+environment quirks; see [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) for
+the desktop equivalent — epics 12 (Core Port) and 13 (App Shell) are done.
 
 ### Requirements
 
@@ -180,7 +185,7 @@ sovereign-edge/
 │   ├── mobile/          # the shipping product — see apps/mobile/AGENTS.md
 │   │   ├── src/          # chat, models, connectors, design-system, settings
 │   │   └── ...
-│   └── desktop/          # Tauri v2 app, epic 12 done — see apps/desktop/AGENTS.md
+│   └── desktop/          # Tauri v2 app, epics 12 + 13 done — see apps/desktop/AGENTS.md
 ├── packages/             # internal, unpublished, shared between the apps
 │   ├── core/              # empty scaffold — connector manifest/permissions/
 │   │   ...                # routing, eventually extracted from apps/mobile
