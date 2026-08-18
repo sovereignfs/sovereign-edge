@@ -19,6 +19,14 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
+// `useBottomTabBarHeight` only resolves inside a real Bottom Tab Navigator,
+// which this test harness doesn't mount (just `ChatScreen` on its own) — the
+// exact value doesn't matter to any of these tests, only that it resolves.
+jest.mock('@react-navigation/bottom-tabs', () => ({
+  ...jest.requireActual('@react-navigation/bottom-tabs'),
+  useBottomTabBarHeight: () => 83,
+}));
+
 /**
  * Persistence is a fake `ChatSession` method here, the same as `generate` —
  * `loadHistory`/`saveHistory` are implemented by the app shell

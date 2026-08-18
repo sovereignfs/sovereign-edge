@@ -1,3 +1,4 @@
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +10,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ChatBubble,
@@ -48,9 +48,9 @@ const MODE_ICON: Record<ModeId, IconName> = {
  */
 export function ChatScreen() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const session = useChatSession();
   const scroll = useRef<ScrollView>(null);
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<Message[]>(() =>
@@ -197,7 +197,19 @@ export function ChatScreen() {
       // iOS pushes content above the keyboard; Android already resizes the
       // window, and applying both double-counts the inset.
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={insets.top}
+      // `KeyboardAvoidingView` measures its own on-screen frame
+      // automatically, but this screen sits inside a bottom-tab navigator —
+      // the tab bar is a sibling below it, not part of its measured height,
+      // so without compensating for that gap the computed padding falls
+      // short by exactly the tab bar's height, leaving the composer sitting
+      // under the keyboard rather than above it. `insets.top` here before
+      // was wrong in the *other* direction (a smaller, unrelated number);
+      // removing it outright was wrong too, in this direction (found live,
+      // on a real device — it made the composer fully invisible instead of
+      // just cramped). `useBottomTabBarHeight()` is the actual gap — this
+      // offset alone lands the composer flush against the keyboard with no
+      // breathing room, hence the small added buffer.
+      keyboardVerticalOffset={tabBarHeight + theme.space[2]}
       style={[styles.fill, { backgroundColor: theme.colors.surface }]}
     >
       <OfflineBanner modeId={modeId} />
