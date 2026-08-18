@@ -13,6 +13,17 @@ export type ChatMessage = {
   content: string;
 };
 
+/**
+ * `LoadOptions.contextSize`'s own default, named and exported rather than
+ * left as a bare `2048` inside `engine.ts` — `session/history.ts` derives
+ * its persisted-conversation size budget from this same number, and a
+ * magic number repeated in two files is exactly how they'd quietly drift.
+ */
+export const DEFAULT_CONTEXT_SIZE = 2048;
+
+/** `GenerateOptions.maxTokens`'s own default — see `DEFAULT_CONTEXT_SIZE`. */
+export const DEFAULT_MAX_TOKENS = 512;
+
 export type LoadOptions = {
   /** Absolute path to a GGUF file already on disk. */
   modelPath: string;

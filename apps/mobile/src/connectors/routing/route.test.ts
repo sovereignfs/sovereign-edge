@@ -165,6 +165,49 @@ describe('routeMessage', () => {
     expect(onToken).toHaveBeenCalledWith('Here is an idea.');
   });
 
+  it('reports malformed and never calls onToken when a tool call leaks into text unparsed', async () => {
+    // Reproduces an on-device finding: Llama 3.2 1B Instruct's
+    // `<|python_tag|>` tool-call format wasn't recognised by llama.rn's
+    // structured `tool_calls` parser, so it came back empty while `text`
+    // still held the raw call — for a totally unrelated question, no less.
+    const generate = jest.fn().mockResolvedValue({
+      text: '<|python_tag|>{"name": "calendar_query_events", "parameters": {"startDate": "2020-01-01", "endDate": "2020-12-31"}}; {"name": "device_set_brightness", "parameters": {"value": "0"}}',
+      toolCalls: [],
+    });
+    const engine = fakeEngine(true, generate);
+    const onToken = jest.fn();
+
+    const decision = await routeMessage(engine, [search], messages, {
+      onToken,
+    });
+
+    expect(decision).toEqual({
+      kind: 'blocked',
+      toolName: 'calendar_query_events',
+      reason: 'malformed',
+    });
+    expect(onToken).not.toHaveBeenCalled();
+  });
+
+  it('answers plainly when text merely mentions tool-shaped words, not leaked syntax', async () => {
+    // Guards the detector against false positives on ordinary prose that
+    // happens to discuss names or JSON, so it doesn't itself become a new
+    // way to swallow real answers.
+    const generate = jest.fn().mockResolvedValue({
+      text: 'A JSON object often looks like {"name": "value"} in examples.',
+      toolCalls: [],
+    });
+    const engine = fakeEngine(true, generate);
+    const onToken = jest.fn();
+
+    const decision = await routeMessage(engine, [search], messages, {
+      onToken,
+    });
+
+    expect(decision.kind).toBe('answered');
+    expect(onToken).toHaveBeenCalledTimes(1);
+  });
+
   it('never calls onToken when a tool is called instead of answering', async () => {
     // The whole point of buffering: a tool call's raw text — which can
     // contain literal tool-call syntax — must never reach the visible chat.

@@ -196,8 +196,14 @@ export function ConnectorsScreen() {
       <SectionLabel>Device</SectionLabel>
       {DEVICE_MANIFESTS.map((manifest) => renderRow(manifest))}
 
-      <SectionLabel>Installed</SectionLabel>
-      {storeConnectors.map((manifest) => renderRow(manifest, true))}
+      {storeConnectors.length > 0 && (
+        <>
+          <SectionLabel>Installed</SectionLabel>
+          {storeConnectors.map((manifest) => renderRow(manifest, true))}
+        </>
+      )}
+      {/* Its own row, not grouped under "Installed" — the Store is where
+          you go to install something, not something already installed. */}
       <ListItem
         title="Connector Store"
         subtitle="Browse and install third-party connectors"

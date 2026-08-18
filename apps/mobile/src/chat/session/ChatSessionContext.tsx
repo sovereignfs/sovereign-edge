@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 
 import type { ChatMessage } from '../inference';
+import type { Message } from './messages';
 
 export type ChatSessionStatus =
   /** No model is installed. Chat cannot run at all. */
@@ -84,6 +85,16 @@ export type ChatSession = {
   /** Error text when `status` is 'error', otherwise a progress note or null. */
   detail: string | null;
   generate(request: GenerateRequest): Promise<ChatGenerateResult>;
+  /**
+   * The persisted, single conversation thread (task: conversation
+   * persistence). Reads/writes go through here rather than `ChatScreen`
+   * importing `expo-file-system` directly, for the same reason `generate`
+   * exists at all: `src/chat/` may not touch the filesystem, so the app
+   * shell owns the actual storage and this is the shape `ChatScreen` needs
+   * from it.
+   */
+  loadHistory(): Message[];
+  saveHistory(messages: Message[]): void;
 };
 
 /**

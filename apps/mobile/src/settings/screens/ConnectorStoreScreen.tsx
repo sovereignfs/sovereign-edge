@@ -1,6 +1,6 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, Text, View } from 'react-native';
 
 import type { ConnectorManifest } from '@/connectors';
@@ -8,6 +8,7 @@ import {
   fetchConnectorRegistry,
   type RegistryConnector,
 } from '@/connectors/store/registry';
+import { readInstalledConnectors } from '@/connectors/store/installed';
 import { Icon, ListItem, TextField, useTheme } from '@/design-system';
 
 import type { SettingsStackParamList } from '../navigation/RootNavigator';
@@ -36,6 +37,22 @@ export function ConnectorStoreScreen() {
 
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [query, setQuery] = useState('');
+  const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
+
+  // Re-read on every focus, not just on mount: React Navigation keeps this
+  // screen mounted on the stack under `ConnectorInstall`/`ConnectorDetail`,
+  // so it never re-renders on its own just from regaining focus (the same
+  // reason `ConnectorsScreen` needs this). Without it, installing a
+  // connector and coming back here left this screen still routing that
+  // same row to the raw install form — the install had genuinely worked,
+  // this screen just never looked again.
+  useFocusEffect(
+    useCallback(() => {
+      setInstalledIds(
+        new Set(readInstalledConnectors().map((m) => m.id)),
+      );
+    }, []),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -153,6 +170,7 @@ export function ConnectorStoreScreen() {
 
       {visible.map((entry) => {
         const paid = entry.manifest.pricing.model === 'paid';
+        const installed = installedIds.has(entry.manifest.id);
         return (
           <ListItem
             key={entry.id}
@@ -160,7 +178,9 @@ export function ConnectorStoreScreen() {
             subtitle={
               paid
                 ? `${entry.manifest.summary} · not yet supported`
-                : entry.manifest.summary
+                : installed
+                  ? `${entry.manifest.summary} · Installed`
+                  : entry.manifest.summary
             }
             disabled={paid}
             accessory={
@@ -177,10 +197,22 @@ export function ConnectorStoreScreen() {
               paid
                 ? undefined
                 : () =>
-                    navigation.navigate('ConnectorInstall', {
-                      manifest: entry.manifest as ConnectorManifest,
-                      submittedBy: entry.submittedBy,
-                    })
+                    // Already installed: this row's tap target opens the
+                    // connector's existing detail/grant screen — the same
+                    // place a fresh install lands on — rather than the raw
+                    // install form, which used to reappear (with its own
+                    // "Install & grant" button, no memory of the earlier
+                    // install) every time this screen regained focus.
+                    installed
+                      ? navigation.navigate('ConnectorDetail', {
+                          kind: 'manifest',
+                          manifest: entry.manifest as ConnectorManifest,
+                          installed: true,
+                        })
+                      : navigation.navigate('ConnectorInstall', {
+                          manifest: entry.manifest as ConnectorManifest,
+                          submittedBy: entry.submittedBy,
+                        })
             }
           />
         );

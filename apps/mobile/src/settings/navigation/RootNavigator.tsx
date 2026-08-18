@@ -74,6 +74,14 @@ function SettingsNavigator() {
         headerStyle: { backgroundColor: theme.colors.surface },
         headerTitleStyle: { color: theme.colors.textPrimary },
         headerTintColor: theme.colors.accent,
+        // Without this, iOS's native back button shows the previous
+        // screen's title as a label (a real, native-only "iOS 26" thing —
+        // no view in this codebase draws it) whenever it decides that title
+        // is short enough to fit, which is inconsistent screen to screen:
+        // "‹ Settings" going into Connectors, but a bare "‹" going into
+        // Connector Detail. `minimal` forces the plain chevron everywhere,
+        // set once here so every screen in this stack matches.
+        headerBackButtonDisplayMode: 'minimal',
       }}
     >
       <SettingsStack.Screen
@@ -126,7 +134,21 @@ export function RootNavigator() {
           headerTitleStyle: { color: theme.colors.textPrimary },
           tabBarStyle: {
             backgroundColor: theme.colors.surface,
-            borderTopColor: theme.colors.border,
+            // `borderStrong`, not `border` — this bar sits directly above
+            // the home indicator with nothing but flat background on both
+            // sides, unlike a divider between two bordered rows elsewhere
+            // in the app, so the subtler token wasn't carrying enough
+            // contrast to actually read as a line. A full 1pt width, not
+            // `StyleSheet.hairlineWidth`: hairline can round down to a
+            // sub-pixel line on some device scale factors, which is as
+            // good as invisible — exactly the failure mode reported here.
+            borderTopColor: theme.colors.borderStrong,
+            borderTopWidth: 1,
+            // Set once here, on the shared tab bar, so the separator (and
+            // the small gap below it) is identical on Chat, Models, and
+            // Settings rather than something each screen has to reproduce
+            // on its own.
+            paddingTop: theme.space[1],
           },
           tabBarActiveTintColor: theme.colors.textPrimary,
           tabBarInactiveTintColor: theme.colors.textSubtle,

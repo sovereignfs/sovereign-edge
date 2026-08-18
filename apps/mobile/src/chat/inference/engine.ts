@@ -1,6 +1,8 @@
 import { initLlama, type LlamaContext } from 'llama.rn';
 
 import {
+  DEFAULT_CONTEXT_SIZE,
+  DEFAULT_MAX_TOKENS,
   InferenceError,
   type EngineInfo,
   type GenerateOptions,
@@ -41,7 +43,7 @@ export class InferenceEngine {
   async load(options: LoadOptions): Promise<EngineInfo> {
     const {
       modelPath,
-      contextSize = 2048,
+      contextSize = DEFAULT_CONTEXT_SIZE,
       useGpu = true,
       onProgress,
     } = options;
@@ -109,7 +111,7 @@ export class InferenceEngine {
 
     const {
       messages,
-      maxTokens = 512,
+      maxTokens = DEFAULT_MAX_TOKENS,
       temperature = 0.7,
       stop = [],
       onToken,

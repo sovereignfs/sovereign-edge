@@ -9,11 +9,25 @@ jest.mock('@/connectors/store/registry', () => ({
   fetchConnectorRegistry: () => mockFetchConnectorRegistry(),
 }));
 
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: mockNavigate }),
+const mockReadInstalledConnectors = jest.fn();
+jest.mock('@/connectors/store/installed', () => ({
+  readInstalledConnectors: () => mockReadInstalledConnectors(),
 }));
+
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => {
+  const react = jest.requireActual('react');
+  return {
+    ...jest.requireActual('@react-navigation/native'),
+    useNavigation: () => ({ navigate: mockNavigate }),
+    // The real `useFocusEffect` runs its callback as an effect (after
+    // commit), not synchronously during render. Calling it directly here —
+    // what a naive `cb()` mock would do — triggers React's "too many
+    // re-renders" loop, the same reason `ConnectorsScreen.test.tsx` mocks
+    // it the same way.
+    useFocusEffect: (cb: () => void) => react.useEffect(cb, [cb]),
+  };
+});
 
 function entry(overrides: Record<string, unknown> = {}) {
   // A real registry entry always has `entry.id === entry.manifest.id`
@@ -66,6 +80,7 @@ describe('ConnectorStoreScreen', () => {
       ok: true,
       connectors: [],
     });
+    mockReadInstalledConnectors.mockReset().mockReturnValue([]);
     mockNavigate.mockReset();
   });
 
@@ -149,6 +164,33 @@ describe('ConnectorStoreScreen', () => {
           id: 'fs.sovereign.weather-open-meteo',
         }),
         submittedBy: { name: 'kasunben' },
+      }),
+    );
+  });
+
+  it('routes an already-installed connector to its detail screen, not the install form', async () => {
+    // Reproduces a real bug: installing a connector, then coming back to
+    // the store and tapping the same row again re-opened the raw install
+    // form with no memory of the earlier install — this screen never
+    // re-read installed state after its first mount.
+    mockFetchConnectorRegistry.mockResolvedValue({
+      ok: true,
+      connectors: [entry()],
+    });
+    mockReadInstalledConnectors.mockReturnValue([
+      entry().manifest as never,
+    ]);
+    const s = await renderScreen();
+    expect(await s.findByText(/Installed/)).toBeTruthy();
+    await userEvent.press(await s.findByText('Open-Meteo Forecast'));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'ConnectorDetail',
+      expect.objectContaining({
+        kind: 'manifest',
+        manifest: expect.objectContaining({
+          id: 'fs.sovereign.weather-open-meteo',
+        }),
+        installed: true,
       }),
     );
   });

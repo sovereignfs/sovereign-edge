@@ -191,8 +191,27 @@ export async function generateWithConnectors(
           }
         : { text: decision.text, connector: null };
 
-    case 'blocked':
-      return { text: blockedMessage(decision, manifests), connector: null };
+    case 'blocked': {
+      // Auto mode: a blocked call is very often a small model reaching for
+      // a tool a plain question never needed (on-device finding, epic 2.3
+      // — Llama 3.2 1B called Calendar for "what is the capital of
+      // France?"). Retrying as a plain question gets the user a real
+      // answer instead of a dead-end permission message about a connector
+      // they never asked for. Required mode (explicit Search) is the
+      // opposite: the user forced a tool call, so a block there is a real,
+      // honest fact worth surfacing, not a misfire to paper over.
+      if (toolChoice === 'required') {
+        return { text: blockedMessage(decision, manifests), connector: null };
+      }
+      const fallback = await engine.generate({
+        messages,
+        onToken,
+        signal,
+        temperature,
+        maxTokens,
+      });
+      return { text: fallback.text, connector: null };
+    }
 
     case 'tool-call': {
       const manifest = manifests.find((m) => m.id === decision.connectorId);

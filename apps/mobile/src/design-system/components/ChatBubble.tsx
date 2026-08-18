@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../ThemeProvider';
 import { Mark } from './Mark';
+import { Markdown } from './Markdown';
 
 export type ChatBubbleProps = {
   role: 'user' | 'assistant';
@@ -55,18 +56,27 @@ export function ChatBubble({
             borderBottomLeftRadius: isUser ? theme.radius.xl : theme.radius.sm,
           }}
         >
-          <Text
-            style={{
-              color: isUser
-                ? theme.colors.textOnAccent
-                : theme.colors.textPrimary,
-              fontSize: theme.fontSize.sm,
-              fontFamily: theme.fontFamily.body,
-            }}
-          >
-            {text}
-            {streaming ? '▌' : ''}
-          </Text>
+          {isUser ? (
+            // The user's own typed text is shown verbatim — it's what they
+            // wrote, not a reply to render, so `**` in it means literally
+            // two asterisks, not a formatting instruction they never gave.
+            <Text
+              style={{
+                color: theme.colors.textOnAccent,
+                fontSize: theme.fontSize.sm,
+                fontFamily: theme.fontFamily.body,
+              }}
+            >
+              {text}
+            </Text>
+          ) : (
+            <Markdown
+              text={streaming ? `${text}▌` : text}
+              color={theme.colors.textPrimary}
+              fontSize={theme.fontSize.sm}
+              fontFamily={theme.fontFamily.body}
+            />
+          )}
         </View>
 
         {connector ? (

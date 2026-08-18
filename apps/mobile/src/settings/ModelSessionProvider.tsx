@@ -19,6 +19,7 @@ import { CALENDAR_MANIFESTS } from '@/connectors/calendar/manifest';
 import { DEVICE_MANIFESTS } from '@/connectors/device/manifest';
 import { readSearchConfig } from '@/connectors/search/config';
 import {
+  CONNECTOR_ID as SEARCH_CONNECTOR_ID,
   TAVILY_MANIFEST,
   buildSearxngManifest,
 } from '@/connectors/search/manifest';
@@ -30,6 +31,7 @@ import {
   type ManagedModel,
 } from '@/models';
 
+import { readHistory, writeHistory } from './chatHistoryStore';
 import { generateWithConnectors } from './connectorOrchestration';
 
 /**
@@ -69,6 +71,30 @@ function installedConnectors(): ConnectorManifest[] {
     ...DEVICE_MANIFESTS,
     ...readInstalledConnectors(),
   ];
+}
+
+/**
+ * `'required'` is Search mode's own signal, and only Search mode's —
+ * grammar-constrained `tool_choice: 'required'` forces the model to call
+ * *some* tool, not specifically the search one. If every installed
+ * connector were still on offer, a message like "turn on the flashlight"
+ * while in Search mode could legitimately call the Device connector
+ * instead — a real tool call, honoring the constraint, but not what the
+ * mode's own banner promises ("every message reaches your configured
+ * connector"). Scoping the offered manifests to Search alone here is what
+ * actually makes that promise true, not just the forced tool choice.
+ *
+ * A standalone, pure function — not inlined into `generate` — so this
+ * scoping rule is unit-testable against plain manifest fixtures, without
+ * mounting the whole provider.
+ */
+export function connectorsForMode(
+  all: ConnectorManifest[],
+  connectorMode: 'off' | 'auto' | 'required',
+): ConnectorManifest[] {
+  return connectorMode === 'required'
+    ? all.filter((m) => m.id === SEARCH_CONNECTOR_ID)
+    : all;
 }
 
 /**
@@ -354,7 +380,8 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
         // "this is a conversation, not a transform" signal, and 'off' is its
         // default for exactly that reason.
         if (connectorMode !== 'off') {
-          return await generateWithConnectors(engine, installedConnectors(), {
+          const manifests = connectorsForMode(installedConnectors(), connectorMode);
+          return await generateWithConnectors(engine, manifests, {
             messages,
             onToken,
             signal,
@@ -381,7 +408,15 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const chatSession = useMemo<ChatSession>(
-    () => ({ status, modelName, modelParametersB, detail, generate }),
+    () => ({
+      status,
+      modelName,
+      modelParametersB,
+      detail,
+      generate,
+      loadHistory: readHistory,
+      saveHistory: writeHistory,
+    }),
     [status, modelName, modelParametersB, detail, generate],
   );
 

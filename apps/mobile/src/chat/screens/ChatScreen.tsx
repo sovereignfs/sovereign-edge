@@ -22,6 +22,7 @@ import {
 import type { ChatMessage } from '../inference';
 import { DEFAULT_MODE_ID, MODES, findMode, type ModeId } from '../modes';
 import { useChatSession } from '../session/ChatSessionContext';
+import { capMessages, type Message } from '../session/messages';
 
 /** One icon per writing-assist mode, shown ahead of its chip label. */
 const MODE_ICON: Record<ModeId, IconName> = {
@@ -33,19 +34,17 @@ const MODE_ICON: Record<ModeId, IconName> = {
   draft: 'file-text',
 };
 
-type Message = ChatMessage & {
-  id: string;
-  streaming?: boolean;
-  /** Name of the connector that produced this reply, if any (task 2.5). */
-  connector?: string;
-};
-
 /**
  * The chat surface.
  *
- * History is in memory only. Per task 1.3 there is no export or sync, and
- * per research 0001 nothing here may reach the network — a connector's reply
- * arrives through the connector framework, never fetched from this screen.
+ * A single persisted thread, capped to a bounded size rather than kept
+ * forever or expired by time (`session/messages.ts` carries the sizing
+ * reasoning; the persistence itself is `session.loadHistory`/`saveHistory`
+ * — implemented in the app shell, not here, since `src/chat/` may not
+ * touch the filesystem). Per task 1.3 there is still no export or sync, and
+ * per research 0001 nothing here may reach the network — a connector's
+ * reply arrives through the connector framework, never fetched from this
+ * screen.
  */
 export function ChatScreen() {
   const theme = useTheme();
@@ -54,7 +53,25 @@ export function ChatScreen() {
   const scroll = useRef<ScrollView>(null);
 
   const [draft, setDraft] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    session.loadHistory(),
+  );
+  // Mirrors `messages`, updated in lockstep by `updateMessages` below.
+  // `setState`'s updater callback is not guaranteed to run synchronously —
+  // it runs whenever React actually processes the queued update, which is
+  // not "the next line" — so code that needs the *new* array right away
+  // (persisting it, folding it into the next request) cannot get it back
+  // out of `setMessages` itself. This ref is what makes that possible.
+  const messagesRef = useRef(messages);
+  const updateMessages = useCallback(
+    (updater: (prev: Message[]) => Message[]) => {
+      const next = updater(messagesRef.current);
+      messagesRef.current = next;
+      setMessages(next);
+      return next;
+    },
+    [],
+  );
   // Sticky: the chosen mode stays until changed, and the banner names it so
   // the state is never hidden. A one-off use just switches back to Chat.
   const [modeId, setModeId] = useState<ModeId>(DEFAULT_MODE_ID);
@@ -68,13 +85,30 @@ export function ChatScreen() {
     const text = draft.trim();
     if (!text || session.status !== 'ready') return;
 
+    // Snapshotted before `updateMessages` below appends this turn's own
+    // pair — `history` (built further down) needs "everything before this
+    // message", and appends the user's text itself separately, the same
+    // split the pre-persistence code already made using the `messages`
+    // state variable. `messagesRef.current` can't stand in for that
+    // directly: by the time `history` is built, the ref already includes
+    // the pair just appended, which would double up the user's own text.
+    const priorMessages = messagesRef.current;
+
     const user: Message = { id: `u${Date.now()}`, role: 'user', content: text };
     const replyId = `a${Date.now()}`;
-    setMessages((prev) => [
-      ...prev,
-      user,
-      { id: replyId, role: 'assistant', content: '', streaming: true },
-    ]);
+    // Persisted here, not only once the reply settles, so the question
+    // survives a kill mid-generation even though the answer might not —
+    // and capped here too, not only on load, so the list this turn's own
+    // request is built from never grows unbounded across a long session.
+    session.saveHistory(
+      updateMessages((prev) =>
+        capMessages([
+          ...prev,
+          user,
+          { id: replyId, role: 'assistant', content: '', streaming: true },
+        ]),
+      ),
+    );
     setDraft('');
 
     // The mode's system prompt is prepended fresh each turn rather than stored
@@ -91,7 +125,7 @@ export function ChatScreen() {
         ? [{ role: 'system' as const, content: mode.systemPrompt }]
         : []),
       ...(mode.usesHistory
-        ? messages.map(({ role, content }) => ({ role, content }))
+        ? priorMessages.map(({ role, content }) => ({ role, content }))
         : []),
       { role: 'user', content: text },
     ];
@@ -113,7 +147,7 @@ export function ChatScreen() {
       const result = await session.generate({
         messages: history,
         onToken: (token) => {
-          setMessages((prev) =>
+          updateMessages((prev) =>
             prev.map((m) =>
               m.id === replyId ? { ...m, content: m.content + token } : m,
             ),
@@ -123,7 +157,7 @@ export function ChatScreen() {
         temperature: mode.temperature,
         connectorMode,
       });
-      setMessages((prev) =>
+      updateMessages((prev) =>
         prev.map((m) =>
           m.id === replyId
             ? // Set from the resolved result, not just accumulated onToken
@@ -141,7 +175,7 @@ export function ChatScreen() {
         ),
       );
     } catch {
-      setMessages((prev) =>
+      updateMessages((prev) =>
         prev.map((m) =>
           m.id === replyId
             ? { ...m, content: 'That reply could not be generated.' }
@@ -150,11 +184,13 @@ export function ChatScreen() {
       );
     } finally {
       abort.current = null;
-      setMessages((prev) =>
-        prev.map((m) => (m.id === replyId ? { ...m, streaming: false } : m)),
+      session.saveHistory(
+        updateMessages((prev) =>
+          prev.map((m) => (m.id === replyId ? { ...m, streaming: false } : m)),
+        ),
       );
     }
-  }, [draft, messages, modeId, session]);
+  }, [draft, modeId, session, updateMessages]);
 
   return (
     <KeyboardAvoidingView
@@ -198,18 +234,26 @@ export function ChatScreen() {
         style={[
           styles.composer,
           {
-            padding: theme.space[3],
+            paddingHorizontal: theme.space[3],
+            paddingTop: theme.space[2],
             gap: theme.space[2],
             borderTopColor: theme.colors.border,
             backgroundColor: theme.colors.surface,
-            paddingBottom: theme.space[3] + insets.bottom,
+            // No `+ insets.bottom` here: this screen lives inside a bottom
+            // tab navigator, whose tab bar already reserves the home-
+            // indicator safe area on its own. Adding it again here counted
+            // it twice, leaving a dead strip between the composer and the
+            // tab bar rather than clearing anything real.
+            paddingBottom: theme.space[2],
           },
         ]}
       >
         <View style={styles.grow}>
           <TextField
             placeholder={
-              session.status === 'ready' ? 'Message' : 'Not ready yet'
+              session.status === 'ready'
+                ? "What's on your mind?"
+                : 'Not ready yet'
             }
             value={draft}
             onChangeText={setDraft}
@@ -289,6 +333,23 @@ function ComposerButton({
 }
 
 /**
+ * `theme.colors.border` at reduced opacity, so a full 1pt line reads as
+ * softly as a hairline of the same color would — a hairline's antialiasing
+ * partly blends it into the background for free, which a solid-width line
+ * of the same color doesn't get. Local to this screen rather than a new
+ * design-tokens entry: `packages/design-tokens` is shared with desktop, and
+ * this is a one-off touch-up to a single row on a single screen, not a
+ * reusable semantic color.
+ */
+function withAlpha(hex: string, alpha: number): string {
+  const value = hex.replace('#', '');
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
  * The writing-assist modes (task 1.4), as a row of chips above the composer.
  *
  * Placed here rather than in a menu because the mode is sticky: it has to be
@@ -303,6 +364,7 @@ function ModeBar({
   onChange: (id: ModeId) => void;
 }) {
   const theme = useTheme();
+  const borderMuted = withAlpha(theme.colors.border, 0.5);
 
   return (
     <ScrollView
@@ -321,8 +383,19 @@ function ModeBar({
         // thread is short.
         flexGrow: 0,
         flexShrink: 0,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.colors.border,
+        // A full `1`, not `StyleSheet.hairlineWidth`, for the same
+        // reliability reason as the tab bar's border — hairline can round
+        // down to an invisible sub-pixel line depending on device scale
+        // factor, which is exactly what happened here. But at solid,
+        // full-strength `theme.colors.border` a real 1pt line reads
+        // noticeably darker than a hairline of the same color ever does —
+        // a hairline's antialiasing partly blends it into the background,
+        // which a full-width line doesn't get for free. `borderMuted`
+        // is that same color, alpha-blended by hand toward
+        // `theme.colors.surface`, to reproduce that softer look at a
+        // width that actually renders.
+        borderTopWidth: 1,
+        borderTopColor: borderMuted,
         backgroundColor: theme.colors.surface,
       }}
     >
@@ -434,6 +507,23 @@ function OfflineBanner({ modeId }: { modeId: ModeId }) {
           />
         )}
         <Text
+          // Only the transient `session.detail` text (loading/error) is
+          // pinned to one line — that's the one case actually behind the
+          // original bug: `modeId` always starts at `DEFAULT_MODE_ID` on
+          // mount (no persistence across launches), so the preparing→ready
+          // transition every session goes through happens while the
+          // steady-state text is still short and single-line. Truncating
+          // just the loading sentence to match that keeps the auto-load
+          // transition flash-free without constraining anything else.
+          //
+          // The steady-state text (model name + optional mode banner)
+          // deliberately has no line cap and no reserved height: it only
+          // ever changes height in direct response to the user tapping a
+          // mode chip, which is an expected, immediate consequence of their
+          // own action — not the same "unprompted resize" the original bug
+          // was about — so there is nothing here worth constraining.
+          numberOfLines={session.detail ? 1 : undefined}
+          ellipsizeMode="tail"
           style={{
             flex: 1,
             color: failed ? theme.colors.errorText : theme.colors.textMuted,

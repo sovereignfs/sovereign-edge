@@ -1,5 +1,7 @@
 export { InferenceEngine } from './engine';
 export {
+  DEFAULT_CONTEXT_SIZE,
+  DEFAULT_MAX_TOKENS,
   InferenceError,
   type ChatMessage,
   type EngineInfo,

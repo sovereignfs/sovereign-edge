@@ -7,6 +7,26 @@ import type { ConnectorManifest } from '@sovereignfs/connector-sdk';
 import { isAllowed } from '../permissions';
 import type { RoutingDecision } from './types';
 
+/**
+ * Matches a completion's `text` that is actually an unparsed tool call, not
+ * a real answer — e.g. Llama 3.2's `<|python_tag|>{"name": ...}` syntax,
+ * which `llama.rn`'s structured `tool_calls` parser does not recognise for
+ * every chat template. Optional special-token wrapper (`<|python_tag|>`,
+ * `<tool_call>`), optional array bracket, then a JSON object starting with
+ * `"name"` — the shape every tool call this app emits takes, structured or
+ * not.
+ */
+const LEAKED_TOOL_CALL_PREFIX =
+  /^\s*(<\|[a-z_]+\|>|<tool_call>)?\s*\[?\s*\{\s*"name"\s*:\s*"/i;
+
+function looksLikeLeakedToolCall(text: string): boolean {
+  return LEAKED_TOOL_CALL_PREFIX.test(text);
+}
+
+function extractLeakedToolName(text: string): string | undefined {
+  return text.match(/"name"\s*:\s*"([^"]+)"/)?.[1];
+}
+
 /** Passed straight through to the engine, so a caller streaming a normal
  * chat reply keeps doing so through a routed one. */
 export type RouteOptions = {
@@ -102,6 +122,21 @@ export async function routeMessage(
 
   const call = result.toolCalls[0];
   if (!call) {
+    // `result.toolCalls` came back empty, but that is not sufficient proof
+    // this is a real answer — `llama.rn`'s structured tool-call parser is
+    // template-specific, and a model can still emit tool-call syntax as
+    // plain text when its template isn't one that parser recognises.
+    // Showing that verbatim would leak internal syntax into the chat
+    // (reproduced on-device with Llama 3.2 1B Instruct's `<|python_tag|>`
+    // format); routed to the same 'malformed' fallback a JSON parse
+    // failure already gets below, rather than a new special case.
+    if (looksLikeLeakedToolCall(result.text)) {
+      return {
+        kind: 'blocked',
+        toolName: extractLeakedToolName(result.text) ?? 'unknown',
+        reason: 'malformed',
+      };
+    }
     onToken?.(result.text);
     return { kind: 'answered', text: result.text };
   }

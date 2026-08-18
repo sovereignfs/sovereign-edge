@@ -147,56 +147,114 @@ describe('generateWithConnectors', () => {
   });
 
   describe('blocked', () => {
-    it('names the connector when access has not been granted', async () => {
+    // Auto mode: a blocked call is retried as a plain question rather than
+    // shown as a dead-end permission message — a small model calling a
+    // tool a question never needed (on-device finding, epic 2.3: Llama
+    // 3.2 1B called Calendar for "what is the capital of France?") is far
+    // more common in practice than a genuine request for a connector that
+    // happens to be blocked.
+    it('falls back to a plain answer, not-permitted', async () => {
       mockRouteMessage.mockResolvedValue({
         kind: 'blocked',
         toolName: 'web_search',
         reason: 'not-permitted',
         connectorId: search.id,
       });
-      const engine = fakeEngine(jest.fn());
+      const generate = jest
+        .fn()
+        .mockResolvedValue({ text: 'Paris is the capital of France.' });
+      const engine = fakeEngine(generate);
 
       const result = await generateWithConnectors(engine, [search], {
         messages,
       });
 
       expect(result).toEqual({
-        text: "This would use Search, which hasn't been granted access. Open Settings → Connectors to allow it.",
+        text: 'Paris is the capital of France.',
         connector: null,
       });
+      expect(generate).toHaveBeenCalledWith(
+        expect.objectContaining({ messages }),
+      );
+      expect(generate).toHaveBeenCalledWith(
+        expect.not.objectContaining({ tools: expect.anything() }),
+      );
     });
 
-    it('explains no-connector without naming one', async () => {
+    it('falls back to a plain answer, no-connector', async () => {
       mockRouteMessage.mockResolvedValue({
         kind: 'blocked',
         toolName: 'not_a_real_tool',
         reason: 'no-connector',
       });
-      const engine = fakeEngine(jest.fn());
+      const generate = jest.fn().mockResolvedValue({ text: 'Plain reply.' });
+      const engine = fakeEngine(generate);
 
       const result = await generateWithConnectors(engine, [search], {
         messages,
       });
 
-      expect(result.connector).toBeNull();
-      expect(result.text).toMatch(/doesn't match/);
+      expect(result).toEqual({ text: 'Plain reply.', connector: null });
     });
 
-    it('explains malformed output', async () => {
+    it('falls back to a plain answer, malformed', async () => {
       mockRouteMessage.mockResolvedValue({
         kind: 'blocked',
         toolName: 'web_search',
         reason: 'malformed',
         connectorId: search.id,
       });
-      const engine = fakeEngine(jest.fn());
+      const generate = jest.fn().mockResolvedValue({ text: 'Plain reply.' });
+      const engine = fakeEngine(generate);
 
       const result = await generateWithConnectors(engine, [search], {
         messages,
       });
 
-      expect(result.connector).toBeNull();
-      expect(result.text).toMatch(/shape this app could use/);
+      expect(result).toEqual({ text: 'Plain reply.', connector: null });
+    });
+
+    it('forwards onToken into the fallback generation', async () => {
+      mockRouteMessage.mockResolvedValue({
+        kind: 'blocked',
+        toolName: 'web_search',
+        reason: 'not-permitted',
+        connectorId: search.id,
+      });
+      const generate = jest.fn().mockResolvedValue({ text: 'Plain reply.' });
+      const engine = fakeEngine(generate);
+      const onToken = jest.fn();
+
+      await generateWithConnectors(engine, [search], { messages, onToken });
+
+      expect(generate).toHaveBeenCalledWith(
+        expect.objectContaining({ onToken }),
+      );
+    });
+
+    // Required mode (explicit Search) is the exception: the user forced a
+    // tool call, so a block there is a real, honest fact worth surfacing —
+    // not a misfire to paper over with a plain-model guess.
+    it('keeps the honest blocked message in required mode instead of falling back', async () => {
+      mockRouteMessage.mockResolvedValue({
+        kind: 'blocked',
+        toolName: 'web_search',
+        reason: 'not-permitted',
+        connectorId: search.id,
+      });
+      const generate = jest.fn();
+      const engine = fakeEngine(generate);
+
+      const result = await generateWithConnectors(engine, [search], {
+        messages,
+        toolChoice: 'required',
+      });
+
+      expect(result).toEqual({
+        text: "This would use Search, which hasn't been granted access. Open Settings → Connectors to allow it.",
+        connector: null,
+      });
+      expect(generate).not.toHaveBeenCalled();
     });
   });
 

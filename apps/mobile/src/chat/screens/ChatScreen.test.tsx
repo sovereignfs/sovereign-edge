@@ -10,6 +10,7 @@ import {
   type ChatSessionStatus,
   type GenerateRequest,
 } from '../session/ChatSessionContext';
+import type { Message } from '../session/messages';
 import { ChatScreen } from './ChatScreen';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -17,6 +18,19 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
+
+/**
+ * Persistence is a fake `ChatSession` method here, the same as `generate` —
+ * `loadHistory`/`saveHistory` are implemented by the app shell
+ * (`ModelSessionProvider`), not by `ChatScreen` itself, so these tests
+ * exercise the screen's own behavior against a deterministic
+ * empty-history start rather than a real `expo-file-system` file.
+ * Persistence's own file I/O is covered on its own in
+ * `settings/chatHistoryStore.test.ts`; `capMessages`'s sizing logic in
+ * `session/messages.test.ts`.
+ */
+const mockSaveHistory = jest.fn();
+const mockLoadHistory = jest.fn().mockReturnValue([]);
 
 const done: ChatGenerateResult = { text: 'ok', connector: null };
 
@@ -27,6 +41,8 @@ function renderChat(overrides: Partial<ChatSession> = {}) {
     modelParametersB: 0.5,
     detail: null,
     generate: jest.fn(async () => done),
+    loadHistory: () => mockLoadHistory(),
+    saveHistory: (messages: Message[]) => mockSaveHistory(messages),
     ...overrides,
   };
 
@@ -47,6 +63,11 @@ function renderChat(overrides: Partial<ChatSession> = {}) {
 const spyGenerate = () => jest.fn(async (_request: GenerateRequest) => done);
 
 describe('ChatScreen', () => {
+  beforeEach(() => {
+    mockLoadHistory.mockReset().mockReturnValue([]);
+    mockSaveHistory.mockReset();
+  });
+
   it('always shows which trust tier is active', async () => {
     // CONCEPT.md requires this to be visible at all times, not disclosed once.
     const { view } = renderChat();
@@ -91,7 +112,7 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText('Message'), 'colours?');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'colours?');
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/Blue, green/)).toBeTruthy();
@@ -106,7 +127,7 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText('Message'), 'hello');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hello');
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate).toHaveBeenCalledWith(
@@ -130,7 +151,7 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText('Message'), 'find a recipe');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'find a recipe');
     await userEvent.press(s.getByLabelText('Send'));
 
     // The receipt (task 7.5) is the connector name alone, next to the
@@ -156,7 +177,7 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText('Message'), 'find a recipe');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'find a recipe');
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/hasn't been granted access/)).toBeTruthy();
@@ -166,7 +187,7 @@ describe('ChatScreen', () => {
     const { view } = renderChat();
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText('Message'), 'hello');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hello');
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.queryByLabelText(/Answered using/)).toBeNull();
@@ -183,7 +204,7 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.press(s.getByLabelText('Fix grammar mode'));
-    await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'their going');
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate.mock.calls[0]![0].connectorMode).toBe('off');
@@ -200,7 +221,7 @@ describe('ChatScreen', () => {
 
     await userEvent.press(s.getByLabelText('Search mode'));
     await userEvent.type(
-      s.getByPlaceholderText('Message'),
+      s.getByPlaceholderText("What's on your mind?"),
       'weather in Berlin',
     );
     await userEvent.press(s.getByLabelText('Send'));
@@ -244,7 +265,7 @@ describe('ChatScreen', () => {
       });
       const s = await view;
 
-      await userEvent.type(s.getByPlaceholderText('Message'), 'hi');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[0]![0];
@@ -259,7 +280,7 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'their going');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'their going');
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages, temperature } = generate.mock.calls[0]![0];
@@ -281,7 +302,7 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Brainstorm mode'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'names');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'names');
       await userEvent.press(s.getByLabelText('Send'));
 
       const { temperature } = generate.mock.calls[0]![0];
@@ -307,9 +328,9 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'one');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'one');
       await userEvent.press(s.getByLabelText('Send'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'two');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'two');
       await userEvent.press(s.getByLabelText('Send'));
 
       const second = generate.mock.calls[1]![0];
@@ -329,9 +350,9 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'first');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'first');
       await userEvent.press(s.getByLabelText('Send'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'second');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'second');
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[1]![0];
@@ -350,9 +371,9 @@ describe('ChatScreen', () => {
       });
       const s = await view;
 
-      await userEvent.type(s.getByPlaceholderText('Message'), 'first');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'first');
       await userEvent.press(s.getByLabelText('Send'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'second');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'second');
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[1]![0];
@@ -406,11 +427,11 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'one');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'one');
       await userEvent.press(s.getByLabelText('Send'));
 
       await userEvent.press(s.getByLabelText('Chat mode'));
-      await userEvent.type(s.getByPlaceholderText('Message'), 'two');
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'two');
       await userEvent.press(s.getByLabelText('Send'));
 
       const second = generate.mock.calls[1]![0];
@@ -427,9 +448,73 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText('Message'), 'hi');
+    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/could not be generated/)).toBeTruthy();
+  });
+
+  describe('persistence', () => {
+    it('loads a persisted thread on mount', async () => {
+      mockLoadHistory.mockReturnValue([
+        { id: 'u1', role: 'user', content: 'earlier question' },
+        { id: 'a1', role: 'assistant', content: 'earlier answer' },
+      ]);
+      const { view } = renderChat();
+      const s = await view;
+
+      expect(s.getByText('earlier question')).toBeTruthy();
+      expect(s.getByText('earlier answer')).toBeTruthy();
+    });
+
+    it('persists the user message immediately, before the reply resolves', async () => {
+      let resolveReply: (() => void) | undefined;
+      const generate = jest.fn(
+        () =>
+          new Promise<ChatGenerateResult>((resolve) => {
+            resolveReply = () => resolve(done);
+          }),
+      );
+      const { view } = renderChat({
+        generate: generate as ChatSession['generate'],
+      });
+      const s = await view;
+
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
+      await userEvent.press(s.getByLabelText('Send'));
+
+      expect(mockSaveHistory).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ role: 'user', content: 'hi' }),
+        ]),
+      );
+
+      // Settled within this test, not left pending for the next one: an
+      // unresolved promise here would flush its state update — and its own
+      // `writeHistory` call — during whichever test happens to run next.
+      resolveReply?.();
+      await s.findByText('ok');
+    });
+
+    it('persists the settled reply once generation finishes', async () => {
+      const { view } = renderChat();
+      const s = await view;
+
+      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
+      await userEvent.press(s.getByLabelText('Send'));
+      await s.findByText('ok');
+
+      // Checked across every recorded call rather than assumed to be the
+      // last one: other tests' generate mocks can settle asynchronously
+      // and append their own calls to this same shared mock around the
+      // same time, so position isn't a reliable signal — content is.
+      const persistedSettled = mockSaveHistory.mock.calls.some((call) =>
+        (call[0] as Message[]).some(
+          (m) =>
+            m.role === 'assistant' && m.content === 'ok' && m.streaming === false,
+        ),
+      );
+      expect(persistedSettled).toBe(true);
+    });
   });
 });
