@@ -301,11 +301,3 @@ export function installConnector(
 export function removeConnector(id: string): Promise<void> {
   return call('remove_connector', { id });
 }
-
-/**
- * Task 15.5: shows `main` (started `"visible": false`) and closes
- * `splashscreen` — called once from `App.tsx`'s first-mount `useEffect`.
- */
-export function showMainWindow(): Promise<void> {
-  return call('show_main_window');
-}

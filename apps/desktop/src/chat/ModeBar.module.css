@@ -13,6 +13,16 @@
   border-bottom: 1px solid var(--sv-color-border);
 }
 
+/* The empty-conversation state's own row (task: chat screen shell match)
+   — wraps and centers under the composer card instead of scrolling under
+   a divider, since there's no thread above it to separate from. */
+.rowCentered {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sv-space-2);
+}
+
 .chip,
 .chipSelected {
   flex-shrink: 0;
@@ -24,9 +34,9 @@
   border-style: solid;
   border-radius: var(--sv-radius-full);
   font-family: var(--sv-font-family-body);
-  font-size: var(--sv-font-size-caption);
+  font-size: var(--sv-font-size-xs);
   font-weight: var(--sv-font-weight-medium);
-  padding: var(--sv-space-1) var(--sv-space-3);
+  padding: 3px var(--sv-space-2);
   cursor: pointer;
   transition: background-color var(--sv-motion-duration-fast) ease;
 }

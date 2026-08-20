@@ -28,12 +28,20 @@ const MODE_ICON: Record<ModeId, IconName> = {
 export function ModeBar({
   active,
   onSelect,
+  variant = 'bar',
 }: {
   active: ModeId;
   onSelect: (id: ModeId) => void;
+  /** 'bar': the pinned-footer row (scrolling, divider on top — default).
+   * 'centered': the empty-conversation state's row (wraps, no divider). */
+  variant?: 'bar' | 'centered';
 }) {
   return (
-    <div className={styles.row} role="group" aria-label="Writing-assist mode">
+    <div
+      className={variant === 'centered' ? styles.rowCentered : styles.row}
+      role="group"
+      aria-label="Writing-assist mode"
+    >
       {MODES.map((mode) => {
         const selected = mode.id === active;
         return (

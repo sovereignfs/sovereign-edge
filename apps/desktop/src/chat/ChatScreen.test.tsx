@@ -16,6 +16,7 @@ vi.mock('../lib/tauri', async () => {
     connectorStatus: vi.fn(),
     generateChat: vi.fn(),
     listModels: vi.fn(),
+    loadModel: vi.fn(),
     onGenerateToken: vi.fn(() => Promise.resolve(() => Promise.resolve())),
   };
 });
@@ -24,6 +25,7 @@ const activeModelId = vi.mocked(tauri.activeModelId);
 const connectorStatus = vi.mocked(tauri.connectorStatus);
 const generateChat = vi.mocked(tauri.generateChat);
 const listModels = vi.mocked(tauri.listModels);
+const loadModel = vi.mocked(tauri.loadModel);
 
 function model(overrides: Partial<ManagedModel> = {}): ManagedModel {
   return {
@@ -65,7 +67,7 @@ describe('ChatScreen', () => {
     renderScreen();
 
     expect(
-      await screen.findByText('Choose a model above to start.'),
+      await screen.findByPlaceholderText('Choose a model first'),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Choose a model' }),
@@ -187,7 +189,41 @@ describe('ChatScreen', () => {
     expect(screen.queryByText(/small enough to invent details/)).toBeNull();
   });
 
-  it('the model indicator navigates to Models', async () => {
+  it('the model picker lists installed models and switches the active one', async () => {
+    const models = [
+      model({ id: 'qwen2.5-0.5b', name: 'Qwen2.5 0.5B' }),
+      model({ id: 'llama-3-8b', name: 'Llama 3 8B', parametersB: 8 }),
+    ];
+    listModels.mockResolvedValue(models);
+    activeModelId
+      .mockResolvedValueOnce('qwen2.5-0.5b')
+      .mockResolvedValueOnce('llama-3-8b');
+    connectorStatus.mockResolvedValue({
+      id: 'fs.sovereign.search',
+      name: 'Search',
+      granted: false,
+    });
+    loadModel.mockResolvedValue({
+      gpu: false,
+      contextSize: 2048,
+      toolCapable: false,
+    });
+    renderScreen();
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Qwen2.5 0.5B' }),
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Llama 3 8B' }),
+    );
+
+    expect(loadModel).toHaveBeenCalledWith('llama-3-8b');
+    expect(
+      await screen.findByRole('button', { name: 'Llama 3 8B' }),
+    ).toBeInTheDocument();
+  });
+
+  it('the model picker\'s "More models" row navigates to Models', async () => {
     listModels.mockResolvedValue([model()]);
     activeModelId.mockResolvedValue('qwen2.5-0.5b');
     connectorStatus.mockResolvedValue({
@@ -198,7 +234,10 @@ describe('ChatScreen', () => {
     const { onNavigate } = renderScreen();
 
     await userEvent.click(
-      await screen.findByRole('button', { name: /Model: Qwen2.5 0.5B/ }),
+      await screen.findByRole('button', { name: 'Qwen2.5 0.5B' }),
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'More models' }),
     );
     expect(onNavigate).toHaveBeenCalledWith('models');
   });

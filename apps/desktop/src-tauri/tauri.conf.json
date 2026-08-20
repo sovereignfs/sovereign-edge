@@ -17,20 +17,8 @@
         "title": "Sovereign Edge",
         "width": 900,
         "height": 700,
-        "visible": false,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true
-      },
-      {
-        "label": "splashscreen",
-        "url": "splashscreen.html",
-        "width": 360,
-        "height": 360,
-        "resizable": false,
-        "decorations": false,
-        "transparent": true,
-        "center": true,
-        "skipTaskbar": true
       }
     ],
     "security": {

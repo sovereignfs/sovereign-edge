@@ -1,10 +1,12 @@
 import {
   AlertTriangle,
+  Check,
   ChevronRight,
   Cpu,
   FileText,
   Lightbulb,
   MessageCircle,
+  PanelLeft,
   Search,
   Send,
   Settings,
@@ -37,6 +39,8 @@ const ICONS = {
   square: Square,
   'alert-triangle': AlertTriangle,
   'chevron-right': ChevronRight,
+  'panel-left': PanelLeft,
+  check: Check,
 } as const satisfies Record<string, ComponentType<SVGProps<SVGSVGElement>>>;
 
 export type IconName = keyof typeof ICONS;

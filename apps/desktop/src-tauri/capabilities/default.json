@@ -1,10 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window's baseline capability. Grants `core:default` (the permission set Tauri itself needs to create and manage a window) plus one `allow-$command` permission per app command, listed individually rather than as a wildcard — this repo's own default-deny convention (research 0010's security-model finding). `build.rs`'s `AppManifest::commands` (task 12.5) is what makes these permissions exist at all and enforces them at the IPC boundary; before that, Tauri v2's ACL only gated *plugin*-provided commands, so this app's own commands were reachable regardless of what this file said (flagged as an open gap by tasks 12.2/12.3, closed here). This is the second, independent gate on top of each command's own in-app checks (e.g. `device_info`'s `is_allowed()`) — belt-and-braces, not a replacement for them. Task 14.3 adds the first plugin-provided permissions: `updater:allow-check`/`updater:allow-download-and-install` for `tauri-plugin-updater`, and `process:allow-restart` for `tauri-plugin-process` — note `process:allow-restart`, not a hypothetical `allow-relaunch`: `@tauri-apps/plugin-process`'s `relaunch()` invokes the plugin's own `restart` command internally, confirmed by reading its JS source, not assumed.",
+  "description": "The main window's baseline capability. Grants `core:default` (the permission set Tauri itself needs to create and manage a window) plus one `allow-$command` permission per app command, listed individually rather than as a wildcard — this repo's own default-deny convention (research 0010's security-model finding). `build.rs`'s `AppManifest::commands` (task 12.5) is what makes these permissions exist at all and enforces them at the IPC boundary; before that, Tauri v2's ACL only gated *plugin*-provided commands, so this app's own commands were reachable regardless of what this file said (flagged as an open gap by tasks 12.2/12.3, closed here). This is the second, independent gate on top of each command's own in-app checks (e.g. `device_info`'s `is_allowed()`) — belt-and-braces, not a replacement for them. Task 14.3 adds the first plugin-provided permissions: `updater:allow-check`/`updater:allow-download-and-install` for `tauri-plugin-updater`, and `process:allow-restart` for `tauri-plugin-process` — note `process:allow-restart`, not a hypothetical `allow-relaunch`: `@tauri-apps/plugin-process`'s `relaunch()` invokes the plugin's own `restart` command internally, confirmed by reading its JS source, not assumed. `core:window:allow-start-dragging` was missing from this list despite `AppShell.tsx` rendering a `data-tauri-drag-region` element since the window went `titleBarStyle: Overlay` — Tauri's own drag-region handling issues this command automatically on drag, and without the permission it silently rejected (visible as an unhandled promise rejection in the webview console, not a crash), leaving the custom titlebar undraggable. Added rather than left broken once observed.",
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-start-dragging",
     "allow-list-models",
     "allow-list-installed-models",
     "allow-active-model-id",
@@ -27,7 +28,6 @@
     "allow-install-connector",
     "allow-remove-connector",
     "allow-request-calendar-access",
-    "allow-show-main-window",
     "core:app:allow-version",
     "updater:allow-check",
     "updater:allow-download-and-install",

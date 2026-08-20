@@ -48,94 +48,142 @@ const DESTINATIONS: {
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
+// macOS's own traffic-light cluster + its standard left inset — the same
+// zone `titleBarStyle: "Overlay"` floats those buttons over. The toggle
+// sits just to the right of it rather than under it, so it's never
+// obscured by (or fights a click with) the native buttons.
+const TRAFFIC_LIGHT_INSET = 78;
+const TITLEBAR_HEIGHT = 36;
+const SIDEBAR_WIDTH = 180;
+
 export function AppShell() {
   const theme = useTheme();
   const [destination, setDestination] = useState<Destination>('chat');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div
       style={{
         display: 'flex',
+        flexDirection: 'column',
         minHeight: '100vh',
         background: theme.colors.surface,
         color: theme.colors.textPrimary,
         fontFamily: theme.fontFamily.body,
       }}
     >
-      <nav
-        aria-label="Main"
+      {/* A titlebar strip spanning the full window width, independent of
+          the sidebar's own collapsed state — this is what keeps the
+          toggle button anchored in the same spot next to the traffic
+          lights whether the sidebar is open or closed, and what keeps the
+          window draggable from up here either way (previously the
+          sidebar's own `data-tauri-drag-region` spacer, which would have
+          disappeared along with the sidebar on collapse). */}
+      <div
+        data-tauri-drag-region
         style={{
-          width: 180,
+          height: TITLEBAR_HEIGHT,
           flexShrink: 0,
-          background: theme.colors.surfaceSunken,
-          borderRight: `1px solid ${theme.colors.border}`,
           display: 'flex',
-          flexDirection: 'column',
-          gap: theme.space[1],
-          padding: theme.space[3],
+          alignItems: 'center',
         }}
       >
-        {/* `titleBarStyle: "Overlay"` (tauri.conf.json) floats the native
-            traffic lights over this sidebar's own top-left corner instead
-            of a separate grey title bar strip, so the app's own background
-            paints all the way to the top. This spacer keeps the first nav
-            item clear of them (~28px is macOS's own traffic-light zone
-            height across current OS versions) and, via
-            `data-tauri-drag-region`, is what makes the window draggable
-            from here now that there's no native title bar providing that
-            for free. */}
-        <div data-tauri-drag-region style={{ height: 28, flexShrink: 0 }} />
-        {DESTINATIONS.map((d) => {
-          const active = d.id === destination;
-          return (
-            <button
-              key={d.id}
-              type="button"
-              aria-current={active ? 'page' : undefined}
-              onClick={() => setDestination(d.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.space[2],
-                textAlign: 'left',
-                border: 'none',
-                borderRadius: theme.radius.md,
-                padding: `${theme.space[2]}px ${theme.space[3]}px`,
-                fontSize: theme.fontSize.md,
-                fontFamily: theme.fontFamily.body,
-                cursor: 'pointer',
-                background: active ? theme.colors.accentSubtle : 'transparent',
-                color: active ? theme.colors.accent : theme.colors.textPrimary,
-                fontWeight: active
-                  ? theme.fontWeight.semibold
-                  : theme.fontWeight.regular,
-              }}
-            >
-              {d.icon === 'mark' ? (
-                <Mark size={16} />
-              ) : (
-                <Icon name={d.icon} size="sm" aria-hidden />
-              )}
-              {d.label}
-            </button>
-          );
-        })}
-      </nav>
+        <div style={{ width: TRAFFIC_LIGHT_INSET, flexShrink: 0 }} />
+        <button
+          type="button"
+          aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          aria-pressed={!sidebarCollapsed}
+          onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            border: 'none',
+            borderRadius: theme.radius.md,
+            background: 'transparent',
+            color: theme.colors.textMuted,
+            cursor: 'pointer',
+          }}
+        >
+          <Icon name="panel-left" size="sm" aria-hidden />
+        </button>
+      </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {destination === 'chat' ? (
-          <ChatScreen onNavigate={setDestination} />
-        ) : null}
-        {destination === 'models' ? <ModelsScreen /> : null}
-        {destination === 'connectors' ? (
-          <ConnectorsScreen onNavigate={setDestination} />
-        ) : null}
-        {destination === 'connector-store' ? (
-          <ConnectorStoreScreen onNavigate={setDestination} />
-        ) : null}
-        {destination === 'settings' ? (
-          <SettingsScreen onNavigate={setDestination} />
-        ) : null}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <nav
+          aria-label="Main"
+          aria-hidden={sidebarCollapsed}
+          style={{
+            width: sidebarCollapsed ? 0 : SIDEBAR_WIDTH,
+            flexShrink: 0,
+            overflow: 'hidden',
+            background: theme.colors.surfaceSunken,
+            borderRight: sidebarCollapsed
+              ? 'none'
+              : `1px solid ${theme.colors.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.space[1],
+            padding: sidebarCollapsed ? 0 : theme.space[3],
+            transition: `width ${theme.motion.durationFast}ms cubic-bezier(${theme.motion.easeOut.join(',')}), padding ${theme.motion.durationFast}ms cubic-bezier(${theme.motion.easeOut.join(',')})`,
+          }}
+        >
+          {DESTINATIONS.map((d) => {
+            const active = d.id === destination;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                aria-current={active ? 'page' : undefined}
+                tabIndex={sidebarCollapsed ? -1 : undefined}
+                onClick={() => setDestination(d.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[2],
+                  textAlign: 'left',
+                  border: 'none',
+                  borderRadius: theme.radius.md,
+                  padding: `${theme.space[2]}px ${theme.space[3]}px`,
+                  fontSize: theme.fontSize.md,
+                  fontFamily: theme.fontFamily.body,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  background: active ? theme.colors.accentSubtle : 'transparent',
+                  color: active ? theme.colors.accent : theme.colors.textPrimary,
+                  fontWeight: active
+                    ? theme.fontWeight.semibold
+                    : theme.fontWeight.regular,
+                }}
+              >
+                {d.icon === 'mark' ? (
+                  <Mark size={16} />
+                ) : (
+                  <Icon name={d.icon} size="sm" aria-hidden />
+                )}
+                {d.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {destination === 'chat' ? (
+            <ChatScreen onNavigate={setDestination} />
+          ) : null}
+          {destination === 'models' ? <ModelsScreen /> : null}
+          {destination === 'connectors' ? (
+            <ConnectorsScreen onNavigate={setDestination} />
+          ) : null}
+          {destination === 'connector-store' ? (
+            <ConnectorStoreScreen onNavigate={setDestination} />
+          ) : null}
+          {destination === 'settings' ? (
+            <SettingsScreen onNavigate={setDestination} />
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,161 @@
+/* The empty-conversation state (task: chat screen shell match) — a
+   centered greeting + composer instead of the top-anchored header/
+   scrolling-thread layout `.composer`'s other consumer (the pinned
+   footer) uses once a conversation has messages. Swapped for that layout
+   entirely once `messages.length > 0`, not layered on top of it. */
+.home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sv-space-4);
+  /* Biased above true vertical center, matching the reference product —
+     extra bottom padding shrinks the box `justify-content: center` centers
+     within, without needing a magic-number top offset. */
+  padding: var(--sv-space-6) var(--sv-space-6) 16vh;
+  text-align: center;
+}
+
+.homeHeading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sv-space-2);
+  max-width: 480px;
+}
+
+.homeComposerWrap {
+  width: 100%;
+  max-width: 640px;
+}
+
+/* The home state's own composer — stacked (textarea, then a control row
+   with the model/connector indicators and send button below it) rather
+   than the pinned footer's side-by-side `.composer` row, matching the
+   reference product's entry-screen input. Not shared with `.composer`:
+   the two are genuinely different shapes now, not just different
+   wrapping chrome around the same row. The box-shadow is a fixed literal
+   rather than a per-theme token, same call `SegmentedControl.module.css`
+   already made for the identical reason: this app's `Theme.shadows` has
+   no CSS custom property yet (`ThemeProvider.tsx`'s `themeToCssVars`
+   doesn't emit one), and a single low-opacity value reads fine as a
+   subtle lift on both light and dark surfaces without needing one. */
+.composerCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sv-space-2);
+  padding: var(--sv-space-3);
+  border-radius: var(--sv-radius-2xl);
+  border: 1px solid var(--sv-color-border);
+  background: var(--sv-color-surface-raised);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+/* Visible label swapped for this + a placeholder, matching the reference
+   product's own composer — the label stays in the DOM (`.srOnly`) rather
+   than disappearing, so the field keeps an accessible name. */
+.homeTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 24px;
+  max-height: calc(var(--sv-touch-target-min) * 3);
+  padding: 0;
+  border: none;
+  outline: none;
+  font-size: var(--sv-font-size-md);
+  font-family: var(--sv-font-family-body);
+  color: var(--sv-color-text-primary);
+  background: transparent;
+  resize: none;
+  overflow-y: auto;
+}
+
+.homeTextarea::placeholder {
+  color: var(--sv-color-text-subtle);
+}
+
+.homeTextarea:disabled {
+  cursor: not-allowed;
+}
+
+.homeControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sv-space-2);
+}
+
+/* `ModelPicker`'s own trigger + panel. `position: relative` on the
+   trigger's wrapper is what anchors the panel below it — the panel
+   right-aligns to the trigger (`right: 0`) rather than left, since every
+   call site puts this near the right edge of its own row. */
+.modelPicker {
+  position: relative;
+}
+
+.modelMenu {
+  position: absolute;
+  top: calc(100% + var(--sv-space-1));
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  padding: var(--sv-space-1);
+  border-radius: var(--sv-radius-lg);
+  border: 1px solid var(--sv-color-border);
+  background: var(--sv-color-surface-raised);
+  box-shadow: 0 10px 38px rgba(0, 0, 0, 0.18);
+}
+
+.modelMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sv-space-2);
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: var(--sv-radius-md);
+  padding: var(--sv-space-2) var(--sv-space-2);
+  font-size: var(--sv-font-size-sm);
+  font-family: var(--sv-font-family-body);
+  color: var(--sv-color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.modelMenuItem:hover {
+  background: var(--sv-color-accent-subtle);
+}
+
+.modelMenuEmpty {
+  margin: 0;
+  padding: var(--sv-space-2);
+  font-size: var(--sv-font-size-caption);
+  color: var(--sv-color-text-muted);
+}
+
+.modelMenuDivider {
+  height: 1px;
+  margin: var(--sv-space-1) 0;
+  background: var(--sv-color-border);
+}
+
+/* Standard visually-hidden-but-accessible pattern — kept in one place
+   since this is the first screen that's needed it. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .composer {
   display: flex;
   align-items: flex-end;
