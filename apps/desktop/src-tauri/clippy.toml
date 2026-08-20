@@ -4,4 +4,25 @@
 # actually sees it — a raw `reqwest::Client::new()`/`::builder()` call
 # anywhere else in the crate bypasses the guard silently, so this lint is
 # what catches that instead of trusting reviewers to notice.
-disallowed-methods = ["reqwest::Client::new", "reqwest::Client::builder"]
+#
+# Widened beyond `reqwest::Client` (task 12.9 follow-up — see
+# `net_guard.rs`'s own doc comment on this gap): `NetGuardLayer` only ever
+# sees requests made through a guarded `reqwest::Client`. A raw TCP/UDP
+# socket opened directly would be just as invisible to it as an
+# unguarded `reqwest::Client::new()` was before this lint banned that. This
+# app has no legitimate reason to open one — every real egress point is
+# HTTP, via reqwest — so the same ban extends to the std and tokio
+# constructors that would. `TcpListener::bind` (accepting, not
+# connecting) is deliberately not here: it has no bearing on egress, and
+# `net_guard.rs`'s own tests bind one locally to stand up a test server.
+disallowed-methods = [
+    "reqwest::Client::new",
+    "reqwest::Client::builder",
+    "std::net::TcpStream::connect",
+    "tokio::net::TcpStream::connect",
+    "tokio::net::TcpSocket::connect",
+    "std::net::UdpSocket::connect",
+    "std::net::UdpSocket::send_to",
+    "tokio::net::UdpSocket::connect",
+    "tokio::net::UdpSocket::send_to",
+]

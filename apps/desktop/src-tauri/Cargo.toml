@@ -23,6 +23,13 @@ serde_json = "1"
 tokio = { version = "1", features = ["fs", "net", "time", "sync", "macros", "rt-multi-thread"] }
 tokio-util = "0.7"
 reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls"] }
+# Task 12.9 follow-up: `net_guard.rs`'s `NetGuardLayer` is a `tower::Layer`/
+# `Service` wrapping reqwest's connector (`ClientBuilder::connector_layer`) —
+# these two trait-only crates are already transitive deps of `reqwest` itself
+# (see Cargo.lock), listed directly here only because this crate's own code
+# now names their traits.
+tower-layer = "0.3"
+tower-service = "0.3"
 futures-util = "0.3"
 sha2 = "0.10"
 md-5 = "0.10"
