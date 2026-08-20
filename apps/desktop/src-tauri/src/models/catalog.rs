@@ -1,6 +1,6 @@
 //! The Phase 1 catalog (task 12.2, mirroring `apps/mobile/src/models/catalog.ts`).
 //!
-//! Same four entries, same publisher-asserted URLs/sizes/SHA-256 digests as
+//! Same entries, same publisher-asserted URLs/sizes/SHA-256 digests as
 //! mobile's catalog — it is the same data regardless of platform.
 
 use super::types::ModelDescriptor;
@@ -80,6 +80,65 @@ pub fn curated_models() -> Vec<CatalogEntry> {
             parameters: "2B".into(),
             parameters_b: 2.0,
             summary: "Best quality here, and the heaviest. High-end machines only.".into(),
+        },
+        // A different shape of model from the four above: tuned specifically
+        // to answer only from text handed to it in the prompt, not as a
+        // general chat model. Desktop's grammar-constrained tool-calling
+        // (engine/grammar.rs) is model-agnostic — unlike mobile, there is no
+        // chat-template capability gate this model could fail here.
+        // Licensed under LFM Open License v1.0, not fully permissive: free
+        // for commercial use under $10M annual revenue.
+        CatalogEntry {
+            descriptor: ModelDescriptor {
+                id: "lfm2-1.2b-rag-q4km".into(),
+                name: "LFM2 1.2B RAG".into(),
+                url: "https://huggingface.co/LiquidAI/LFM2-1.2B-RAG-GGUF/resolve/main/LFM2-1.2B-RAG-Q4_K_M.gguf".into(),
+                size_bytes: 730_894_048,
+                md5: None,
+                sha256: Some("5e4d123cd76dd38a1b55f86a5e1f5fa579e452ff89fa636709edbecd3513db0a".into()),
+                quantization: Some("Q4_K_M".into()),
+            },
+            parameters: "1.2B".into(),
+            parameters_b: 1.2,
+            summary: "Answers only from text you give it — not a general chat model.".into(),
+        },
+        CatalogEntry {
+            descriptor: ModelDescriptor {
+                id: "qwen3-4b-instruct-2507-q4km".into(),
+                name: "Qwen3 4B Instruct".into(),
+                url: "https://huggingface.co/bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen_Qwen3-4B-Instruct-2507-Q4_K_M.gguf".into(),
+                size_bytes: 2_497_280_736,
+                md5: None,
+                sha256: Some("2fde00ce69dd4899c70d020845e2638353015bba0fdf161b3eb965f2bca4464e".into()),
+                quantization: Some("Q4_K_M".into()),
+            },
+            parameters: "4B".into(),
+            parameters_b: 4.0,
+            summary: "Best quality here, and Apache-licensed. Wants a capable machine.".into(),
+        },
+        // Google's own official QAT release, not a community requant — the
+        // most trustworthy source for a model this new. "E4B" names the
+        // model's "effective 4B" elastic-inference footprint (Gemma's
+        // MatFormer architecture can run a nested, cheaper sub-model), but
+        // that name describes compute, not what has to be downloaded and
+        // mapped into memory: this is a real 8B-parameter checkpoint,
+        // quantized to 5.15 GB — by far the heaviest entry here, more than
+        // double Qwen3 4B above. `parameters_b` is deliberately 8, not 4,
+        // for the same reason as mobile's own catalog: it should match what
+        // is actually resident in memory, not the marketing figure.
+        CatalogEntry {
+            descriptor: ModelDescriptor {
+                id: "gemma-4-e4b-it-q4-0".into(),
+                name: "Gemma 4 E4B Instruct".into(),
+                url: "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/resolve/main/gemma-4-E4B_q4_0-it.gguf".into(),
+                size_bytes: 5_154_941_280,
+                md5: None,
+                sha256: Some("676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee".into()),
+                quantization: Some("Q4_0".into()),
+            },
+            parameters: "8B (4B effective)".into(),
+            parameters_b: 8.0,
+            summary: "The heaviest option by far — a large download. Flagship machines only.".into(),
         },
     ]
 }
