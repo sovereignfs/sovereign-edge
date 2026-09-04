@@ -1,4 +1,8 @@
-import { capMessages, MESSAGE_HISTORY_CHAR_BUDGET, type Message } from './messages';
+import {
+  capMessages,
+  MESSAGE_HISTORY_CHAR_BUDGET,
+  type Message,
+} from './messages';
 
 function message(id: string, content: string): Message {
   return { id, role: 'user', content };
@@ -12,7 +16,10 @@ describe('capMessages', () => {
 
   it('drops the oldest whole messages, oldest first, once over budget', () => {
     const big = 'x'.repeat(MESSAGE_HISTORY_CHAR_BUDGET);
-    const messages = [message('old', 'this should get evicted'), message('new', big)];
+    const messages = [
+      message('old', 'this should get evicted'),
+      message('new', big),
+    ];
     const result = capMessages(messages);
     expect(result.map((m) => m.id)).toEqual(['new']);
   });

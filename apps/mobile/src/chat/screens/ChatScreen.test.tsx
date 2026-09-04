@@ -120,7 +120,10 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'colours?');
+    await userEvent.type(
+      s.getByPlaceholderText("What's on your mind?"),
+      'colours?',
+    );
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/Blue, green/)).toBeTruthy();
@@ -135,7 +138,10 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hello');
+    await userEvent.type(
+      s.getByPlaceholderText("What's on your mind?"),
+      'hello',
+    );
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate).toHaveBeenCalledWith(
@@ -159,7 +165,10 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'find a recipe');
+    await userEvent.type(
+      s.getByPlaceholderText("What's on your mind?"),
+      'find a recipe',
+    );
     await userEvent.press(s.getByLabelText('Send'));
 
     // The receipt (task 7.5) is the connector name alone, next to the
@@ -185,7 +194,10 @@ describe('ChatScreen', () => {
     });
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'find a recipe');
+    await userEvent.type(
+      s.getByPlaceholderText("What's on your mind?"),
+      'find a recipe',
+    );
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.getByText(/hasn't been granted access/)).toBeTruthy();
@@ -195,7 +207,10 @@ describe('ChatScreen', () => {
     const { view } = renderChat();
     const s = await view;
 
-    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hello');
+    await userEvent.type(
+      s.getByPlaceholderText("What's on your mind?"),
+      'hello',
+    );
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(s.queryByLabelText(/Answered using/)).toBeNull();
@@ -212,7 +227,10 @@ describe('ChatScreen', () => {
     const s = await view;
 
     await userEvent.press(s.getByLabelText('Fix grammar mode'));
-    await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'their going');
+    await userEvent.type(
+      s.getByPlaceholderText("What's on your mind?"),
+      'their going',
+    );
     await userEvent.press(s.getByLabelText('Send'));
 
     expect(generate.mock.calls[0]![0].connectorMode).toBe('off');
@@ -273,7 +291,10 @@ describe('ChatScreen', () => {
       });
       const s = await view;
 
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'hi',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[0]![0];
@@ -288,7 +309,10 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'their going');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'their going',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages, temperature } = generate.mock.calls[0]![0];
@@ -310,7 +334,10 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Brainstorm mode'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'names');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'names',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const { temperature } = generate.mock.calls[0]![0];
@@ -336,9 +363,15 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'one');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'one',
+      );
       await userEvent.press(s.getByLabelText('Send'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'two');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'two',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const second = generate.mock.calls[1]![0];
@@ -358,9 +391,15 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'first');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'first',
+      );
       await userEvent.press(s.getByLabelText('Send'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'second');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'second',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[1]![0];
@@ -379,9 +418,15 @@ describe('ChatScreen', () => {
       });
       const s = await view;
 
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'first');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'first',
+      );
       await userEvent.press(s.getByLabelText('Send'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'second');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'second',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const { messages } = generate.mock.calls[1]![0];
@@ -435,11 +480,17 @@ describe('ChatScreen', () => {
       const s = await view;
 
       await userEvent.press(s.getByLabelText('Fix grammar mode'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'one');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'one',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       await userEvent.press(s.getByLabelText('Chat mode'));
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'two');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'two',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       const second = generate.mock.calls[1]![0];
@@ -488,7 +539,10 @@ describe('ChatScreen', () => {
       });
       const s = await view;
 
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'hi',
+      );
       await userEvent.press(s.getByLabelText('Send'));
 
       expect(mockSaveHistory).toHaveBeenCalledWith(
@@ -508,7 +562,10 @@ describe('ChatScreen', () => {
       const { view } = renderChat();
       const s = await view;
 
-      await userEvent.type(s.getByPlaceholderText("What's on your mind?"), 'hi');
+      await userEvent.type(
+        s.getByPlaceholderText("What's on your mind?"),
+        'hi',
+      );
       await userEvent.press(s.getByLabelText('Send'));
       await s.findByText('ok');
 
@@ -519,7 +576,9 @@ describe('ChatScreen', () => {
       const persistedSettled = mockSaveHistory.mock.calls.some((call) =>
         (call[0] as Message[]).some(
           (m) =>
-            m.role === 'assistant' && m.content === 'ok' && m.streaming === false,
+            m.role === 'assistant' &&
+            m.content === 'ok' &&
+            m.streaming === false,
         ),
       );
       expect(persistedSettled).toBe(true);

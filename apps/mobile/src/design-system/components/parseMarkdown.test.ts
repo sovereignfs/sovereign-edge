@@ -97,7 +97,7 @@ describe('parseBlocks', () => {
   it('handles a realistic mixed reply', () => {
     const text =
       '**Historical Significance:**\n\n' +
-      "* **World War II Legacy:** Berlin was heavily damaged.\n" +
+      '* **World War II Legacy:** Berlin was heavily damaged.\n' +
       '* **German Division:** The city was divided.';
     expect(parseBlocks(text)).toEqual([
       { kind: 'paragraph', text: '**Historical Significance:**' },

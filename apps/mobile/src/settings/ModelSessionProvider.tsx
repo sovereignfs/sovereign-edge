@@ -380,7 +380,10 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
         // "this is a conversation, not a transform" signal, and 'off' is its
         // default for exactly that reason.
         if (connectorMode !== 'off') {
-          const manifests = connectorsForMode(installedConnectors(), connectorMode);
+          const manifests = connectorsForMode(
+            installedConnectors(),
+            connectorMode,
+          );
           return await generateWithConnectors(engine, manifests, {
             messages,
             onToken,

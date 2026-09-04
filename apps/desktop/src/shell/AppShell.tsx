@@ -151,8 +151,12 @@ export function AppShell() {
                   fontFamily: theme.fontFamily.body,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  background: active ? theme.colors.accentSubtle : 'transparent',
-                  color: active ? theme.colors.accent : theme.colors.textPrimary,
+                  background: active
+                    ? theme.colors.accentSubtle
+                    : 'transparent',
+                  color: active
+                    ? theme.colors.accent
+                    : theme.colors.textPrimary,
                   fontWeight: active
                     ? theme.fontWeight.semibold
                     : theme.fontWeight.regular,

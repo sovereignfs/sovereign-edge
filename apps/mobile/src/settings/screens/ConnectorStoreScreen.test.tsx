@@ -177,9 +177,7 @@ describe('ConnectorStoreScreen', () => {
       ok: true,
       connectors: [entry()],
     });
-    mockReadInstalledConnectors.mockReturnValue([
-      entry().manifest as never,
-    ]);
+    mockReadInstalledConnectors.mockReturnValue([entry().manifest as never]);
     const s = await renderScreen();
     expect(await s.findByText(/Installed/)).toBeTruthy();
     await userEvent.press(await s.findByText('Open-Meteo Forecast'));

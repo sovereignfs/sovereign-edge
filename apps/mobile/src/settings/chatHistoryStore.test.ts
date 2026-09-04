@@ -1,4 +1,7 @@
-import { MESSAGE_HISTORY_CHAR_BUDGET, type Message } from '@/chat/session/messages';
+import {
+  MESSAGE_HISTORY_CHAR_BUDGET,
+  type Message,
+} from '@/chat/session/messages';
 
 import { readHistory, writeHistory } from './chatHistoryStore';
 
@@ -64,7 +67,9 @@ describe('readHistory / writeHistory', () => {
   // A message frozen mid-generation by the app being killed shouldn't show
   // a permanent streaming cursor the next time the thread loads.
   it('clears a stale streaming flag on read', () => {
-    writeHistory([{ id: '1', role: 'assistant', content: 'partial', streaming: true }]);
+    writeHistory([
+      { id: '1', role: 'assistant', content: 'partial', streaming: true },
+    ]);
     expect(readHistory()).toEqual([
       { id: '1', role: 'assistant', content: 'partial', streaming: false },
     ]);

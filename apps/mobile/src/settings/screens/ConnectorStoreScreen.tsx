@@ -48,9 +48,7 @@ export function ConnectorStoreScreen() {
   // this screen just never looked again.
   useFocusEffect(
     useCallback(() => {
-      setInstalledIds(
-        new Set(readInstalledConnectors().map((m) => m.id)),
-      );
+      setInstalledIds(new Set(readInstalledConnectors().map((m) => m.id)));
     }, []),
   );
 

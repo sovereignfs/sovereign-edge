@@ -17,7 +17,11 @@ function manifest(id: string): ConnectorManifest {
     summary: 'x',
     tier: 1,
     platforms: ['ios', 'android'],
-    tool: { name: 'x', description: 'x', parameters: { type: 'object', properties: {} } },
+    tool: {
+      name: 'x',
+      description: 'x',
+      parameters: { type: 'object', properties: {} },
+    },
     permissions: { network: { origins: ['https://example.com'] } },
     request: { method: 'GET', origin: 'https://example.com', path: [] },
     response: { textFrom: 'x', maxBytes: 1000 },
