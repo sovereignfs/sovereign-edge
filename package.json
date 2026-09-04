@@ -1,8 +1,8 @@
 {
   "name": "sovereign-edge",
-  "version": "0.2.1",
+  "version": "0.2.12",
   "private": true,
-  "description": "Sovereign Edge — a privacy-first, fully offline on-device AI companion. Workspace root: apps/mobile (shipping), apps/desktop (Tauri v2, epic 12 not started), packages/* (shared, unpublished).",
+  "description": "Sovereign Edge — a privacy-first, fully offline on-device AI companion. Workspace root: apps/mobile (shipping), apps/desktop (Tauri v2, shipping — v0.1.5 published), packages/* (shared, unpublished, except connector-sdk).",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "start": "pnpm --filter mobile start",

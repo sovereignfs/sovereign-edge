@@ -15,36 +15,39 @@ concrete implementation of.
 
 ## State of play
 
-Accurate as of version 0.1.19. **[ROADMAP.md](../../ROADMAP.md) is
+Accurate as of version 0.2.12. **[ROADMAP.md](../../ROADMAP.md) is
 canonical** — if this section disagrees with it, this section is stale.
 
 **Done.** The offline core is complete (epic 1, tasks 1.1–1.6): on-device
 inference, model catalog with download/verify/switch, streaming chat UI,
 writing-assist modes, model-choice persistence, and zero-network enforcement.
-Design system (7.1–7.2) and app shell (8.1) are done. The Connector
-Framework's Tier 1 shape is fully built and proven end to end — manifest
-schema, permission/consent model, tool-routing, runtime host, in-chat
-provenance (2.1–2.5) — with its first real connector shipped: Search,
-including the explicit Search mode (epic 3, 3.1–3.3). Native build tooling
-(0.3) is done too: declarative signing on both platforms via `app.json` and
-a config plugin, local release scripts, and a CI release workflow that's
-written but inert until secrets exist (see _Blocked_ below — this task
-turned out **not** to need a paid account).
+Design system (epic 7, 7.1–7.8 — including the warm cream/clay palette, the
+icon system, and the app icon/splash assets) and app shell (8.1) are done.
+The Connector Framework's Tier 1 shape is fully built and proven end to end
+— manifest schema, permission/consent model, tool-routing, runtime host,
+in-chat provenance (2.1–2.5) — with its first real connector shipped:
+Search, including the explicit Search mode (epic 3, 3.1–3.3). Tier 3
+scaffolding (2.6) landed after that, and both Tier 3 connectors built on it
+are done: **Calendar** (epic 10) and **Device Utilities** (epic 11 —
+brightness and torch). Phase 3's connector SDK, plugin template, public
+registry, and in-app Connector Store (5.1–5.5) and the entitlement model
+(6.1) are done too. Native build tooling (0.3) is done: declarative signing
+on both platforms via `app.json` and a config plugin, local release scripts,
+and a CI release workflow that's written but inert until secrets exist (see
+_Blocked_ below — this task turned out **not** to need a paid account).
 
-**Next**, in order (Phase 2): **2.6 — Tier 3 connector scaffolding.** Task
-2.4 reserved a `case 3` extension point for "native module dispatch" but
-never built it; the Tier 1 manifest schema hard-requires an HTTP origin, so
-there's currently no way to express a connector that calls an on-device OS
-API instead of `fetch`. This blocks the next two tasks: the **Calendar
-connector** (epic 10) and **Device Utilities connector** (epic 11,
-flashlight + brightness) — both Tier 3, both prioritized ahead of the
-previously-next Sovereign Tasks connector (epic 4). See research
+**Next**, in order (Phase 2): **4.1 — Sovereign Tasks connector**, then
+**4.2 — instance URL and API token setup flow**. After that, Phase 3's
+remaining open items are **5.6** (Tier 2 sandboxed script runtime) and
+**6.2** (mobile in-app purchase integration).
+
+For the Tier 3 background — why Calendar and Device Utilities were pulled
+ahead of the Sovereign Tasks connector in the first place — see research
 [0005](../../docs/research/0005-calendar-connector.md),
 [0008](../../docs/research/0008-health-step-count.md), and
-[0009](../../docs/research/0009-device-connector.md) for the findings behind
-this — including why Files/PDF summarization and text-to-speech, two other
-capabilities surveyed alongside these, turned out **not** to be connectors
-at all (research
+[0009](../../docs/research/0009-device-connector.md), including why
+Files/PDF summarization and text-to-speech, two other capabilities surveyed
+alongside these, turned out **not** to be connectors at all (research
 [0006](../../docs/research/0006-files-document-summarization.md),
 [0007](../../docs/research/0007-text-to-speech.md)).
 
@@ -59,8 +62,10 @@ accounts, or enter payment details — those remain the developer's to do.
 Generating a local signing keystore, or building against an already-signed-in
 free team's certificates, is fine — task 0.3 already did both.
 
-**Groundwork already done for 2.3**, from
-[research 0004](../../docs/research/0004-connector-manifest-schema.md):
+**How 2.3's tool-routing gets its constrained output** (shipped; the
+mechanism, from
+[research 0004](../../docs/research/0004-connector-manifest-schema.md), is
+worth knowing before you touch it):
 `llama.rn` converts JSON Schema to a decoding grammar (`json_schema` on
 `completion`), so constrained tool-call output comes free from a manifest's
 `tool.parameters`. And `chatTemplates.jinja.defaultCaps.tools` reports

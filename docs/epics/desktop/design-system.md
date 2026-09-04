@@ -262,6 +262,24 @@ per-connector detail screen.
 
 #### ✅ 15.5 — Release assets: app icon + splash window
 
+> **The splash window described here no longer exists.** It shipped as
+> described, then was removed wholesale in `c13ddf1` — `public/
+> splashscreen.html`, the `splashscreen` window in `tauri.conf.json`, the
+> `show_main_window` command (with its `build.rs` `COMMANDS` entry and
+> `capabilities/default.json` permission), and `App.tsx`'s first-mount
+> `useEffect` are all gone, and `main` no longer starts `visible: false`.
+> The reason is the risk the last checklist item below flagged and could
+> not test here: the hand-off got stuck on the splash indefinitely on a
+> real Tauri runtime. Deleting it was judged simpler than debugging it,
+> and opening straight to the main window matches the reference product.
+> That commit also added the `core:window:allow-start-dragging` capability
+> the custom titlebar's drag region had always been missing.
+>
+> The task stays ✅ because both halves did ship and were reviewed; the
+> icon half is still live. Nothing here is a regression to fix — this note
+> exists so the deliverables below aren't read as a description of the
+> current code.
+
 **Goal:** Replace the stock Tauri template icon with the "one gate" mark,
 and add a real splash window covering the gap before the app's first paint.
 
@@ -328,7 +346,11 @@ independent of 7.4–7.7).
   own schema (`src-tauri/gen/schemas/*.json`), which `cargo check` already
   validates by deserializing it at build time. A real `pnpm tauri dev` /
   `pnpm tauri build` launch to watch the hand-off with your own eyes is the
-  one verification step this task couldn't do here.
+  one verification step this task couldn't do here. **This is exactly where
+  it broke** — that launch, once someone did it, showed the app stuck on the
+  splash; see the note under this task's heading. A worked example of why
+  "the Rust compiles and the config validates" is not the same claim as
+  "the window hand-off works."
 
 ## Related Docs
 

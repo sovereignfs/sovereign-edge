@@ -185,13 +185,15 @@ sovereign-edge/
 │   ├── mobile/          # the shipping product — see apps/mobile/AGENTS.md
 │   │   ├── src/          # chat, models, connectors, design-system, settings
 │   │   └── ...
-│   └── desktop/          # Tauri v2 app, epics 12 + 13 done — see apps/desktop/AGENTS.md
+│   └── desktop/          # Tauri v2, epics 12 + 13 + 15 done, v0.1.5 published
+│                          # — see apps/desktop/AGENTS.md
 ├── packages/             # internal, unpublished, shared between the apps
 │   ├── core/              # empty scaffold — connector manifest/permissions/
 │   │   ...                # routing, eventually extracted from apps/mobile
 │   ├── design-tokens/
-│   ├── mobile-ui/
-│   └── desktop-ui/
+│   ├── mobile-ui/         # empty scaffold, same as core/
+│   ├── desktop-ui/
+│   └── connector-sdk/     # the one package meant to be published (task 5.1)
 ├── docs/
 │   ├── epics/            # task breakdown per work stream, tagged by Scope
 │   └── research/          # decision records

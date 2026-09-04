@@ -29,18 +29,27 @@ sovereign-edge/
 ├── docs/                 canonical concept, epics, research (this file's own doc set)
 ├── apps/
 │   ├── mobile/            the shipping product — iOS + Android, Expo/React Native
-│   └── desktop/           epics 12 (Core Port) and 13 (App Shell) done
+│   └── desktop/           epics 12 (Core Port), 13 (App Shell), 15 (Design
+│                            System) done; v0.1.5 published
 └── packages/               internal, unpublished — no code here is meant for
-    ├── core/                external consumers
+    ├── core/                external consumers, except connector-sdk
     ├── design-tokens/
     ├── mobile-ui/
-    └── desktop-ui/
+    ├── desktop-ui/
+    └── connector-sdk/
 ```
 
-`packages/*` are currently empty scaffolds — see each one's own `README.md`
-for what it's waiting for. Nothing has been extracted out of `apps/mobile`
-into them yet; that's a deliberate, separate step from standing up the
-workspace shape itself.
+`packages/*` are a mix — check the one you're touching rather than assuming:
+
+- **Real, with code**: `design-tokens` (the shared token source of truth,
+  task 7.3), `desktop-ui` (epic 12.6's component set, grown since), and
+  `connector-sdk` — the one deliberate exception to "unpublished", versioned
+  and packaged for third-party connector authors (task 5.1), though not
+  actually pushed to npm yet.
+- **Still empty scaffolds**: `core` and `mobile-ui` — see each one's own
+  `README.md` for what it's waiting for. Nothing has been extracted out of
+  `apps/mobile` into them yet; that's a deliberate, separate step from
+  standing up the workspace shape itself.
 
 ## Source of truth
 
@@ -90,10 +99,13 @@ overturned a design that looked obviously correct on paper.
   modes, and a chat UI exercising all of it. Epic 13 (Desktop App Shell —
   `docs/epics/desktop/app-shell.md`) is also done: real navigation, a model
   manager screen, a connectors/permissions screen, and general settings,
-  extracted from what task 12.7's chat screen used to do inline. Epic 14
+  extracted from what task 12.7's chat screen used to do inline. Epic 15
+  (Desktop Design System — `docs/epics/desktop/design-system.md`) is done as
+  well: the warm cream/clay palette, icon system, and per-screen passes
+  mirroring mobile's epic 7. Epic 14
   (Distribution & Signing) is in progress — real installer artifacts and an
   update mechanism are done (`v0.1.5` published), code signing (14.2) is
-  still open pending an Apple Developer ID. Neither 12/13 nor 14 is scheduled
+  still open pending an Apple Developer ID. Neither 12/13/15 nor 14 is scheduled
   into a numbered `ROADMAP.md` phase; see `ROADMAP.md`'s own "Desktop"
   section for the authoritative task-by-task status.
 

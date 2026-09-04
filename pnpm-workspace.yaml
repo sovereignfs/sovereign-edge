@@ -1,5 +1,6 @@
-# Workspace member globs. `apps/*` are shippable products (mobile today;
-# desktop is Tauri v2, epic 9, but only has scaffolding so far — epic 12);
+# Workspace member globs. `apps/*` are shippable products (mobile, plus
+# desktop — Tauri v2 per epic 9, with epics 12/13/15 done and v0.1.5
+# published);
 # `packages/*` are internal, unpublished libraries shared between them —
 # nothing here is meant to be installed from outside this repo, with one
 # deliberate exception: `packages/connector-sdk` (task 5.1) is versioned
