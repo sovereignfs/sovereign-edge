@@ -2,7 +2,7 @@
  * Manager behaviour. Names are `mock`-prefixed because Jest hoists
  * `jest.mock()` factories above the surrounding declarations.
  */
-import { CURATED_MODELS } from './catalog';
+import { listChatModels, listEmbeddingModels } from './catalog';
 import { ModelManager, type LoadedModelHandle } from './manager';
 
 const mockInstalled = new Set<string>();
@@ -54,14 +54,35 @@ describe('ModelManager', () => {
   });
 
   describe('list', () => {
-    it('annotates every catalog entry with install state and fit', () => {
+    it('annotates every chat catalog entry with install state and fit', () => {
       mockInstalled.add(SMALL);
       const list = new ModelManager().list();
 
-      expect(list).toHaveLength(CURATED_MODELS.length);
+      expect(list).toHaveLength(listChatModels().length);
       expect(list.find((m) => m.id === SMALL)?.installed).toBe(true);
       expect(list.find((m) => m.id === LARGE)?.installed).toBe(false);
       expect(list.every((m) => typeof m.fit.note === 'string')).toBe(true);
+    });
+
+    it('omits embedding models — they are not something the user chats with', () => {
+      // Task 16.1. The knowledge base's embedding model shares the catalog
+      // with the chat models, and this method feeds the model manager screen
+      // and the active-model picker; an embedding model reaching either would
+      // let the user select a model that cannot generate text at all.
+      const list = new ModelManager().list();
+      const embeddingIds = listEmbeddingModels().map((e) => e.id);
+
+      expect(embeddingIds).not.toHaveLength(0);
+      for (const id of embeddingIds) {
+        expect(list.find((m) => m.id === id)).toBeUndefined();
+      }
+    });
+
+    it('exposes embedding models separately, annotated the same way', () => {
+      const embedding = new ModelManager().listEmbedding();
+
+      expect(embedding).toHaveLength(listEmbeddingModels().length);
+      expect(embedding.every((m) => typeof m.fit.note === 'string')).toBe(true);
     });
 
     it('rates a small model better than a large one on the same device', () => {

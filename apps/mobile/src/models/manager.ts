@@ -1,4 +1,9 @@
-import { CURATED_MODELS, findInCatalog, type CatalogEntry } from './catalog';
+import {
+  findInCatalog,
+  listChatModels,
+  listEmbeddingModels,
+  type CatalogEntry,
+} from './catalog';
 import { fitForDevice, type FitAssessment } from './device';
 import { downloadModel, type DownloadModelOptions } from './download';
 import {
@@ -48,9 +53,26 @@ export class ModelManager {
     this.engine = options.engine;
   }
 
-  /** The catalog, annotated for this device. */
+  /**
+   * The chat catalog, annotated for this device.
+   *
+   * Embedding models (epic 16) are excluded: they are infrastructure for the
+   * knowledge base, not something the user chooses to talk to, and every
+   * caller of this method — the model manager screen, the active-model
+   * picker, `ModelSessionProvider`'s "what is installed" checks — means chat
+   * models when it says models.
+   */
   list(): ManagedModel[] {
-    return CURATED_MODELS.map((entry) => ({
+    return listChatModels().map((entry) => ({
+      ...entry,
+      installed: isInstalled(entry.id),
+      fit: fitForDevice(entry),
+    }));
+  }
+
+  /** The embedding catalog, annotated the same way (epic task 16.1). */
+  listEmbedding(): ManagedModel[] {
+    return listEmbeddingModels().map((entry) => ({
       ...entry,
       installed: isInstalled(entry.id),
       fit: fitForDevice(entry),

@@ -21,6 +21,17 @@ export type CatalogEntry = ModelDescriptor & {
   parametersB: number;
   /** One line on what this model is good for. */
   summary: string;
+  /**
+   * What the model is *for* (epic task 16.1).
+   *
+   * Absent means `'chat'`, so every pre-existing entry keeps its meaning
+   * without being touched. `'embedding'` entries produce vectors, not text:
+   * they are infrastructure for the knowledge base (epic 16), never
+   * something the user picks to talk to, and `ModelManager.list()` filters
+   * them out of the model manager for exactly that reason. Reach them
+   * through `listEmbeddingModels()` instead.
+   */
+  kind?: 'chat' | 'embedding';
 };
 
 /**
@@ -148,7 +159,77 @@ export const CURATED_MODELS: CatalogEntry[] = [
     sizeBytes: 5_154_941_280,
     sha256: '676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee',
   },
+
+  // ---------------------------------------------------------------------
+  // Embedding models (epic 16, task 16.1).
+  //
+  // Not chat models. `ModelManager.list()` filters these out, so they never
+  // appear in the model manager; they exist to be fetched and measured, and
+  // later to back the knowledge base's index.
+  //
+  // Both entries below are the **spike set**, not a committed choice. Task
+  // 16.1 measures them on a real device — peak memory with one of these
+  // resident *alongside* a chat model is the number that decides whether
+  // epic 16 is viable in its current shape at all — and the loser is
+  // deleted when it concludes. See research 0012.
+  //
+  // Both are F16/Q8 rather than Q4_K_M, which is a deliberate break from
+  // every chat entry above. Quantisation noise costs an embedding model
+  // more than it costs a generator: a chat model quantised too hard writes
+  // slightly worse prose, while an embedding model quantised too hard
+  // returns subtly wrong neighbours, which is invisible at the point of
+  // failure and corrupts retrieval quality everywhere downstream. These
+  // models are small enough that the higher precision is affordable —
+  // bge-small at F16 is still only 67 MB.
+  {
+    id: 'bge-small-en-v1.5-f16',
+    name: 'BGE Small EN v1.5',
+    parameters: '33M',
+    parametersB: 0.033,
+    quantization: 'F16',
+    kind: 'embedding',
+    summary: 'Smallest embedding option — 384-dim vectors, English only.',
+    // Third-party conversion: BAAI publishes the model, not this GGUF. A
+    // weaker provenance claim than the entry below, where the model's own
+    // author publishes the GGUF, and part of what 16.1 is weighing.
+    url: 'https://huggingface.co/ChristianAzinn/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5_fp16.gguf',
+    sizeBytes: 67_308_128,
+    sha256: 'f0b2fef971e8366438bfd2d9aefea1b0115919389448806d290237f638bae999',
+  },
+  {
+    id: 'nomic-embed-text-v1.5-q8',
+    name: 'Nomic Embed Text v1.5',
+    parameters: '137M',
+    parametersB: 0.137,
+    quantization: 'Q8_0',
+    kind: 'embedding',
+    summary: 'Longer context and stronger retrieval — 768-dim vectors.',
+    // First-party GGUF, published by the model's own author, and Apache-2.0.
+    // Its 8192-token input window is the substantive advantage over
+    // bge-small's 512: it leaves chunk size a design choice in task 16.4
+    // rather than a constraint imposed by the embedder.
+    url: 'https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q8_0.gguf',
+    sizeBytes: 146_146_432,
+    sha256: '3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7',
+  },
 ];
+
+/**
+ * The embedding models, for the knowledge base (epic 16).
+ *
+ * Kept separate from `CURATED_MODELS` at the point of use rather than in a
+ * second array: one catalog means one place where an id, URL, size, and
+ * digest live, and `findInCatalog` keeps working for both kinds — the model
+ * store and its verification path do not care what a model is for.
+ */
+export function listEmbeddingModels(): CatalogEntry[] {
+  return CURATED_MODELS.filter((entry) => entry.kind === 'embedding');
+}
+
+/** The chat models — everything the model manager should actually offer. */
+export function listChatModels(): CatalogEntry[] {
+  return CURATED_MODELS.filter((entry) => entry.kind !== 'embedding');
+}
 
 export function findInCatalog(id: string): CatalogEntry | undefined {
   return CURATED_MODELS.find((entry) => entry.id === id);
