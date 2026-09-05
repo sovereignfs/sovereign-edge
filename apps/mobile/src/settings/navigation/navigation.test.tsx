@@ -52,6 +52,19 @@ describe('RootNavigator', () => {
     expect(s.getByText('No connectors are set up.')).toBeTruthy();
   });
 
+  it('reaches the dev-only embedding spike from settings (task 16.1)', async () => {
+    // Both the row and the route are `__DEV__`-gated, and Jest runs with
+    // `__DEV__` true — so this asserts the wiring holds in the builds where
+    // the screen is meant to exist. It says nothing about release builds,
+    // where the guard is the point and the route is absent by construction.
+    const s = await renderApp();
+    await userEvent.press(s.getByLabelText('Settings tab'));
+    await userEvent.press(s.getByText('Embedding Spike'));
+    // A candidate row, not a section heading: this asserts the screen reached
+    // the catalog and rendered a model the model manager deliberately hides.
+    expect(s.getByText('BGE Small EN v1.5')).toBeTruthy();
+  });
+
   it('reaches Search setup from connector settings (task 3.1)', async () => {
     // Three hops: the row most likely to be wired up but orphaned once a
     // second screen sits behind Connectors.

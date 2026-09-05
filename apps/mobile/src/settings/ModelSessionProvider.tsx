@@ -27,6 +27,7 @@ import { readInstalledConnectors } from '@/connectors/store/installed';
 import {
   ModelError,
   ModelManager,
+  findInCatalog,
   type DownloadPhase,
   type ManagedModel,
 } from '@/models';
@@ -234,6 +235,13 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
 
   const activate = useCallback(
     async (id: string) => {
+      // `manager.list()` is chat models only, and that is load-bearing here,
+      // not incidental: it is what stops an embedding model (epic 16) from
+      // being loaded into the chat engine, where it would occupy the slot
+      // while being unable to generate a single token. Resolving the entry
+      // through `findInCatalog` instead would compile, pass every existing
+      // test, and quietly reintroduce that — see this file's test for the
+      // install path that would trip it.
       const entry = manager.list().find((m) => m.id === id);
       if (!entry) return;
 
@@ -312,8 +320,13 @@ export function ModelSessionProvider({ children }: { children: ReactNode }) {
         refresh();
         // Getting to a usable chat is the point of pressing download, so load
         // it straight away — but never steal the engine from a model the user
-        // is already talking to.
-        if (manager.activeModelId === null) await activate(id);
+        // is already talking to, and never auto-load an embedding model
+        // (epic 16), which cannot generate text at all. `activate` would
+        // already decline that one, since it resolves through the chat-only
+        // `manager.list()`, but relying on a silent no-op two functions away
+        // to enforce it here reads as an accident rather than a rule.
+        const isChatModel = findInCatalog(id)?.kind !== 'embedding';
+        if (isChatModel && manager.activeModelId === null) await activate(id);
       } catch (error) {
         const cancelled =
           error instanceof ModelError && error.code === 'cancelled';
