@@ -24,6 +24,66 @@ export const DEFAULT_CONTEXT_SIZE = 2048;
 /** `GenerateOptions.maxTokens`'s own default — see `DEFAULT_CONTEXT_SIZE`. */
 export const DEFAULT_MAX_TOKENS = 512;
 
+/**
+ * Context window for an embedding model (epic task 16.1).
+ *
+ * Smaller than `DEFAULT_CONTEXT_SIZE` on purpose: an embedding context only
+ * ever sees one chunk at a time, and this context is expected to be resident
+ * *alongside* a chat model, where every megabyte is one the chat model does
+ * not get. 512 is also the hard input limit of the smaller candidate
+ * (bge-small-en-v1.5), so a larger window would be wasted on it regardless.
+ */
+export const DEFAULT_EMBEDDING_CONTEXT_SIZE = 512;
+
+/**
+ * Pooling strategy for the embedding context.
+ *
+ * `llama.rn`'s public `ContextParams` deliberately omits the native numeric
+ * `pooling_type` and re-declares it as this string union
+ * (`'none' | 'mean' | 'cls' | 'last' | 'rank'`), mapping it to `llama.cpp`'s
+ * enum itself — so the string is the correct thing to pass, not the number
+ * the native types use.
+ *
+ * Mean pooling is what the BERT-family embedding models this epic targets
+ * were trained with. Getting it wrong yields vectors that are confidently
+ * wrong rather than obviously broken — retrieval degrades quietly instead of
+ * failing — which is why it is pinned here rather than left to a default.
+ */
+export const EMBEDDING_POOLING_TYPE = 'mean' as const;
+
+export type LoadEmbeddingOptions = {
+  /** Absolute path to an embedding GGUF already on disk. */
+  modelPath: string;
+  /** Defaults to `DEFAULT_EMBEDDING_CONTEXT_SIZE`. */
+  contextSize?: number;
+  /**
+   * Try to use the GPU. Defaults to `false`, unlike `LoadOptions` — the chat
+   * model is the one that benefits from the GPU, and an embedding context
+   * competing with it for the same VRAM is the specific pressure task 16.1
+   * has to measure before this default is worth revisiting.
+   */
+  useGpu?: boolean;
+};
+
+export type EmbeddingResult = {
+  /** The vector. Length is the model's embedding dimension. */
+  vector: number[];
+  /** How many milliseconds the embed call took, for the 16.1 spike. */
+  elapsedMs: number;
+};
+
+/** What loaded, for an embedding context. */
+export type EmbeddingEngineInfo = {
+  gpu: boolean;
+  contextSize: number;
+  /**
+   * Embedding dimension, read from the loaded model rather than assumed from
+   * its name — the number every stored vector's length must match, and the
+   * thing that silently invalidates an existing index if the model changes.
+   */
+  dimensions: number;
+};
+
 export type LoadOptions = {
   /** Absolute path to a GGUF file already on disk. */
   modelPath: string;
@@ -121,7 +181,13 @@ export type InferenceErrorCode =
   /** The engine ran out of memory — the common failure on real devices. */
   | 'out-of-memory'
   /** Generation itself failed. */
-  | 'generation-failed';
+  | 'generation-failed'
+  /**
+   * Embedding failed, or was attempted with no embedding model loaded
+   * (task 16.1). Distinct from `generation-failed` because the two run on
+   * separate contexts: one can be loaded and working while the other is not.
+   */
+  | 'embedding-failed';
 
 export class InferenceError extends Error {
   readonly code: InferenceErrorCode;

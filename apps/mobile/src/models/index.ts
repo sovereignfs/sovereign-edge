@@ -1,4 +1,10 @@
-export { CURATED_MODELS, findInCatalog, type CatalogEntry } from './catalog';
+export {
+  CURATED_MODELS,
+  findInCatalog,
+  listChatModels,
+  listEmbeddingModels,
+  type CatalogEntry,
+} from './catalog';
 export {
   estimatePeakBytes,
   fitForDevice,
