@@ -42,6 +42,7 @@ file lives in; only the path changes.
 | 8   | [Mobile App Shell](mobile/mobile-app-shell.md)                        | ⏳ In Progress  | The React Native app itself — iOS + Android, not a WebView wrapper               |
 | 10  | [Calendar Connector](mobile/calendar-connector.md)                    | ⏳ In Progress  | First Tier 3 connector — create/update/delete/query the device's own calendar; mobile + desktop (macOS only) done, Windows/Linux desktop scoped as a fast-follow (10.3) |
 | 11  | [Device Connector](mobile/device-connector.md)                        | ✅ Complete     | Tier 3 connector — app-window brightness (11.1) and flashlight (11.2) both done, both verified on a real physical device |
+| 16  | [Knowledge Base](mobile/knowledge-base.md)                            | 📋 Planned      | Opt-in on-device knowledge base — archives conversations, accepts user content, retrieval folded into the offline pipeline; no connector, no network (research 0012). A remote knowledge base is a deferred second phase |
 
 ## Desktop
 
@@ -51,6 +52,7 @@ file lives in; only the path changes.
 | 12  | [Desktop Core Port](desktop/core-port.md)   | ✅ Done | Secondary, optional desktop client on Tauri — on-device inference, connector framework, grammar-constrained tool-calling, minimal offline chat UI, writing-assist modes (12.1–12.7, 12.7a, 12.8) |
 | 13  | [Desktop App Shell](desktop/app-shell.md)   | ✅ Done | Real navigation, model manager, connectors/permissions, and settings screens — extracted from task 12.7's single chat screen |
 | 14  | [Desktop Distribution & Signing](desktop/distribution.md) | ⏳ In Progress | Real signed/notarized installer artifacts and a self-update mechanism — no app store to piggyback on; 14.1/14.3/14.4 done — real macOS/Windows/Linux releases via CI, `v0.1.5` published, update mechanism live; only 14.2 (code signing) remains, skipped for now |
+| 15  | [Design System & Branding (Desktop)](desktop/design-system.md) | ✅ Complete | The desktop counterpart to epic 7 — warm cream/clay palette, icon system, and per-screen passes (15.1–15.5); 15.5's splash window was later removed, see that task's own note |
 
 ## Shared
 

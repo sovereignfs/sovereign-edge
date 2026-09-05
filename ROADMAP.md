@@ -72,6 +72,28 @@ connector-management UI. Still first-party only.
 | 0.2.10  | Settings segmented control + Connectors restructure | ✅ | Mobile | [7.7](docs/epics/mobile/design-system.md#-77--settings-segmented-control--connectors-restructure)            |
 | 0.2.11  | Release assets: app icon + splash screen | ✅    | Mobile | [7.8](docs/epics/mobile/design-system.md#-78--release-assets-app-icon--splash-screen)                           |
 
+#### Knowledge base (epic 16)
+
+Prioritised ahead of the Sovereign Tasks connector (0.2.4/0.2.5) on the
+developer's explicit direction — the same reprioritisation epics 10 and 11
+received before it. Decided in
+[research 0012](docs/research/0012-knowledge-base-and-retrieval.md): on-device
+first, a remote knowledge base deferred to a second phase. **16.1 gates the
+rest** — if a second resident context turns out not to be viable on a
+mid-range Android device, this whole sequence changes shape.
+
+| Version | Task                                     | Status | Scope  | Epic task                                                                          |
+| ------- | ------------------------------------------ | ------ | ------ | ------------------------------------------------------------------------------------- |
+| 0.2.13  | Embedding model spike and catalog entry  | 📋     | Mobile | [16.1](docs/epics/mobile/knowledge-base.md#-161--embedding-model-spike-and-catalog-entry) |
+| 0.2.14  | Settings: opt-in, status, and purge      | 📋     | Mobile | [16.3](docs/epics/mobile/knowledge-base.md#-163--settings-opt-in-status-and-purge)     |
+| 0.2.15  | Conversation archive store               | 📋     | Mobile | [16.2](docs/epics/mobile/knowledge-base.md#-162--conversation-archive-store)           |
+| 0.2.16  | Chunking and the index                   | 📋     | Mobile | [16.4](docs/epics/mobile/knowledge-base.md#-164--chunking-and-the-index)               |
+| 0.2.17  | Retrieval and context injection          | 📋     | Mobile | [16.5](docs/epics/mobile/knowledge-base.md#-165--retrieval-and-context-injection)      |
+| 0.2.18  | In-chat retrieval provenance             | 📋     | Mobile | [16.6](docs/epics/mobile/knowledge-base.md#-166--in-chat-retrieval-provenance)         |
+| 0.2.19  | User content: plain text and markdown    | 📋     | Mobile | [16.7](docs/epics/mobile/knowledge-base.md#-167--user-content-plain-text-and-markdown) |
+| 0.2.20  | PDF text-layer extraction                | 📋     | Mobile | [16.8](docs/epics/mobile/knowledge-base.md#-168--pdf-text-layer-extraction)            |
+| —       | Desktop port                             | 📋     | Desktop | [16.9](docs/epics/mobile/knowledge-base.md#-169--desktop-port)                        |
+
 ---
 
 ### Phase 3 — Open connector ecosystem

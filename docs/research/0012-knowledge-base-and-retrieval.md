@@ -1,7 +1,7 @@
 ---
 id: 12
 title: "Knowledge base and retrieval: where the corpus lives, and what that decides"
-status: "Open — options laid out, corpus location still a product decision"
+status: "Decided — option A (on-device) first, remote deferred to a second phase"
 date: "September 2026"
 author: "Claude Code (session with the developer)"
 scope: shared
@@ -185,21 +185,73 @@ generator, and the work is what finally makes it usable.
 
 ## Decisions
 
-None yet — this doc exists to make the fork explicit before an epic is
-written against a guess. What *is* settled, and should not be relitigated
-when the decision is made:
+**Option A — the on-device knowledge base — is the direction, with a remote
+knowledge base deferred to a second phase (options B/C, unchanged above).**
+Decided by the developer, September 2026. Scope added at the same time, and
+detailed in [epic 16](../epics/mobile/knowledge-base.md):
+
+- The knowledge base is **opt-in**, off by default.
+- When on, it **archives the user's conversations** so they can be retrieved
+  later — see "Conversations are a corpus the app currently destroys" below,
+  which is why this is not a small addition.
+- The user can **add and update their own content**, per 0006's staging:
+  plain text and markdown first, PDF text-layer as a fast-follow.
+
+Also settled, and not to be relitigated:
 
 - A device-local corpus is a chat feature, not a connector (research 0006's
   reasoning, applied at corpus scale).
 - Any remote corpus goes through the connector layer, separately revocable
-  (hard rule 2).
+  (hard rule 2). This still governs the second phase.
 - No part of a local index lives in `src/chat/`; it follows
   `chatHistoryStore`'s inversion through `ChatSessionContext`.
 
+## Conversations are a corpus the app currently destroys
+
+Recorded after the decision above, because it changes the shape of the work
+and was not anticipated when the options were drafted.
+
+The app persists exactly **one** conversation thread — `history.json`, via
+`apps/mobile/src/settings/chatHistoryStore.ts`, whose own header calls it
+"the one persisted conversation thread." There is no multi-conversation
+concept anywhere in either app.
+
+More importantly, that thread is **destructively capped on write**, not just
+on read. `ChatScreen.tsx` calls `session.saveHistory(capMessages([...]))` on
+every turn, and `capMessages` slices messages off the front once the
+character budget is exceeded. The oldest messages are therefore deleted from
+disk as a conversation grows. This is correct for what the file is — a
+working buffer sized to the next request's context window — and its own
+comment says so: capped on write "so the list this turn's own request is
+built from never grows unbounded."
+
+Two consequences:
+
+1. **The archive must be a second, separate store.** Append-only, uncapped,
+   and distinct from `history.json`, which keeps its current behaviour
+   untouched. The two have genuinely different jobs — one feeds the next
+   request, the other feeds retrieval — and merging them would either
+   blow out the request context or keep destroying the archive.
+2. **Opting in cannot recover the past.** Everything `capMessages` has
+   already dropped is gone. The archive starts at the moment of opt-in, and
+   the UI should say so rather than implying a retroactive history.
+
+**Desktop persists no chat at all** — nothing in `apps/desktop/src/chat/`
+writes history, so conversations there vanish on quit. Desktop is therefore
+a larger lift than a port of the mobile work, and is sequenced after it.
+
+### Indexing the model's own output
+
+If assistant replies are archived and later retrieved, the model's mistakes
+become retrievable "knowledge" and can be recycled into future answers. This
+is a real failure mode, not a hypothetical, and it argues for: tagging every
+chunk with its role at archive time, keeping user-authored content
+preferred at retrieval, and showing retrieval provenance in-chat the way
+task 2.5 already does for connectors. Whether assistant-authored content
+should be retrievable *at all* by default is left open below.
+
 ## Open questions
 
-- **Where does the corpus live?** The fork above. Everything else waits on
-  it.
 - **Which embedding model** — dimension, quantization, and whether a second
   resident context alongside a 1–4B chat model is viable on a mid-range
   Android device. Needs measurement, not a spec-sheet comparison; research
@@ -217,13 +269,23 @@ when the decision is made:
 - **Android PDF text extraction** — still 0006's open spike, still
   unanswered, and still a prerequisite for option A's second stage only (not
   its first).
+- **Should assistant-authored content be retrievable by default?** Archiving
+  both roles is necessary — half a conversation is not a conversation — but
+  retrieving the model's own past output risks recycling its mistakes. Role
+  tagging is the mechanism; the default is a product call.
+- **When does embedding happen?** Embedding each turn as it arrives means an
+  embedding context resident for the whole session, on top of the chat
+  model. Batching instead (on opening the knowledge-base screen, or an
+  explicit "index now") keeps archive writes cheap and confines the second
+  context to a bounded window. Prefer batching until measurement says
+  otherwise; this interacts directly with the model-choice spike above.
 
 ## Next steps
 
-1. Answer the corpus-location fork — it is a product decision, not a
-   technical one.
-2. Whichever branch: spike the embedding model choice on real hardware
-   before writing an epic. On-device measurement is the gate here, per this
-   repo's own verification convention.
-3. Only then write the epic — A against the chat/design-system epics, B or C
-   against the Connector Framework.
+Superseded by [epic 16](../epics/mobile/knowledge-base.md), which carries the
+task breakdown. The gating item is unchanged and is that epic's first task:
+**spike the embedding model on real hardware before building anything on top
+of it.** Its dimension and memory footprint decide whether a second resident
+context is viable at all on a mid-range Android device, and every later task
+assumes an answer. On-device measurement is the gate, per this repo's own
+verification convention and research 0003's precedent.
