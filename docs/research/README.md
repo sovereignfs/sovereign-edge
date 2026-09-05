@@ -35,3 +35,5 @@ so don't expect these to migrate the way an epic's scope can.
 | [0008](0008-health-step-count.md)                  | Health connector: why "step count" isn't HealthKit                        | Decided (redefine scope)   | Mobile  |
 | [0009](0009-device-connector.md)                   | Device connector: what's actually left after alarms drop out              | Decided                    | Mobile  |
 | [0010](0010-desktop-shell-technology.md)           | Desktop shell technology: Tauri vs. Electron vs. React Native desktop     | Decided                    | Desktop |
+| [0011](0011-desktop-calendar-connector.md)         | Desktop calendar connector: platform fit across macOS, Windows, Linux     | Decided                    | Shared  |
+| [0012](0012-knowledge-base-and-retrieval.md)       | Knowledge base and retrieval: where the corpus lives, and what that decides | Open — decision pending    | Shared  |

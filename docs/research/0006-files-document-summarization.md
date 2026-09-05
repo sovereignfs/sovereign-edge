@@ -95,7 +95,11 @@ both platforms.
 - Which Android PDF-text library (PdfBox-Android or otherwise) — needs an
   actual spike, not just this doc's survey of what exists.
 - Context-window scoping for long documents: hard length cap for MVP, or is
-  chunking/retrieval actually wanted? Needs product input.
+  chunking/retrieval actually wanted? Needs product input. **Picked up in
+  [research 0012](0012-knowledge-base-and-retrieval.md)** — the retrieval
+  half of this question became the knowledge-base question, and 0012 carries
+  it from here. The hard-length-cap fallback recorded above remains the
+  right thing to ship in the meantime.
 - Does file attachment belong on the existing Chat screen (task 8.1) or want
   its own flow?
 
