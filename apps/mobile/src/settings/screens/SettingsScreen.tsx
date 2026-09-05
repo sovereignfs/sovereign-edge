@@ -65,6 +65,31 @@ export function SettingsScreen() {
         title="Offline by design"
         subtitle={`${APP_NAME} has no network code in its chat path.`}
       />
+
+      {/*
+        Dev-only (epic task 16.1). Both this row and the route it opens are
+        `__DEV__`-gated, so a release build has no way in and no screen to
+        reach — the entry point alone would be a hidden feature rather than
+        an absent one.
+      */}
+      {__DEV__ && (
+        <>
+          <SectionLabel>Developer</SectionLabel>
+          <ListItem
+            title="Embedding Spike"
+            subtitle="Measure an embedding model alongside a loaded chat model"
+            onPress={() => navigation.navigate('EmbeddingSpike')}
+            accessory={
+              <Icon
+                name="chevron-right"
+                size="sm"
+                color={theme.colors.textSubtle}
+                aria-hidden
+              />
+            }
+          />
+        </>
+      )}
     </ScrollView>
   );
 }

@@ -10,6 +10,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ChatScreen } from '@/chat/screens/ChatScreen';
 import type { ConnectorManifest } from '@/connectors';
 import { Icon, useTheme, type Theme } from '@/design-system';
+import { EmbeddingSpikeScreen } from '@/models/screens/EmbeddingSpikeScreen';
 import { ModelsScreen } from '@/models/screens/ModelsScreen';
 
 import { ConnectorDetailScreen } from '../screens/ConnectorDetailScreen';
@@ -33,6 +34,13 @@ export type SettingsStackParamList = {
     manifest: ConnectorManifest;
     submittedBy: { name: string; contact?: string };
   };
+  /**
+   * Dev-only (epic task 16.1). Registered and reachable only under `__DEV__`
+   * — declared unconditionally here because the param list is a type, and a
+   * conditional type would buy nothing while making every `navigate` call
+   * site harder to read.
+   */
+  EmbeddingSpike: undefined;
 };
 
 export type RootTabParamList = {
@@ -119,6 +127,18 @@ function SettingsNavigator() {
         component={ConnectorInstallScreen}
         options={{ title: 'Install Connector' }}
       />
+      {/*
+        Dev-only measurement harness for epic task 16.1. Not registered in a
+        release build, so the route does not exist there at all rather than
+        existing and being merely hard to find.
+      */}
+      {__DEV__ && (
+        <SettingsStack.Screen
+          name="EmbeddingSpike"
+          component={EmbeddingSpikeScreen}
+          options={{ title: 'Embedding Spike' }}
+        />
+      )}
     </SettingsStack.Navigator>
   );
 }
